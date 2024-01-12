@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "volcano-data-deconvolution"
-version = "0.1.0"
+version = "0.1.1"
 description = "Deconvolution applied to volcanic eruption time series"
 authors = ["engeir <engeir@pm.me>"]
 license = "MIT"
