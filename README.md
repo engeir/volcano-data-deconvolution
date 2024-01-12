@@ -25,7 +25,7 @@ cd volcano-data-deconvolution
 poetry install
 ```
 
-> [!INFO]
+> [!NOTE]
 >
 > The repository and project is named volcano-data-deconvolution, but the package name
 > is `vdd`, just to make it shorter when importing.
