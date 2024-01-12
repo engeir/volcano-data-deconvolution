@@ -1,6 +1,6 @@
 # Deconvolution of volcanic eruption time series
 
-<sup>Latest version: v0.8.1</sup> <!-- x-release-please-version -->
+<sup>Latest version: v0.1.0</sup> <!-- x-release-please-version -->
 
 > [!WARNING]
 >
