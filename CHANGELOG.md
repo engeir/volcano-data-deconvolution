@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/engeir/volcano-data-deconvolution/compare/v0.1.1...v0.1.2) (2024-01-12)
+
+
+### Bug Fixes
+
+* **README:** incorrect git clone link ([a1451ba](https://github.com/engeir/volcano-data-deconvolution/commit/a1451ba1e1d57d7655df30842df79a9fcecb6f47))
+
 ## [0.1.1](https://github.com/engeir/volcano-data-deconvolution/compare/v0.1.0...v0.1.1) (2024-01-12)
 
 
