@@ -19,7 +19,7 @@ environment into `./.venv/`. If you do not wish to use [mise], [poetry] will by 
 also create a virtual environment with an available python runtime.
 
 ```bash
-git clone git@github.com/engeir/volcano-data-deconvolution
+git clone git@github.com:engeir/volcano-data-deconvolution.git
 cd volcano-data-deconvolution
 # poetry can be installed from pipx, as `pipx install poetry`. See https://python-poetry.org/docs/#installation
 poetry install
