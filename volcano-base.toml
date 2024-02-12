@@ -1,0 +1,8 @@
+[volcano-base]
+# Location of the repository
+project_root = "/home/een023/Documents/work/projects/volcano-data-deconvolution"
+# Location of the data used in analysis scripts
+data_path = "/media/een023/LaCie/een023/cesm/model-runs/"
+# data_path = "/home/een023/Documents/work/projects/volcano-data-deconvolution/downloaded_files"
+# Location of the saved figures
+save_path = "/home/een023/Documents/work/projects/volcano-data-deconvolution/generated_files"
