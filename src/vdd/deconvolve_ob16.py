@@ -52,7 +52,6 @@ def check_cesm_output() -> None:
     plt.show()
 
 
-# def check_time_steps(arr: xr.DataArray) -> None:
 def find_sampling_rate(dates: np.ndarray) -> float:
     """Find the sampling rate.
 
@@ -171,6 +170,26 @@ def pad_before_convolution(
     return arr_
 
 
+def extend_temp_shape() -> xr.DataArray:
+    """Extend the shape of the temperature array."""
+    t = vdd.get_cesm_data.get_trefht_cesm()
+    t *= -1
+    count = 1
+    x_base = np.concatenate((np.array([0]), t.time.data))
+    assert len(x_base) == int(12 * 20)
+    x = x_base + 20 * count
+    while x[-1] < 200:
+        count += 1
+        x = np.append(x, x_base + 20 * count)
+    decay = 1.5 * np.exp(-x / 30)
+    decay = decay + np.random.default_rng().normal(0, 0.1, len(x))
+    signal = np.concatenate((t, decay))
+    t_new = xr.DataArray(
+        -1 * signal, coords={"time": np.concatenate((t.time.data, x))}, dims=["time"]
+    )
+    return t_new
+
+
 def main() -> None:
     """Deconvolve data."""
     # volcano_base.load.get_ob16_outputs()
@@ -199,11 +218,14 @@ def main() -> None:
 
     frc = pad_before_convolution(vdd.get_cesm_data.get_rf_cesm())
     tmp = pad_before_convolution(vdd.get_cesm_data.get_trefht_cesm())
+    tmp_ext = pad_before_convolution(extend_temp_shape())
     signal = np.convolve(so2, frc, mode="same")
     signal2 = np.convolve(so2, tmp, mode="same")
+    signal3 = np.convolve(so2, tmp_ext, mode="same")
     plt.figure()
     normalise(temp).plot()
     plt.plot(so2.time.data, normalise(signal2))
+    plt.plot(so2.time.data, normalise(signal3))
     plt.figure()
     normalise(rf_fr).plot()
     plt.plot(so2.time.data, normalise(signal))
@@ -212,3 +234,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    # extend_temp_shape()

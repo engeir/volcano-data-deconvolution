@@ -15,8 +15,9 @@ def pad_before_convolution(
     """Pad the array on the left as preparation for a convolution.
 
     This uses the ``xr.DataArray().pad`` method under the hood, and tries to fix the
-    time axis by inserting valid time values. The default behaviour is to set ``np.nan``
-    for the padding values, which will hide the padded values in a plot.
+    time axis by inserting valid time values. The default behaviour of
+    ``xr.DataArray().pad`` is to set time stamps of ``np.nan`` for the padding values,
+    which will hide the padded values in a plot.
 
     Parameters
     ----------
@@ -75,11 +76,71 @@ def check_cesm_output() -> None:
     plt.show()
 
 
+def extend_aod_shape() -> xr.DataArray:
+    """Extend the shape of the aerosol optical depth array."""
+    aod = vdd.get_cesm_data.get_aod_cesm()
+    count = 1
+    x_base = np.concatenate((np.array([0]), aod.time.data))
+    assert len(x_base) == int(12 * 20)
+    x = x_base + 20 * count
+    while x[-1] < 200:
+        count += 1
+        x = np.append(x, x_base + 20 * count)
+    decay = np.random.default_rng().normal(0, 0.00003, len(x))
+    signal = np.concatenate((aod, decay))
+    aod_new = xr.DataArray(
+        signal, coords={"time": np.concatenate((aod.time.data, x))}, dims=["time"]
+    )
+    return aod_new
+
+
+def extend_rf_shape() -> xr.DataArray:
+    """Extend the shape of the radiative forcing array."""
+    rf = vdd.get_cesm_data.get_rf_cesm()
+    rf *= -1
+    count = 1
+    x_base = np.concatenate((np.array([0]), rf.time.data))
+    assert len(x_base) == int(12 * 20)
+    x = x_base + 20 * count
+    while x[-1] < 200:
+        count += 1
+        x = np.append(x, x_base + 20 * count)
+    decay = np.random.default_rng().normal(0, 0.5, len(x))
+    signal = np.concatenate((rf, decay))
+    rf_new = xr.DataArray(
+        -1 * signal, coords={"time": np.concatenate((rf.time.data, x))}, dims=["time"]
+    )
+    return rf_new
+
+
+def extend_temp_shape() -> xr.DataArray:
+    """Extend the shape of the temperature array."""
+    t = vdd.get_cesm_data.get_trefht_cesm()
+    t *= -1
+    count = 1
+    x_base = np.concatenate((np.array([0]), t.time.data))
+    assert len(x_base) == int(12 * 20)
+    x = x_base + 20 * count
+    while x[-1] < 200:
+        count += 1
+        x = np.append(x, x_base + 20 * count)
+    decay = 1.5 * np.exp(-x / 30)
+    decay = decay + np.random.default_rng().normal(0, 0.05, len(x))
+    signal = np.concatenate((t, decay))
+    t_new = xr.DataArray(
+        -1 * signal, coords={"time": np.concatenate((t.time.data, x))}, dims=["time"]
+    )
+    return t_new
+
+
 def main():
     """Run the main function."""
-    aod = vdd.get_cesm_data.get_aod_cesm(False)
-    rf = vdd.get_cesm_data.get_rf_cesm(False)
-    t = vdd.get_cesm_data.get_trefht_cesm(False)
+    # aod = vdd.get_cesm_data.get_aod_cesm()
+    aod = extend_aod_shape()
+    # rf = vdd.get_cesm_data.get_rf_cesm()
+    rf = extend_rf_shape()
+    # t = vdd.get_cesm_data.get_trefht_cesm()
+    t = extend_temp_shape()
     x = aod.time.data
     print(len(x))
     if any(x != rf.time.data) or any(x != t.time.data):
@@ -114,3 +175,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # extend_temp_shape()
+    # extend_rf_shape()
+    # extend_aod_shape()
