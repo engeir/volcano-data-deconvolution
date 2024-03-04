@@ -4,6 +4,7 @@ import datetime
 from typing import overload
 
 import cftime
+import fppanalysis
 import matplotlib.pyplot as plt
 import nc_time_axis  # noqa: F401
 import numpy as np
@@ -19,13 +20,11 @@ plt.style.use(
 
 
 @overload
-def normalise(arr: np.ndarray) -> np.ndarray:
-    ...
+def normalise(arr: np.ndarray) -> np.ndarray: ...
 
 
 @overload
-def normalise(arr: xr.DataArray) -> xr.DataArray:
-    ...
+def normalise(arr: xr.DataArray) -> xr.DataArray: ...
 
 
 def normalise(arr: xr.DataArray | np.ndarray) -> xr.DataArray | np.ndarray:
@@ -192,19 +191,55 @@ def extend_temp_shape() -> xr.DataArray:
     return t_new
 
 
-def main() -> None:
+def deconvolve_rf_with_so2() -> None:
+    """Deconvolve the RF signal with the SO2 signal."""
+    ob16 = volcano_base.load.OttoBliesner(freq="h1", progress=True)
+    so2 = ob16.aligned_arrays["so2-start"]
+    tau = so2.time.data - (
+        so2.time.data[len(so2.time.data) // 2]
+        - cftime.DatetimeNoLeap(0, 1, 1, has_year_zero=True, calendar="noleap")
+    )
+    rf = ob16.aligned_arrays["rf"]
+    temp = ob16.aligned_arrays["temperature"]
+    temp_shape, temp_err = fppanalysis.RL_gauss_deconvolve(
+        temp.data, so2.data, iteration_list=200
+    )
+    rf_shape, rf_err = fppanalysis.RL_gauss_deconvolve(
+        rf.data, so2.data, iteration_list=200
+    )
+    # Quick comparison
+    plt.figure()
+    plt.plot(temp.time.data, normalise(temp))
+    plt.plot(rf.time.data, normalise(rf))
+    plt.plot(so2.time.data, normalise(so2))
+    plt.figure()
+    plt.plot(tau, normalise(temp_shape))
+    plt.plot(tau, normalise(rf_shape))
+    plt.figure()
+    plt.semilogy(temp_err)
+    plt.semilogy(rf_err)
+
+    # Save figs
+    plt.figure()
+    temp.plot(label="Temperature")
+    rf.plot(label="RF")
+    so2.plot(label="SO2")
+    plt.show()
+
+
+def look_at_ob_data() -> None:
     """Deconvolve data."""
     # volcano_base.load.get_ob16_outputs()
-    temperature_day = volcano_base.load.get_ob16_temperature()
+    ob16_day = volcano_base.load.OttoBliesner(freq="h1", progress=True)
+    temperature_day = ob16_day.temperature_median
     temperature = weighted_monthly_avg(temperature_day)
-    rf_day = volcano_base.load.get_ob16_rf()
+    rf_day = ob16_day.rf_median
     rf = weighted_monthly_avg(rf_day)
-    # FIXME: The SO2 adjustment should be done in the load module
-    so2_day = volcano_base.load.get_so2_ob16_peak_timeseries(xarray=True) / 3 * 2
-    d1 = 190
-    so2_day = so2_day.assign_coords(
-        time=so2_day.time.data - datetime.timedelta(days=d1)
-    )
+    so2_day = ob16_day.so2_delta
+    # d1 = 190
+    # so2_day = so2_day.assign_coords(
+    #     time=so2_day.time.data - datetime.timedelta(days=d1)
+    # )
     so2 = weighted_monthly_avg(so2_day)
 
     so2, rf_fr, temp = xr.align(so2, rf, temperature)
@@ -237,5 +272,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    deconvolve_rf_with_so2()
     # extend_temp_shape()
