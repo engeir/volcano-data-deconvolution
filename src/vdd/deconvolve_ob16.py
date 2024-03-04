@@ -12,6 +12,7 @@ import xarray as xr
 
 import vdd.get_cesm_data
 
+plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
 plt.style.use(
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
 )
@@ -178,7 +179,8 @@ def extend_temp_shape() -> xr.DataArray:
     x_base = np.concatenate((np.array([0]), t.time.data))
     assert len(x_base) == int(12 * 20)
     x = x_base + 20 * count
-    while x[-1] < 200:
+    decay_year = 200
+    while x[-1] < decay_year:
         count += 1
         x = np.append(x, x_base + 20 * count)
     decay = 1.5 * np.exp(-x / 30)
@@ -197,6 +199,7 @@ def main() -> None:
     temperature = weighted_monthly_avg(temperature_day)
     rf_day = volcano_base.load.get_ob16_rf()
     rf = weighted_monthly_avg(rf_day)
+    # FIXME: The SO2 adjustment should be done in the load module
     so2_day = volcano_base.load.get_so2_ob16_peak_timeseries(xarray=True) / 3 * 2
     d1 = 190
     so2_day = so2_day.assign_coords(
@@ -224,8 +227,9 @@ def main() -> None:
     signal3 = np.convolve(so2, tmp_ext, mode="same")
     plt.figure()
     normalise(temp).plot()
-    plt.plot(so2.time.data, normalise(signal2))
     plt.plot(so2.time.data, normalise(signal3))
+    plt.plot(so2.time.data, normalise(signal2))
+    plt.legend(["OB16 T", "CESM2 T extra", "CESM2 T"])
     plt.figure()
     normalise(rf_fr).plot()
     plt.plot(so2.time.data, normalise(signal))

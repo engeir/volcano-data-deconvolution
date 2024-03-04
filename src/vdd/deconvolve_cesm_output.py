@@ -135,12 +135,12 @@ def extend_temp_shape() -> xr.DataArray:
 
 def main():
     """Run the main function."""
-    # aod = vdd.get_cesm_data.get_aod_cesm()
-    aod = extend_aod_shape()
-    # rf = vdd.get_cesm_data.get_rf_cesm()
-    rf = extend_rf_shape()
-    # t = vdd.get_cesm_data.get_trefht_cesm()
-    t = extend_temp_shape()
+    aod = vdd.get_cesm_data.get_aod_cesm()
+    rf = vdd.get_cesm_data.get_rf_cesm()
+    t = vdd.get_cesm_data.get_trefht_cesm()
+    # aod = extend_aod_shape()
+    # rf = extend_rf_shape()
+    # t = extend_temp_shape()
     x = aod.time.data
     print(len(x))
     if any(x != rf.time.data) or any(x != t.time.data):
@@ -161,9 +161,11 @@ def main():
     t_rl_aod = t_rl_aod.flatten()
     # TODO: convolve the found t_rl_rf with RF from OB16, and compare with T from OB16
     plt.figure()
-    plt.plot(t_rl_rf)
+    plt.plot(t_rl_rf, label="RLD(T, RF)")
+    plt.legend()
     plt.figure()
-    plt.plot(t_rl_aod)
+    plt.plot(t_rl_aod, label="RLD(T, AOD)")
+    plt.legend()
     plt.figure()
     plt.plot(t_pad)
     plt.plot(np.convolve(t_rl_aod, aod_pad, mode="same"))
