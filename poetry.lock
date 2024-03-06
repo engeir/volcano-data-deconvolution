@@ -1795,13 +1795,13 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "volcano-base"
-version = "1.2.0"
+version = "1.4.1"
 description = "Download, find and manipulate volcano and climate related time series"
 optional = false
 python-versions = ">=3.12"
 files = [
-    {file = "volcano_base-1.2.0-py3-none-any.whl", hash = "sha256:42d10b27994a56de4f02b408cdca0a36b18b1f7293b0909d0ee7246824e1fd44"},
-    {file = "volcano_base-1.2.0.tar.gz", hash = "sha256:441b340858b90fde4f39ff59459606d72396efbe0957db79af1acfdd2f170601"},
+    {file = "volcano_base-1.4.1-py3-none-any.whl", hash = "sha256:e01b2639b3d5eeeec44d3b0b2ab36021efa28d2e65223b693890fac80031ece6"},
+    {file = "volcano_base-1.4.1.tar.gz", hash = "sha256:b5f002244e5b9dc5a27369254494094872adaa0cdfdb2db3276abce707dffc34"},
 ]
 
 [package.dependencies]
@@ -1936,4 +1936,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "5abfb757c49d55630bec1eb676e40bcebc21ca80d3f6182284b9494e01d77fce"
+content-hash = "1c763c8185660eb0a97fa114342a823663c804b2821f53ce0fa00360ea37cb20"
