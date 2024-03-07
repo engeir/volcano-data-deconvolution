@@ -1,10 +1,10 @@
 """Alternative deconvolution methods for the deconvolution of the forcing signal from the observed signal."""
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import OptimizeResult, minimize
 
 
-def deconv_mean_2(signal, forcing):
+def deconv_mean_2(signal, forcing) -> OptimizeResult:
     """Deconvolution with mean value and an unknown finite mean."""
 
     # This uses the last term in expression (24) with the mean value as an additional unknown.
@@ -19,7 +19,29 @@ def deconv_mean_2(signal, forcing):
     bounds_mu = ((0.0, np.inf),)
     bounds += bounds_mu
 
-    res = minimize(
+    return minimize(
         costfun, np.ones(signal.size + 1), args=(signal, forcing), bounds=bounds
     )
-    return res
+
+
+def alternative_deconv(
+    signal: np.ndarray, forcing: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Alternative deconvolution method.
+
+    This method uses the last term in expression (24) with the mean value as an additional unknown.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        The observed signal.
+    forcing : np.ndarray
+        The forcing signal.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        A tuple containing the deconvolved forcing signal and the mean value.
+    """
+    res = deconv_mean_2(signal, forcing)
+    return res.x[-1], np.asarray(res.nit)

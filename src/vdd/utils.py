@@ -1,10 +1,19 @@
 """Utility functions for the volcano-data-deconvolution package."""
 
-from typing import overload
+from typing import Never, NoReturn, overload
 
 import numpy as np
 import volcano_base
 import xarray as xr
+
+
+def never_called(value: Never) -> NoReturn:
+    """Raise an error if a value is passed to a function that should never be called."""
+    # The function is useful when running mypy. If, in a series of if/elif or
+    # match/case, a variable is not fully handled, mypy will complain and say that the
+    # variable is of the wrong type when this function is called in the final `else`
+    # clause.
+    raise AssertionError("Code is unreachable.")
 
 
 @overload
