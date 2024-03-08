@@ -5,12 +5,11 @@ import numpy as np
 import volcano_base
 
 import vdd.load
-from vdd.deconvolve_methods import alternative_deconv
 
 ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
-# dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
 dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
-dec_ob16_month.change_deconvolution_method(alternative_deconv)
+# dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
+# dec_ob16_month.change_deconvolution_method(alternative_deconv)
 cesm_e = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("size5000"))
 cesm_s = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("strong"))
 cesm_p = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("medium-plus"))
@@ -43,8 +42,8 @@ for cesm, label in zip(
     strict=True,
 ):
     # fmt: off
-    conv_temp_so2 = np.convolve(ob16_so2.data, cesm.response_temp_so2, "same")
-    conv_temp_rf = np.convolve(ob16_rf.data, cesm.response_temp_rf, "same")
+    conv_temp_so2 = np.convolve(ob16_so2.data, dec_ob16_month.response_temp_so2, "same")
+    conv_temp_rf = np.convolve(ob16_rf.data, dec_ob16_month.response_temp_rf, "same")
     conv_norm_temp_so2 = np.convolve(ob16_so2.data, cesm.response_temp_so2 /cesm.response_temp_so2.max() * ob16_rt2_amplitude, "same")
     conv_norm_temp_rf = np.convolve(ob16_rf.data, cesm.response_temp_rf / cesm.response_temp_rf.max() * ob16_rtr_amplitude, "same")
     abso_a.plot(ob16_time, conv_temp_so2, label=f"Reconstructed from SO2 ({label})")

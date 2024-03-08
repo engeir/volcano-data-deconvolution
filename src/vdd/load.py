@@ -225,6 +225,7 @@ class Deconvolve:
     so2: xr.DataArray
     rf: xr.DataArray
     temp: xr.DataArray
+    name: str = "Deconvolve"
 
     def __init__(self) -> None:
         kwargs = {"iteration_list": 200}
@@ -454,9 +455,10 @@ class DeconvolveOB16(Deconvolve):
             case _:
                 raise ValueError(f"Invalid data: {data}")
         self.so2 = ob16.aligned_arrays["so2-start"]
-        self.tau = self.so2.time.data - (
+        tau = self.so2.time.data - (
             self.so2.time.data[len(self.so2.time.data) // 2]
             - cftime.DatetimeNoLeap(0, 1, 1, has_year_zero=True, calendar="noleap")
         )
+        self.tau = volcano_base.manipulate.dt2float(tau)
         self.rf = ob16.aligned_arrays["rf"]
         self.temp = ob16.aligned_arrays["temperature"]

@@ -2,6 +2,7 @@
 
 from functools import cached_property
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import volcano_base
 
@@ -33,7 +34,7 @@ class CompareOB16WithCESM:
         """
         return vdd.load.DeconvolveCESM(pad_before=True)
 
-    def plot_rf(self) -> plt.Figure:
+    def plot_rf(self) -> mpl.figure.Figure:
         """Plot the RF data."""
         plt.figure()
         # OB16 (CESM1)
@@ -43,7 +44,7 @@ class CompareOB16WithCESM:
         plt.plot(self.dec_cesm.tau, self.dec_cesm.response_rf_so2)
         return plt.gcf()
 
-    def plot_temp(self) -> plt.Figure:
+    def plot_temp(self) -> mpl.figure.Figure:
         """Plot the temperature data."""
         plt.figure()
         # OB16 (CESM1)

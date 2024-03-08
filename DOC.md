@@ -14,6 +14,18 @@
   than that of temperature, with an amplitude between the smallest and second smallest
   CESM2 forcing
 
+## To do
+
+1. Compute the residual as conv - T, both reconstructed from T-RF and T-SO2 response
+2. Look at the residual spectrum compared to that of a control simulation
+   - Gaussian?
+   - Any difference between the proper reconstruction (T-SO2) and the noisy one (T-RF)?
+   - What happen at low frequency?
+3. Look at the correlation between the residual and the reconstructed
+   - Any extra peaks in the residual?
+4. Look at the difference in peak values between reconstructions and the original
+   - Is the peak differences symmetric or skewed? If skewed, how?
+
 ## Response functions
 
 ### RF to SO2 response
@@ -63,3 +75,8 @@ meaningful result due to the time misalignment, while the monthly resolved datas
 produces a result that is noisy yet showing a reasonable shape. The CESM2 response
 functions are all very noisy, but the general shape, at least of the three larger
 response functions, is reasonable.
+
+## Reconstruction
+
+We next reconstruct the OB16 dataset in order to compare the residual to a control
+simulation as well as the reconstructions themselves against the original.
