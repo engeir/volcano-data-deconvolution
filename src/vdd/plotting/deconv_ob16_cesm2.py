@@ -14,13 +14,15 @@ plt.style.use(
 dec_cesm_s = vdd.load.DeconvolveCESM(pad_before=True)
 dec_cesm_s.name = "CESM2 Strong"
 dec_cesm_p = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData("medium-plus")
+    pad_before=True, cesm=vdd.load.CESMData(strength="medium-plus")
 )
 dec_cesm_p.name = "CESM2 Intermediate"
-dec_cesm_m = vdd.load.DeconvolveCESM(pad_before=True, cesm=vdd.load.CESMData("medium"))
+dec_cesm_m = vdd.load.DeconvolveCESM(
+    pad_before=True, cesm=vdd.load.CESMData(strength="medium")
+)
 dec_cesm_m.name = "CESM2 Small"
 dec_cesm_e = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData("size5000")
+    pad_before=True, cesm=vdd.load.CESMData(strength="size5000")
 )
 dec_cesm_e.name = "CESM2 Extra Strong"
 # Original
@@ -39,9 +41,20 @@ all_decs = (dec_ob16, dec_ob16_month, dec_cesm_m, dec_cesm_p, dec_cesm_s, dec_ce
 
 
 class PlotResponseFunctions:
-    """Plot the response functions."""
+    """Plot the response functions.
 
-    def __init__(self, *decs: vdd.load.Deconvolve, norm=False):
+    This takes any number of deconvolution objects as input and creates plots that
+    compare the response functions of the deconvolution objects.
+
+    Parameters
+    ----------
+    *decs : vdd.load.Deconvolve
+        The deconvolution objects to compare.
+    norm : bool, optional
+        Whether to normalise the response functions, by default False.
+    """
+
+    def __init__(self, *decs: vdd.load.Deconvolve, norm: bool = False):
         self.decs = decs
         self.norm = norm
 

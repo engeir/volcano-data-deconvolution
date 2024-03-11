@@ -10,10 +10,10 @@ ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
 dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
 # dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
 # dec_ob16_month.change_deconvolution_method(alternative_deconv)
-cesm_e = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("size5000"))
-cesm_s = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("strong"))
-cesm_p = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("medium-plus"))
-cesm_m = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData("medium"))
+cesm_e = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData(strength="size5000"))
+cesm_s = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData(strength="strong"))
+cesm_p = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData(strength="medium-plus"))
+cesm_m = vdd.load.DeconvolveCESM(True, cesm=vdd.load.CESMData(strength="medium"))
 ob16_time = dec_ob16_month.temp.time.data
 ob16_so2 = dec_ob16_month.so2
 ob16_rf = dec_ob16_month.rf

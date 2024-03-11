@@ -22,6 +22,7 @@ nc-time-axis = "^1.4.1"
 xarray = "^2024.1.1"
 volcano-base = "^1.4.1"
 cosmoplots = "^0.3.0"
+pydantic = "^2.6.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.12"

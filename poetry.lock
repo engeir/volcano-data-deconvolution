@@ -12,6 +12,27 @@ files = [
 ]
 
 [[package]]
+name = "beautifulsoup4"
+version = "4.12.3"
+description = "Screen-scraping library"
+optional = false
+python-versions = ">=3.6.0"
+files = [
+    {file = "beautifulsoup4-4.12.3-py3-none-any.whl", hash = "sha256:b80878c9f40111313e55da8ba20bdba06d8fa3969fc68304167741bbf9e082ed"},
+    {file = "beautifulsoup4-4.12.3.tar.gz", hash = "sha256:74e3d1928edc070d21748185c46e3fb33490f22f52a3addee9aee0f4f7781051"},
+]
+
+[package.dependencies]
+soupsieve = ">1.2"
+
+[package.extras]
+cchardet = ["cchardet"]
+chardet = ["chardet"]
+charset-normalizer = ["charset-normalizer"]
+html5lib = ["html5lib"]
+lxml = ["lxml"]
+
+[[package]]
 name = "certifi"
 version = "2024.2.2"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -1214,13 +1235,13 @@ files = [
 
 [[package]]
 name = "pydantic"
-version = "2.6.3"
+version = "2.6.4"
 description = "Data validation using Python type hints"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pydantic-2.6.3-py3-none-any.whl", hash = "sha256:72c6034df47f46ccdf81869fddb81aade68056003900a8724a4f160700016a2a"},
-    {file = "pydantic-2.6.3.tar.gz", hash = "sha256:e07805c4c7f5c6826e33a1d4c9d47950d7eaf34868e2690f8594d2e30241f11f"},
+    {file = "pydantic-2.6.4-py3-none-any.whl", hash = "sha256:cc46fce86607580867bdc3361ad462bab9c222ef042d3da86f2fb333e1d916c5"},
+    {file = "pydantic-2.6.4.tar.gz", hash = "sha256:b1704e0847db01817624a6b86766967f552dd9dbf3afba4004409f908dcc84e6"},
 ]
 
 [package.dependencies]
@@ -1720,6 +1741,17 @@ files = [
 ]
 
 [[package]]
+name = "soupsieve"
+version = "2.5"
+description = "A modern CSS selector implementation for Beautiful Soup."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "soupsieve-2.5-py3-none-any.whl", hash = "sha256:eaa337ff55a1579b6549dc679565eac1e3d000563bcb1c8ab0d0fefbc0c2cdc7"},
+    {file = "soupsieve-2.5.tar.gz", hash = "sha256:5663d5a7b3bfaeee0bc4372e7fc48f9cff4940b3eec54a6451cc5299f1097690"},
+]
+
+[[package]]
 name = "toolz"
 version = "0.12.1"
 description = "List processing tools and functional utilities"
@@ -1811,16 +1843,17 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "volcano-base"
-version = "1.4.4"
+version = "1.5.1"
 description = "Download, find and manipulate volcano and climate related time series"
 optional = false
 python-versions = ">=3.12"
 files = [
-    {file = "volcano_base-1.4.4-py3-none-any.whl", hash = "sha256:b9fe9a4a2cccfa221e1ead6f3efc468c272cf288cabdbc1f282c08ca4eafc265"},
-    {file = "volcano_base-1.4.4.tar.gz", hash = "sha256:02b0a2d7f99f20030cac31f1f0d9680bf42ec0cabf747ad65f25295a07ba3913"},
+    {file = "volcano_base-1.5.1-py3-none-any.whl", hash = "sha256:061ed2123e686d8aedfc2cca19c94dca9d9578a632d7ae44b9dc2ea5acc57796"},
+    {file = "volcano_base-1.5.1.tar.gz", hash = "sha256:09be23d6c44e7f480cf0cef648f5d04be4d233b890643bb856552528e55adcee"},
 ]
 
 [package.dependencies]
+beautifulsoup4 = ">=4.12.3"
 cftime = ">=1.6.3"
 dask = ">=2024.2.0"
 datetime = ">=5.4"
@@ -1952,4 +1985,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "0dd5316b1c69a789ec43725db967ed0b074d9d5ee40b3190b4fbaf13e73d3e17"
+content-hash = "6a0cc4b373495471ca709da9fe6972b3e5761768fa5f40b8203b5a3ff8947a2a"

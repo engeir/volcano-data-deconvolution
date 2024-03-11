@@ -38,7 +38,7 @@ def extend_aod_shape() -> xr.DataArray:
         count += 1
         x = np.append(x, x_base + 20 * count)
     decay = np.random.default_rng().normal(0, 0.00003, len(x))
-    signal = np.concatenate((cesm.aod, decay))
+    signal: np.ndarray = np.concatenate((cesm.aod.data, decay))
     aod_new = xr.DataArray(
         signal, coords={"time": np.concatenate((cesm.aod.time.data, x))}, dims=["time"]
     )
@@ -58,7 +58,7 @@ def extend_rf_shape() -> xr.DataArray:
         count += 1
         x = np.append(x, x_base + 20 * count)
     decay = np.random.default_rng().normal(0, 0.5, len(x))
-    signal = np.concatenate((cesm.rf, decay))
+    signal: np.ndarray = np.concatenate((cesm.rf.data, decay))
     rf_new = xr.DataArray(
         -1 * signal,
         coords={"time": np.concatenate((cesm.rf.time.data, x))},

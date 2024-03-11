@@ -16,10 +16,12 @@
 
 ## To do
 
-1. Compute the residual as conv - T, both reconstructed from T-RF and T-SO2 response
+1. Compute the residual as $\mathrm{conv}(T, R_{\mathrm{RF~or~SO2}})-T$, that is, both
+   reconstructed from T---RF and T---SO2 response
 2. Look at the residual spectrum compared to that of a control simulation
    - Gaussian?
-   - Any difference between the proper reconstruction (T-SO2) and the noisy one (T-RF)?
+   - Any difference between the proper reconstruction (T---SO2) and the noisy one
+     (T---RF)?
    - What happen at low frequency?
 3. Look at the correlation between the residual and the reconstructed
    - Any extra peaks in the residual?
@@ -78,5 +80,61 @@ response functions, is reasonable.
 
 ## Reconstruction
 
-We next reconstruct the OB16 dataset in order to compare the residual to a control
-simulation as well as the reconstructions themselves against the original.
+We next reconstruct the OB16 dataset to compare the residual to a control simulation as
+well as the reconstructions themselves against the original.
+
+### Time series
+
+Let us first have a look at the temperature from both a control simulation, and the SO2
+forced simulation, as well as the reconstructed temperature from the SO2 response and
+the RF response.
+
+![Reconstructed temperature time series](./temp-reconstructed.png)
+
+We notice that the SO2 response reconstruction is almost without noise, which is to be
+expected as it is the convolution between the response function, and a train of delta
+pulses. The RF response reconstruction on the other hand is very noisy, and follows the
+original temperature time series more closely as more of the variability is captured
+from using the RF time series rather than the SO2 time series.
+
+### Residuals
+
+Next, we look at the residuals from the reconstructions, and specifically the
+correlation between the residuals and the reconstructions.
+
+![Residuals](./correlation-residual-reconstructed.png)
+
+The residuals are here defined as the difference between the original temperature time
+series and the reconstructed time series. As such, the correlation function between
+reconstructed and residual from using the RF response function give strong negative
+correlation at small time lags, with a weaker positive correlation at larger time lags.
+
+The correlation function between the SO2 response reconstruction and the residual is
+much more flat, but with spuriously strong correlations at all time lags.
+
+### Spectrum
+
+Below is a plot showing the power spectral density of the two residual time series, and
+the control temperature time series.
+
+![Spectrum](./spectrum-residual-control_temp.png)
+
+Based on how the reconstructed temperature time series from the SO2 and RF response
+functions are constructed, we expect the residual from the RF response reconstruction to
+feature more power at high frequencies, as the reconstructed time series contain noise
+from both the response function and the radiative forcing time series.
+
+We would expect the control simulation temperature to be close to Gaussian noise, and
+this is indeed what the spectrum shows.
+
+### Peak differences
+
+We want to investigate how well we are able to resolve the true peaks in the temperature
+from the reconstructions. Ideally, the only differences in peak values should be due to
+noise in the temperature time series, and not due to the reconstruction method.
+
+We plot both the PDF, and the CDF of the peak difference time series.
+
+![Peak difference PDF](./peak-difference-pdf.png)
+
+![Peak differences CDF](./peak-difference-cdf.png)
