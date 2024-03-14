@@ -16,17 +16,36 @@
 
 ## To do
 
-1. Compute the residual as $\mathrm{conv}(T, R_{\mathrm{RF~or~SO2}})-T$, that is, both
-   reconstructed from T---RF and T---SO2 response
-2. Look at the residual spectrum compared to that of a control simulation
-   - Gaussian?
+1. ~~Compute the residual as $\mathrm{conv}(T, R_{\mathrm{RF~or~SO2}})-T$, that is, both
+   reconstructed from T---RF and T---SO2 response~~
+2. ~~Look at the residual spectrum compared to that of a control simulation~~
+   - Gaussian? **Yes**
    - Any difference between the proper reconstruction (T---SO2) and the noisy one
-     (T---RF)?
-   - What happen at low frequency?
-3. Look at the correlation between the residual and the reconstructed
-   - Any extra peaks in the residual?
-4. Look at the difference in peak values between reconstructions and the original
-   - Is the peak differences symmetric or skewed? If skewed, how?
+     (T---RF)? **Slightly, see section below**
+   - What happen at low frequency? **RF looses power**
+3. ~~Look at the correlation between the residual and the reconstructed~~
+   - Any extra peaks in the residual? **Stronger correlation in the RF case**
+4. ~~Look at the difference in peak values between reconstructions and the original~~
+   - Is the peak differences symmetric or skewed? If skewed, how? **Symmetric**
+
+---
+
+## Table of contents
+
+<!-- vim-markdown-toc GFM -->
+
+- [Response functions](#response-functions)
+  - [RF to SO2 response](#rf-to-so2-response)
+  - [Temperature to SO2 response](#temperature-to-so2-response)
+  - [Temperature to RF response](#temperature-to-rf-response)
+- [Reconstruction](#reconstruction)
+  - [Time series](#time-series)
+  - [Residuals](#residuals)
+  - [Spectrum](#spectrum)
+  - [Peak differences](#peak-differences)
+- [Parametrisation](#parametrisation)
+
+<!-- vim-markdown-toc -->
 
 ## Response functions
 
@@ -89,20 +108,20 @@ Let us first have a look at the temperature from both a control simulation, and 
 forced simulation, as well as the reconstructed temperature from the SO2 response and
 the RF response.
 
-![Reconstructed temperature time series](./temp-reconstructed.png)
+![Reconstructed temperature time series](./ob16-month-temp-reconstructed.png)
 
 We notice that the SO2 response reconstruction is almost without noise, which is to be
 expected as it is the convolution between the response function, and a train of delta
-pulses. The RF response reconstruction on the other hand is very noisy, and follows the
-original temperature time series more closely as more of the variability is captured
-from using the RF time series rather than the SO2 time series.
+pulses. The RF response reconstruction is very noisy, yet follows the original
+temperature time series more closely as more of the variability is captured from using
+the RF time series rather than the SO2 time series.
 
 ### Residuals
 
 Next, we look at the residuals from the reconstructions, and specifically the
 correlation between the residuals and the reconstructions.
 
-![Residuals](./correlation-residual-reconstructed.png)
+![Residuals](./ob16-month-correlation-residual-reconstructed.png)
 
 The residuals are here defined as the difference between the original temperature time
 series and the reconstructed time series. As such, the correlation function between
@@ -117,12 +136,14 @@ much more flat, but with spuriously strong correlations at all time lags.
 Below is a plot showing the power spectral density of the two residual time series, and
 the control temperature time series.
 
-![Spectrum](./spectrum-residual-control_temp.png)
+![Spectrum](./ob16-month-spectrum-residual-control_temp.png)
 
 Based on how the reconstructed temperature time series from the SO2 and RF response
 functions are constructed, we expect the residual from the RF response reconstruction to
 feature more power at high frequencies, as the reconstructed time series contain noise
-from both the response function and the radiative forcing time series.
+from both the response function and the radiative forcing time series. Likewise, the
+RF-reconstructed temperature follows the original temperature time series more closely,
+thus reducing the slow variability in the residual time series.
 
 We would expect the control simulation temperature to be close to Gaussian noise, and
 this is indeed what the spectrum shows.
@@ -135,6 +156,43 @@ noise in the temperature time series, and not due to the reconstruction method.
 
 We plot both the PDF, and the CDF of the peak difference time series.
 
-![Peak difference PDF](./peak-difference-pdf.png)
+![Peak difference PDF](./ob16-month-peak-difference-pdf.png)
 
-![Peak differences CDF](./peak-difference-cdf.png)
+![Peak differences CDF](./ob16-month-peak-difference-cdf.png)
+
+## Parametrisation
+
+We have good estimates of the RF to SO2 and T to SO2 response functions. Both from CESM2
+simulations, but also from the Otto-Bliesner et al. (2016) dataset. The next step is to
+obtain a good estimate of the T to RF response function. This is ideally as simple as
+deconvolving the RF to SO2 response function from the T to SO2 response function, but as
+both response functions have a width as well as being noisy, this is not a trivial task.
+
+Let convolution be described as $\ast$ and deconvolution as $\tilde\ast$, and further
+that the temperature response to SO2 is $T\tilde\ast S=\phi_{ab}$ and RF response to SO2
+is $R\tilde\ast S=\phi_a$. Finally, let the temperature response to RF be $T\tilde\ast
+R=\phi_b$. Thus, we have
+
+<!-- dprint-ignore-start -->
+$$
+\begin{aligned}
+R&=S\ast\phi_a\\
+T&=R\ast\phi_b\\
+\Rightarrow T&=S\ast\phi_a\ast\phi_b\\
+T&=S\ast\phi_{ab}\\
+\Rightarrow \phi_{ab}&=\phi_a\ast\phi_b\\
+\Rightarrow \phi_b&=\phi_{ab}\tilde\ast\phi_a=(T\tilde\ast S)\tilde\ast (R\tilde\ast S)=T\tilde\ast R\quad[=T\tilde\ast(S\ast\phi_a)]\\
+\end{aligned}
+$$
+<!-- dprint-ignore-end -->
+
+- [x] $\phi_a=R\tilde\ast S$
+- [x] $\phi_{ab}=T\tilde\ast S$
+- [ ] $\phi_b=T\tilde\ast R = (T\tilde\ast S)\tilde\ast (R\tilde\ast S) =
+      \phi_{ab}\tilde\ast\phi_a$
+
+We conclude that we may compute $\phi_b$ in two ways, (1) either by **deconvolving $T$
+with $R$**, or (2) by __deconvolving $\phi_{ab}$ with $\phi_a$__, which in turn are the
+results of two further deconvolutions. A third option is to use the deconvolution
+between $T$ and the convolution between $S$ and $\phi_a$, but this is a reconstruction
+of the original $R$, and perhaps not what we are looking for.
