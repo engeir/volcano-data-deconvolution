@@ -12,8 +12,13 @@
 import fppanalysis
 import matplotlib.pyplot as plt
 import numpy as np
+import volcano_base
 
 import vdd.load
+
+_SAVE_DIR = volcano_base.config.SAVE_PATH / "parametrisation"
+if not _SAVE_DIR.exists():
+    _SAVE_DIR.mkdir(parents=False)
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
@@ -55,12 +60,22 @@ class PlotParametrisation:
         kern = dec.response_rf_so2
         return fppanalysis.RL_gauss_deconvolve(signal, kern, 200)[0].flatten()
 
+    @staticmethod
+    def _strategy3(dec: vdd.load.Deconvolve) -> np.ndarray:
+        """Obtain the corrected response function from deconvolving `res_t_so2` with `res_rf_so2`."""
+        signal = dec.response_temp_so2
+        kern = dec.response_rf_so2
+        signal[: len(signal) // 2] = 0
+        kern[: len(kern) // 2] = 0
+        return fppanalysis.RL_gauss_deconvolve(signal, kern, 200)[0].flatten()
+
     def strategy(self) -> None:
         """Obtain the temperature response function to RF."""
         for dec in self.decs:
             orig = dec.response_temp_rf
             s2 = self._strategy2(dec)
-            self.results[dec.name] = {"tau": dec.tau, "s1": orig, "s2": s2}
+            s3 = self._strategy3(dec)
+            self.results[dec.name] = {"tau": dec.tau, "s1": orig, "s2": s2, "s3": s3}
 
 
 def main():
@@ -75,10 +90,12 @@ def main():
         x = value["tau"]
         s1 = value["s1"]
         s2 = value["s2"]
+        s3 = value["s3"]
         plt.plot(x, s1, label="dec(T, RF)")
         plt.plot(x, s2, "--", label="dec(dec(T, SO2), dec(RF, SO2))")
+        plt.plot(x, s3, ":", label="dec(dec(T, SO2), dec(RF, SO2)) corrected")
         plt.legend()
-        plt.savefig(f"parametrisation_{key}.png")
+        plt.savefig(_SAVE_DIR / f"parametrisation_{key}.png")
 
 
 if __name__ == "__main__":

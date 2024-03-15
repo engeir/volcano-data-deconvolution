@@ -16,8 +16,6 @@
 #        OB16 response sum (layman's integral) be the true sum, or to normalise every
 #        array we come across. Try all. (Amplitude seems to work best.)
 
-import pathlib
-import re
 import warnings
 from functools import cached_property
 from typing import Literal
@@ -36,6 +34,10 @@ from rich import print as rprint
 import vdd.load
 import vdd.utils
 
+_SAVE_DIR = volcano_base.config.SAVE_PATH / "reconstruction"
+if not _SAVE_DIR.exists():
+    _SAVE_DIR.mkdir(parents=False)
+
 plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
 plt.style.use(
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
@@ -46,21 +48,13 @@ ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
 # dec_ob16.name = "OB16 month"
 # dec_reconstructor = vdd.load.DeconvolveOB16(normalise=False, data=ob16_month)
 # dec_reconstructor.name = "OB16 month"
-cesm = vdd.load.CESMData(strength="tt-2sep")
+# cesm = vdd.load.CESMData(strength="tt-2sep")
 # cesm = vdd.load.CESMData(strength="medium")
 # cesm = vdd.load.CESMData(strength="medium-plus")
 # cesm = vdd.load.CESMData(strength="size5000")
 # cesm = vdd.load.CESMData(strength="double-overlap")
-# cesm = vdd.load.CESMData(strength="strong")
+cesm = vdd.load.CESMData(strength="strong")
 dec_reconstructor = vdd.load.DeconvolveCESM(normalise=False, pad_before=True, cesm=cesm)
-
-
-def _clean_filename(filename: str) -> pathlib.Path:
-    # Replace all non-alphanumeric characters, whitespace, and certain special characters with "-"
-    cleaned_filename = re.sub(r"[^\w\s.-]", "-", filename)
-    # Replace multiple whitespace characters with a single "-"
-    cleaned_filename = re.sub(r"\s+", "-", cleaned_filename)
-    return pathlib.Path(cleaned_filename.lower())
 
 
 class PlotReconstruction:
@@ -99,7 +93,7 @@ class PlotReconstruction:
         dec_ob16.name = "OB16 month"
         self.dec_ob16 = dec_ob16
         self.reconstruction = reconstruction
-        self.sim_name = _clean_filename(reconstruction.name)
+        self.sim_name = vdd.utils.clean_filename(reconstruction.name)
 
     @cached_property
     def temp_control(self) -> xr.DataArray:
@@ -271,7 +265,7 @@ class PlotReconstruction:
         abso_a.legend()
         # norm_a.legend()
         # nor2_a.legend()
-        plt.savefig(f"{self.sim_name}-temp-reconstructed.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.png")
 
     def correlation(self) -> None:
         """Compute the correlation between the residuals and temperature."""
@@ -287,7 +281,9 @@ class PlotReconstruction:
         plt.xlabel("Time lag ($\\tau$) [yr]")
         plt.ylabel("Correlation between residual \nand original temperature")
         plt.legend()
-        plt.savefig(f"{self.sim_name}-correlation-residual-reconstructed.png")
+        plt.savefig(
+            _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.png"
+        )
 
     def _spectrum_1d(self, signal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Calculate the one sided spectrum of the signal.
@@ -329,7 +325,7 @@ class PlotReconstruction:
         plt.xlabel("Frequency")
         plt.ylabel("Power spectral density")
         plt.legend()
-        plt.savefig(f"{self.sim_name}-spectrum-residual-control_temp.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.png")
 
     @staticmethod
     def _peak_difference_ttest(
@@ -445,7 +441,7 @@ class PlotReconstruction:
         plt.xlim((-xlim, xlim))
         plt.ylabel(dist.upper())
         plt.xlabel("Difference between the peaks")
-        plt.savefig(f"{self.sim_name}-peak-difference-{dist}.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.png")
 
 
 if __name__ == "__main__":

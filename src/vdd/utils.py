@@ -1,5 +1,7 @@
 """Utility functions for the volcano-data-deconvolution package."""
 
+import pathlib
+import re
 from typing import Never, NoReturn, overload
 
 import numpy as np
@@ -14,6 +16,15 @@ def never_called(value: Never) -> NoReturn:
     # variable is of the wrong type when this function is called in the final `else`
     # clause.
     raise AssertionError("Code is unreachable.")
+
+
+def clean_filename(filename: str) -> pathlib.Path:
+    """Replace non-alphanumeric characters with a hyphen to create a clean filename."""
+    # Replace all non-alphanumeric characters, whitespace, and certain special characters with "-"
+    cleaned_filename = re.sub(r"[^\w\s.-]", "-", filename)
+    # Replace multiple whitespace characters with a single "-"
+    cleaned_filename = re.sub(r"\s+", "-", cleaned_filename)
+    return pathlib.Path(cleaned_filename.lower())
 
 
 @overload

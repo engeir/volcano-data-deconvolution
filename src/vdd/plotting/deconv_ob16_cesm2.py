@@ -2,9 +2,14 @@
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import volcano_base
 
 import vdd.load
 import vdd.utils
+
+_SAVE_DIR = volcano_base.config.SAVE_PATH / "deconv_ob16_cesm2"
+if not _SAVE_DIR.exists():
+    _SAVE_DIR.mkdir(parents=False)
 
 plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
 plt.style.use(
@@ -72,7 +77,7 @@ class PlotResponseFunctions:
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(f"rf-so2{"-norm" if self.norm else ""}.png")
+                fig.savefig(_SAVE_DIR / f"rf-so2{"-norm" if self.norm else ""}.png")
                 return fig
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
@@ -91,7 +96,7 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(f"temp-so2{"-norm" if self.norm else ""}.png")
+                fig.savefig(_SAVE_DIR / f"temp-so2{"-norm" if self.norm else ""}.png")
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
@@ -110,7 +115,7 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]"
                 )
                 ax.legend()
-                fig.savefig(f"temp-rf{"-norm" if self.norm else ""}.png")
+                fig.savefig(_SAVE_DIR / f"temp-rf{"-norm" if self.norm else ""}.png")
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
