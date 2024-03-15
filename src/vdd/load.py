@@ -1,6 +1,6 @@
 """Functions that fetches data from files and returns it as an xarray.DataArray."""
 
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from collections.abc import Callable
 from functools import cached_property
 from typing import Any, Literal
@@ -292,10 +292,6 @@ class _PostInitCaller(ABC, type):
 class Deconvolve(metaclass=_PostInitCaller):
     """Class for deconvolving data."""
 
-    tau: np.ndarray
-    so2: xr.DataArray
-    rf: xr.DataArray
-    temp: xr.DataArray
     name: str = "Deconvolve"
 
     def __init__(self, normalise: bool = False) -> None:
@@ -315,6 +311,26 @@ class Deconvolve(metaclass=_PostInitCaller):
     @abstractmethod
     def _update_if_normalise(self) -> None:
         ...
+
+    @abstractproperty
+    def tau(self) -> np.ndarray:
+        """Time axis for the deconvolution."""
+        raise NotImplementedError
+
+    @abstractproperty
+    def so2(self) -> xr.DataArray:
+        """SO2 time series data."""
+        raise NotImplementedError
+
+    @abstractproperty
+    def rf(self) -> xr.DataArray:
+        """Radiative forcing time series data."""
+        raise NotImplementedError
+
+    @abstractproperty
+    def temp(self) -> xr.DataArray:
+        """Temperature time series data."""
+        raise NotImplementedError
 
     def change_deconvolution_method(
         self,
@@ -461,27 +477,12 @@ class DeconvolveCESM(Deconvolve):
         cesm: CESMData | None = None,
     ) -> None:
         super().__init__(normalise)
-        c_ = CESMData() if cesm is None else cesm
+        self._data = CESMData() if cesm is None else cesm
         # Since the time series can sometimes be of different length, we make sure to
         # call all of them before using them here. That way, they will be updated within
         # the CESMData class before assigning them here.
-        c_.initialise_data()
-        self.so2 = vdd.utils.pad_before_convolution(c_.so2) if pad_before else c_.so2
-        self.tau = (
-            self.so2.time.data
-            if pad_before
-            else self.so2.time.data - self.so2.time.data[len(self.so2.time.data) // 2]
-        )
-        self.aod = vdd.utils.pad_before_convolution(c_.aod) if pad_before else c_.aod
-        self.rf = (
-            vdd.utils.pad_before_convolution(c_.rf * -1) if pad_before else c_.rf * -1
-        )
-        self.temp = (
-            vdd.utils.pad_before_convolution(c_.temp * -1)
-            if pad_before
-            else c_.temp * -1
-        )
-        self.name = f"CESM2 {c_.strength}"
+        self.pad_before = pad_before
+        self.name = f"CESM2 {self._data.strength}"
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
@@ -492,6 +493,56 @@ class DeconvolveCESM(Deconvolve):
         # self.aod = vdd.utils.normalise(self.aod)
         # self.rf = vdd.utils.normalise(self.rf)
         # self.temp = vdd.utils.normalise(self.temp)
+
+    @cached_property
+    def so2(self) -> xr.DataArray:
+        """SO2 time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.so2)
+            if self.pad_before
+            else self._data.so2
+        )
+
+    @cached_property
+    def tau(self) -> np.ndarray:
+        """Time axis for the deconvolution."""
+        self._data.initialise_data()
+        return (
+            self.so2.time.data
+            if self.pad_before
+            else self.so2.time.data - self.so2.time.data[len(self.so2.time.data) // 2]
+        )
+
+    @cached_property
+    def aod(self) -> xr.DataArray:
+        """Aerosol optical depth time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.aod)
+            if self.pad_before
+            else self._data.aod
+        )
+
+    @cached_property
+    def rf(self) -> xr.DataArray:
+        """Radiative forcing time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.rf * -1)
+            if self.pad_before
+            else self._data.rf * -1
+        )
+
+    @cached_property
+    def temp(self) -> xr.DataArray:
+        """Temperature time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.temp * -1)
+            if self.pad_before
+            else self._data.temp * -1
+        )
 
     @cached_property
     def _response_aod_so2_tup(self) -> tuple[np.ndarray, np.ndarray]:
@@ -593,21 +644,13 @@ class DeconvolveOB16(Deconvolve):
         super().__init__(normalise)
         match data:
             case "h0":
-                ob16 = volcano_base.load.OttoBliesner(freq="h0", progress=True)
+                self.data = volcano_base.load.OttoBliesner(freq="h0", progress=True)
             case "h1":
-                ob16 = volcano_base.load.OttoBliesner(freq="h1", progress=True)
+                self.data = volcano_base.load.OttoBliesner(freq="h1", progress=True)
             case volcano_base.load.OttoBliesner():
-                ob16 = data
+                self.data = data
             case _:
                 raise ValueError(f"Invalid data: {data}")
-        self.so2 = ob16.aligned_arrays["so2-start"]
-        tau = self.so2.time.data - (
-            self.so2.time.data[len(self.so2.time.data) // 2]
-            - cftime.DatetimeNoLeap(0, 1, 1, has_year_zero=True, calendar="noleap")
-        )
-        self.tau = volcano_base.manipulate.dt2float(tau)
-        self.rf = ob16.aligned_arrays["rf"]
-        self.temp = ob16.aligned_arrays["temperature"]
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
@@ -616,3 +659,27 @@ class DeconvolveOB16(Deconvolve):
         # self.so2 = vdd.utils.normalise(self.so2)
         # self.rf = vdd.utils.normalise(self.rf)
         # self.temp = vdd.utils.normalise(self.temp)
+
+    @cached_property
+    def so2(self) -> xr.DataArray:
+        """SO2 time series data."""
+        return self.data.aligned_arrays["so2-start"]
+
+    @cached_property
+    def tau(self) -> np.ndarray:
+        """Time axis for the deconvolution."""
+        tau = self.so2.time.data - (
+            self.so2.time.data[len(self.so2.time.data) // 2]
+            - cftime.DatetimeNoLeap(0, 1, 1, has_year_zero=True, calendar="noleap")
+        )
+        return volcano_base.manipulate.dt2float(tau)
+
+    @cached_property
+    def rf(self) -> xr.DataArray:
+        """Radiative forcing time series data."""
+        return self.data.aligned_arrays["rf"]
+
+    @cached_property
+    def temp(self) -> xr.DataArray:
+        """Temperature time series data."""
+        return self.data.aligned_arrays["temperature"]
