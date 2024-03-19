@@ -16,20 +16,15 @@ plt.style.use(
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
 )
 
-dec_cesm_s = vdd.load.DeconvolveCESM(pad_before=True)
-dec_cesm_s.name = "CESM2 Strong"
-dec_cesm_p = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="medium-plus")
-)
-dec_cesm_p.name = "CESM2 Intermediate"
-dec_cesm_m = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="medium")
-)
-dec_cesm_m.name = "CESM2 Small"
-dec_cesm_e = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="size5000")
-)
-dec_cesm_e.name = "CESM2 Extra Strong"
+DataCESM = vdd.load.CESMData
+DecCESM = vdd.load.DeconvolveCESM
+# CESM2
+dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="double-overlap"))
+dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
+dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
+dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
+dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 # Original
 dec_ob16 = vdd.load.DeconvolveOB16(data="h1")
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
@@ -42,7 +37,16 @@ dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 # dec_ob16_month.change_deconvolution_method(alternative_deconv)
 dec_ob16.name = "OB16"
 dec_ob16_month.name = "OB16 month"
-all_decs = (dec_ob16, dec_ob16_month, dec_cesm_m, dec_cesm_p, dec_cesm_s, dec_cesm_e)
+all_decs = (
+    # dec_ob16,
+    dec_ob16_month,
+    # dec_cesm_m,
+    dec_cesm_p,
+    dec_cesm_s,
+    dec_cesm_e,
+    dec_cesm_2sep,
+    dec_cesm_4sep,
+)
 
 
 class PlotResponseFunctions:
@@ -154,6 +158,5 @@ class PlotResponseFunctions:
 
 if __name__ == "__main__":
     PlotResponseFunctions(*all_decs, norm=True).run()
-    plt.show()
     PlotResponseFunctions(*all_decs, norm=False).run()
     plt.show()

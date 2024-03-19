@@ -1843,13 +1843,13 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "volcano-base"
-version = "1.5.1"
+version = "1.6.1"
 description = "Download, find and manipulate volcano and climate related time series"
 optional = false
 python-versions = ">=3.12"
 files = [
-    {file = "volcano_base-1.5.1-py3-none-any.whl", hash = "sha256:061ed2123e686d8aedfc2cca19c94dca9d9578a632d7ae44b9dc2ea5acc57796"},
-    {file = "volcano_base-1.5.1.tar.gz", hash = "sha256:09be23d6c44e7f480cf0cef648f5d04be4d233b890643bb856552528e55adcee"},
+    {file = "volcano_base-1.6.1-py3-none-any.whl", hash = "sha256:e335f695fca2859e915274cd498c6d5938e982486191daac503e5bdabb2fc4d4"},
+    {file = "volcano_base-1.6.1.tar.gz", hash = "sha256:8d7af9d76c84d435b442838ec89b066ff348f77391e00a659ed8a46731d55205"},
 ]
 
 [package.dependencies]
