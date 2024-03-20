@@ -115,12 +115,29 @@ class CESMData(BaseModel):
         out = self._get_trefht_cesm()
         return self._align_arrays("temp", out)
 
+    @cached_property
+    def temperature_control(self) -> xr.DataArray:
+        """Get the CESM2 control temperature data.
+
+        Returns
+        -------
+        xr.DataArray
+            The control temperature data.
+        """
+        if not hasattr(self, "_temperature_control"):
+            self._get_trefht_cesm()
+        out = self._temperature_control
+        return self._align_arrays("temperature_control", out)
+
     def initialise_data(self) -> None:
         """Initialise the data, ensuring that it is loaded and aligned."""
-        _ = self.so2, self.aod, self.rf, self.temp
+        _ = self.so2, self.aod, self.rf, self.temp, self.temperature_control
 
     def _align_arrays(self, new: str, new_obj: xr.DataArray) -> xr.DataArray:
-        out = list(set(self.__dict__.keys()) & {"temp", "so2", "rf", "aod"})
+        out = list(
+            set(self.__dict__.keys())
+            & {"temperature_control", "temp", "so2", "rf", "aod"}
+        )
         if out:
             aligned = xr.align(new_obj, *[getattr(self, o) for o in out])
             self.__dict__.update({o: a for o, a in zip(out, aligned[1:], strict=True)})
@@ -240,8 +257,8 @@ class CESMData(BaseModel):
         )
         if len(control_data) != 1:
             raise ValueError("Control data not found.")
-        control = control_data.load()[0]
-        control = volcano_base.manipulate.mean_flatten(control, dims=["lat", "lon"])
+        control_l = control_data.load()
+        control_l = volcano_base.manipulate.mean_flatten(control_l, dims=["lat", "lon"])
         data = (
             volcano_base.load.FindFiles()
             .find("e_BWma1850", "TREFHT", "h0", self.strength)
@@ -251,6 +268,10 @@ class CESMData(BaseModel):
         files = data.load()
         shift = 35 if self.strength == "double-overlap" else None
         files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
+        control_l = volcano_base.manipulate.shift_arrays(
+            control_l, custom=shift, daily=False
+        )
+        control = volcano_base.manipulate.shift_arrays(control_l, custom=1)[0]
         files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
 
@@ -262,6 +283,15 @@ class CESMData(BaseModel):
         def subtract_control_mean(arr: xr.DataArray) -> xr.DataArray:
             return arr - volcano_base.config.MEANS["TREFHT"]
 
+        control_l = volcano_base.manipulate.data_array_operation(
+            control_l, _convert_time_start_zero
+        )
+        self._temperature_control = volcano_base.manipulate.remove_seasonality(
+            volcano_base.manipulate.get_median(control_l, xarray=True).dropna("time")
+            - volcano_base.config.MEANS["TREFHT"],
+            freq=1,
+            radius=0.1,
+        )
         subtract_control = (
             subtract_control_array if len(data) == 1 else subtract_control_mean
         )
@@ -330,6 +360,11 @@ class Deconvolve(metaclass=_PostInitCaller):
     @abstractproperty
     def temp(self) -> xr.DataArray:
         """Temperature time series data."""
+        raise NotImplementedError
+
+    @abstractproperty
+    def temp_control(self) -> xr.DataArray:
+        """Temperature control time series data."""
         raise NotImplementedError
 
     def change_deconvolution_method(
@@ -489,6 +524,9 @@ class DeconvolveCESM(Deconvolve):
         self.aod = (self.aod - self.aod.mean()) / self.aod.std()
         self.rf = (self.rf - self.rf.mean()) / self.rf.std()
         self.temp = (self.temp - self.temp.mean()) / self.temp.std()
+        self.temp_control = (
+            self.temp_control - self.temp_control.mean()
+        ) / self.temp_control.std()
         # self.so2 = vdd.utils.normalise(self.so2)
         # self.aod = vdd.utils.normalise(self.aod)
         # self.rf = vdd.utils.normalise(self.rf)
@@ -542,6 +580,16 @@ class DeconvolveCESM(Deconvolve):
             vdd.utils.pad_before_convolution(self._data.temp * -1)
             if self.pad_before
             else self._data.temp * -1
+        )
+
+    @cached_property
+    def temp_control(self) -> xr.DataArray:
+        """Temperature control time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.temperature_control * -1)
+            if self.pad_before
+            else self._data.temperature_control * -1
         )
 
     @cached_property
@@ -656,6 +704,9 @@ class DeconvolveOB16(Deconvolve):
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
         self.rf = (self.rf - self.rf.mean()) / self.rf.std()
         self.temp = (self.temp - self.temp.mean()) / self.temp.std()
+        self.temp_control = (
+            self.temp_control - self.temp_control.mean()
+        ) / self.temp_control.std()
         # self.so2 = vdd.utils.normalise(self.so2)
         # self.rf = vdd.utils.normalise(self.rf)
         # self.temp = vdd.utils.normalise(self.temp)
@@ -683,3 +734,8 @@ class DeconvolveOB16(Deconvolve):
     def temp(self) -> xr.DataArray:
         """Temperature time series data."""
         return self.data.aligned_arrays["temperature"]
+
+    @cached_property
+    def temp_control(self) -> xr.DataArray:
+        """Temperature time series data."""
+        return xr.align(self.data.temperature_control, self.temp)[0]

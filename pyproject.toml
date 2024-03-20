@@ -79,6 +79,42 @@ warn_unused_configs = true
 warn_unused_ignores = true
 
 [tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
+]
+# Files that were downloaded
+extend-exclude = ["python-ucar.cgd.ccsm4.cesmLME*py"]
+
+# Same as Black.
+line-length = 88
+
+# Assume Python 3.12
+target-version = "py312"
+
+[tool.ruff.lint]
+per-file-ignores = {}
+
 select = [ # https://docs.astral.sh/ruff/rules/
   "B",  # flake8-bugbear
   "D",  # pydocstyle
@@ -117,59 +153,25 @@ ignore = [
 fixable = ["ALL"]
 unfixable = []
 
-# Exclude a variety of commonly ignored directories.
-exclude = [
-  ".bzr",
-  ".direnv",
-  ".eggs",
-  ".git",
-  ".git-rewrite",
-  ".hg",
-  ".mypy_cache",
-  ".nox",
-  ".pants.d",
-  ".pytype",
-  ".ruff_cache",
-  ".svn",
-  ".tox",
-  ".venv",
-  "__pypackages__",
-  "_build",
-  "buck-out",
-  "build",
-  "dist",
-  "node_modules",
-  "venv",
-]
-# Files that were downloaded
-extend-exclude = ["python-ucar.cgd.ccsm4.cesmLME*py"]
-per-file-ignores = {}
-
-# Same as Black.
-line-length = 88
-
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-# Assume Python 3.11
-target-version = "py311"
-
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = ["typing.overload"]
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
 
-[tool.ruff.flake8-import-conventions]
-[tool.ruff.flake8-import-conventions.aliases]
+[tool.ruff.lint.flake8-import-conventions]
+[tool.ruff.lint.flake8-import-conventions.aliases]
 # Declare the default aliases.
 "matplotlib.pyplot" = "plt"
 numpy = "np"
 scipy = "sp"
 xarray = "xr"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 case-sensitive = true
 known-local-folder = ["src", "vdd"]
 

@@ -32,7 +32,7 @@ header-includes: |
 - The deconvolution works well with SO2 delta pulses as forcing, both for daily and
   monthly resolved dataset
 - Deconvolution of temperature to RF is worse due to the noise in the forcing signal
-  (But this should be attempted with the alternative method)
+  (But this may be attempted with the alternative method)
 - The development of the temperature response to SO2 delta forcing is consistent between
   the Otto-Bliesner et al. (2016) dataset and the CESM2 small volcanic eruption forcing
 - The amplitude of the temperature response to SO2 delta forcing within OB16 is smaller,
@@ -68,6 +68,7 @@ header-includes: |
 <!-- vim-markdown-toc GFM -->
 
 - [Definitions](#definitions)
+- [Should we expect linear temperature dependence on radiative forcing?](#should-we-expect-linear-temperature-dependence-on-radiative-forcing)
 - [Response functions](#response-functions)
   - [RF to SO2 response](#rf-to-so2-response)
   - [Temperature to SO2 response](#temperature-to-so2-response)
@@ -82,6 +83,8 @@ header-includes: |
 - [Double waveform](#double-waveform)
   - [Double waveform response functions](#double-waveform-response-functions)
   - [Reconstructed double waveforms](#reconstructed-double-waveforms)
+- [Cut off response function](#cut-off-response-function)
+  - [Inspecting the noise floor](#inspecting-the-noise-floor)
 
 <!-- vim-markdown-toc -->
 
@@ -96,6 +99,15 @@ header-includes: |
   and $B$ is the kernel
 
 > Thus, $\phi_{AB}=A\tilde\ast B$, and $A=B\ast\phi_{AB}$.
+
+## Should we expect linear temperature dependence on radiative forcing?
+
+A lot of these results suggest that even though there are non-linearities in the
+conversion from SO2 to both radiative forcing and temperature, the temperature response
+may still be linearly dependent on the radiative forcing. This is a strong result in our
+previous paper investigating single waveform volcanic eruption simulations, but if this
+is either trivial or at least to be expected, there is less to be gained from finding a
+good estimate of the temperature to radiative forcing response function.
 
 ## Response functions
 
@@ -313,6 +325,8 @@ Let us use the CESM2 strong eruption ensemble as a good estimate of the true res
 functions, and then compare the climate model output of $R$ and $T$ with the
 reconstructed ones from the CESM2 strong ensemble response functions.
 
+![True (old) versus reconstructed (new) AOD](./generated_files/waveform/recreated_waveforms_aod.png)
+
 ![True (old) versus reconstructed (new) RF](./generated_files/waveform/recreated_waveforms_rf.png)
 
 ![True (old) versus reconstructed (new) T](./generated_files/waveform/recreated_waveforms_temp.png)
@@ -325,3 +339,36 @@ noise level. However, the two year separated double waveform shows a clear non-l
 dependence between the injected SO2 and resulting $R$ and $T$ time series. A
 significantly weaker response in both $R$ and $T$ is seen in the second eruption, most
 notably in the $T$ plot.
+
+## Cut off response function
+
+To check how far into the response functions the noise is substantial, we cut the
+response function at a certain time lag, before we generate an ensemble of temperature
+output signals by first convolving the cut response function with the forcing, and then
+adding phase shifted noise to the temperature signal. The precedure can be summarise in
+the following steps:
+
+1. Cut the response function at a given index.
+2. Convolve the cut response function with the forcing signal to obtain a temperature
+   estimate $T_{\mathrm{est}}$.
+3. Add noise represented by a phase shifted temperature control signal to obtain an
+   ensemble of temperature estimates $T_i$.
+4. Deconvolve the ensemble of temperature estimates with the forcing signal to obtain an
+   ensemble of response functions for the given cut off index.
+
+### Inspecting the noise floor
+
+We get estimates of the noise present in the response functions from doing the
+bootstrapping method outlined above. The noise is then illustrated as percentile plots
+that show the percentiles as layers of shaded filled in area plots.
+
+Let us look at how the cut off ensemble looks like for the Otto-Bliesner dataset when
+cutting the response function off at years 2, 4, 8 and 16.
+
+![Cut off response function OB16](./generated_files/cut_off/resp_024.png)
+
+![Cut off response function OB16](./generated_files/cut_off/resp_048.png)
+
+![Cut off response function OB16](./generated_files/cut_off/resp_096.png)
+
+![Cut off response function OB16](./generated_files/cut_off/resp_192.png)
