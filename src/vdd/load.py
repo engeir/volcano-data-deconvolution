@@ -339,8 +339,7 @@ class Deconvolve(metaclass=_PostInitCaller):
             self._update_if_normalise()
 
     @abstractmethod
-    def _update_if_normalise(self) -> None:
-        ...
+    def _update_if_normalise(self) -> None: ...
 
     @abstractproperty
     def tau(self) -> np.ndarray:

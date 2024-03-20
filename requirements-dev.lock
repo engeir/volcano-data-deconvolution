@@ -88,7 +88,7 @@ mdurl==0.1.2
     # via markdown-it-py
 mpmath==1.3.0
     # via fppanalysis
-mypy==1.8.0
+mypy==1.9.0
 mypy-extensions==1.0.0
     # via mypy
 nc-time-axis==1.4.1
@@ -151,7 +151,7 @@ pyqt5-qt5==5.15.2
     # via pyqt5
 pyqt5-sip==12.13.0
     # via pyqt5
-pytest==8.0.1
+pytest==8.1.1
 python-dateutil==2.8.2
     # via matplotlib
     # via pandas
@@ -175,7 +175,6 @@ ruamel-yaml==0.18.6
     # via pre-commit-hooks
 ruamel-yaml-clib==0.2.8
     # via ruamel-yaml
-ruff==0.2.2
 scipy==1.12.0
     # via fppanalysis
     # via volcano-base

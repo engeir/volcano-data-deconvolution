@@ -28,13 +28,11 @@ def clean_filename(filename: str) -> pathlib.Path:
 
 
 @overload
-def normalise(arr: np.ndarray) -> np.ndarray:
-    ...
+def normalise(arr: np.ndarray) -> np.ndarray: ...
 
 
 @overload
-def normalise(arr: xr.DataArray) -> xr.DataArray:
-    ...
+def normalise(arr: xr.DataArray) -> xr.DataArray: ...
 
 
 def normalise(arr: xr.DataArray | np.ndarray) -> xr.DataArray | np.ndarray:
