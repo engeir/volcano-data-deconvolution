@@ -35,7 +35,7 @@ if not _SAVE_DIR.exists():
 type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
 type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
 # Only got temp ctrl from Otto-Bliesner dataset
-# type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
+type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
@@ -51,9 +51,9 @@ all_decs = (dec_cesm_4sep, dec_cesm_2sep, dec_cesm_s, dec_ob16_month)
 class CutOff:
     """Cut off the response functions of a deconvolution object."""
 
-    def __init__(self, dec: vdd.load.Deconvolve, arrays: T_RF | T_SO2) -> None:
+    def __init__(self, dec: vdd.load.Deconvolve, arrays: T_RF | T_SO2 | RF_SO2) -> None:
         self.dec = dec
-        self.ts_specifier: T_RF | T_SO2 = arrays
+        self.ts_specifier: T_RF | T_SO2 | RF_SO2 = arrays
         self.cuts: dict[str, xr.Dataset] = {}
         self.ensembles: dict[str, xr.Dataset] = {}
 
@@ -191,6 +191,8 @@ class PlotCutOff:
             resp_a = plastik.percentiles(
                 co.dec.tau, percs_np, plot_median=False, ax=resp_a
             )
+            resp_a.set_xlabel("Time lag ($\\tau$) [yr]")
+            resp_a.set_ylabel("Response [1]")
             resp_a.set_xlim((-2, 20))
             ymax = co.response.max()
             resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
@@ -203,26 +205,38 @@ class PlotCutOff:
 
 
 def _use_cut_off() -> None:
-    co_ob16_so2 = CutOff(dec_ob16_month, ("temp", "so2"))
-    co_ob16_rf = CutOff(dec_ob16_month, ("temp", "rf"))
-    co_cesm_s_so2 = CutOff(dec_cesm_s, ("temp", "so2"))
-    co_cesm_s_rf = CutOff(dec_cesm_s, ("temp", "rf"))
-    co_2sep_so2 = CutOff(dec_cesm_2sep, ("temp", "so2"))
-    co_2sep_rf = CutOff(dec_cesm_2sep, ("temp", "rf"))
-    co_4sep_so2 = CutOff(dec_cesm_4sep, ("temp", "so2"))
-    co_4sep_rf = CutOff(dec_cesm_4sep, ("temp", "rf"))
+    # OB16
+    co_ob16_rf_so2 = CutOff(dec_ob16_month, ("rf", "so2"))
+    co_ob16_temp_so2 = CutOff(dec_ob16_month, ("temp", "so2"))
+    co_ob16_temp_rf = CutOff(dec_ob16_month, ("temp", "rf"))
+    # CESM2 strong
+    co_cesm_s_rf_so2 = CutOff(dec_cesm_s, ("rf", "so2"))
+    co_cesm_s_temp_so2 = CutOff(dec_cesm_s, ("temp", "so2"))
+    co_cesm_s_temp_rf = CutOff(dec_cesm_s, ("temp", "rf"))
+    # CESM2 2sep
+    co_2sep_rf_so2 = CutOff(dec_cesm_2sep, ("rf", "so2"))
+    co_2sep_temp_so2 = CutOff(dec_cesm_2sep, ("temp", "so2"))
+    co_2sep_temp_rf = CutOff(dec_cesm_2sep, ("temp", "rf"))
+    # CESM2 4sep
+    co_4sep_rf_so2 = CutOff(dec_cesm_4sep, ("rf", "so2"))
+    co_4sep_temp_so2 = CutOff(dec_cesm_4sep, ("temp", "so2"))
+    co_4sep_temp_rf = CutOff(dec_cesm_4sep, ("temp", "rf"))
     pco = PlotCutOff(
-        co_ob16_so2,
-        co_ob16_rf,
-        co_cesm_s_so2,
-        co_cesm_s_rf,
-        co_2sep_so2,
-        co_2sep_rf,
-        co_4sep_so2,
-        co_4sep_rf,
+        co_ob16_rf_so2,
+        co_ob16_temp_so2,
+        co_ob16_temp_rf,
+        co_cesm_s_rf_so2,
+        co_cesm_s_temp_so2,
+        co_cesm_s_temp_rf,
+        co_2sep_rf_so2,
+        co_2sep_temp_so2,
+        co_2sep_temp_rf,
+        co_4sep_rf_so2,
+        co_4sep_temp_so2,
+        co_4sep_temp_rf,
     )
     pco.call_cut_offs("cut_off", {12 * i for i in [2, 4, 8, 16]})
-    pco.call_cut_offs("generate_ensembles", 20)
+    pco.call_cut_offs("generate_ensembles", 50)
     pco.plot()
 
 
