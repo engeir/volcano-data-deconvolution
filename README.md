@@ -1,6 +1,6 @@
 # Deconvolution of volcanic eruption time series
 
-<sup>Latest version: v0.3.0</sup> <!-- x-release-please-version -->
+<sup>Latest version: v0.3.1</sup> <!-- x-release-please-version -->
 
 > [!WARNING]
 >
@@ -36,7 +36,7 @@ running
 
 ```console
 $ rye run vdd
-Hello, this is vdd at version v0.3.0!
+Hello, this is vdd at version v0.3.1!
 ```
 
 <!-- x-release-please-end -->
