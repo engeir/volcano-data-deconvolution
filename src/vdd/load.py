@@ -104,6 +104,20 @@ class CESMData(BaseModel):
         return self._align_arrays("rf", out)
 
     @cached_property
+    def rf_control(self) -> xr.DataArray:
+        """Get the CESM2 control RF data.
+
+        Returns
+        -------
+        xr.DataArray
+            The control RF data.
+        """
+        if not hasattr(self, "_rf_control"):
+            _ = self.rf
+        out = self._rf_control
+        return self._align_arrays("rf_control", out)
+
+    @cached_property
     def temp(self) -> xr.DataArray:
         """Get the CESM2 temperature data.
 
@@ -125,18 +139,25 @@ class CESMData(BaseModel):
             The control temperature data.
         """
         if not hasattr(self, "_temperature_control"):
-            self._get_trefht_cesm()
+            _ = self.temp
         out = self._temperature_control
         return self._align_arrays("temperature_control", out)
 
     def initialise_data(self) -> None:
         """Initialise the data, ensuring that it is loaded and aligned."""
-        _ = self.so2, self.aod, self.rf, self.temp, self.temperature_control
+        _ = (
+            self.so2,
+            self.aod,
+            self.rf,
+            self.temp,
+            self.temperature_control,
+            self.rf_control,
+        )
 
     def _align_arrays(self, new: str, new_obj: xr.DataArray) -> xr.DataArray:
         out = list(
             set(self.__dict__.keys())
-            & {"temperature_control", "temp", "so2", "rf", "aod"}
+            & {"temperature_control", "rf_control", "temp", "so2", "rf", "aod"}
         )
         if out:
             aligned = xr.align(new_obj, *[getattr(self, o) for o in out])
@@ -174,9 +195,10 @@ class CESMData(BaseModel):
             plt.show()
         return mean_array.dropna("time")
 
-    def _get_rf_cesm(self, plot_example: bool = False) -> xr.DataArray:
-        """Get the CESM2 RF data."""
-        control: volcano_base.load.FindFiles = (
+    def _load_rf_cesm(
+        self,
+    ) -> tuple[xr.DataArray, xr.DataArray, list[xr.DataArray], list[xr.DataArray]]:
+        control_data: volcano_base.load.FindFiles = (
             volcano_base.load.FindFiles()
             .find("e_fSST1850", "h0", "control", {"FLNT", "FSNT"}, "ens1")
             .sort("ensemble", "attr")
@@ -189,7 +211,7 @@ class CESMData(BaseModel):
             .sort("ensemble", "attr")
         )
         c_size = 1
-        match (control.copy().keep("FLNT"), control.copy().keep("FSNT")):
+        match (control_data.copy().keep("FLNT"), control_data.copy().keep("FSNT")):
             case (c_flnt, c_fsnt) if len(c_flnt) == c_size and len(c_fsnt) == c_size:
                 c_flnt_xr = c_flnt.load()[0]
                 c_fsnt_xr = c_fsnt.load()[0]
@@ -213,6 +235,11 @@ class CESMData(BaseModel):
         )
         fsnt_xr = volcano_base.manipulate.mean_flatten(fsnt_xr, dims=["lat", "lon"])
         flnt_xr = volcano_base.manipulate.mean_flatten(flnt_xr, dims=["lat", "lon"])
+        return c_fsnt_xr, c_flnt_xr, fsnt_xr, flnt_xr
+
+    def _get_rf_cesm(self, plot_example: bool = False) -> xr.DataArray:
+        """Get the CESM2 RF data."""
+        c_fsnt_xr, c_flnt_xr, fsnt_xr, flnt_xr = self._load_rf_cesm()
 
         def remove_control(rf: xr.DataArray) -> xr.DataArray:
             rf, c_s, c_l = xr.align(rf, c_fsnt_xr, c_flnt_xr)
@@ -237,6 +264,28 @@ class CESMData(BaseModel):
         rf = volcano_base.manipulate.subtract_mean_of_tail(rf)
         rf = volcano_base.manipulate.data_array_operation(rf, _convert_time_start_zero)
         rf = list(xr.align(*rf))
+        # Create control run time series
+        c_total = c_fsnt_xr.copy()
+        c_total.data -= c_flnt_xr.data
+        c_total = c_total.assign_attrs(attr="RF")
+        c_total = volcano_base.manipulate.subtract_mean_of_tail([c_total])[0]
+        c_total = volcano_base.manipulate.data_array_operation(
+            [c_total], _convert_time_start_zero
+        )[0]
+        c_total.data = np.asarray(c_total.data)
+        # Fourier
+        # self._rf_control = volcano_base.manipulate.remove_seasonality(
+        #     c_total.dropna("time"), freq=1.09, radius=0.01
+        # )
+        # Climatology
+        c_total_float = c_total.dropna("time")
+        c_total_dt = c_total_float.assign_coords(
+            time=volcano_base.manipulate.float2dt(c_total_float.time, freq="MS")
+        )
+        c_total_dt = volcano_base.manipulate.subtract_climatology(
+            c_total_dt, c_total_dt, "time.month"
+        )[0]
+        self._rf_control = c_total_dt.assign_coords(time=c_total_float.time)
         if plot_example:
             plt.figure()
             [f.plot() for f in rf]
@@ -268,10 +317,7 @@ class CESMData(BaseModel):
         files = data.load()
         shift = 35 if self.strength == "double-overlap" else None
         files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
-        control_l = volcano_base.manipulate.shift_arrays(
-            control_l, custom=shift, daily=False
-        )
-        control = volcano_base.manipulate.shift_arrays(control_l, custom=1)[0]
+        control = control_l[0]
         files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
 
@@ -286,12 +332,24 @@ class CESMData(BaseModel):
         control_l = volcano_base.manipulate.data_array_operation(
             control_l, _convert_time_start_zero
         )
-        self._temperature_control = volcano_base.manipulate.remove_seasonality(
-            volcano_base.manipulate.get_median(control_l, xarray=True).dropna("time")
-            - volcano_base.config.MEANS["TREFHT"],
-            freq=1,
-            radius=0.1,
+        # Fourier
+        # self._temperature_control = volcano_base.manipulate.remove_seasonality(
+        #     volcano_base.manipulate.get_median(control_l, xarray=True).dropna("time")
+        #     - volcano_base.config.MEANS["TREFHT"],
+        #     freq=1,
+        #     radius=0.1,
+        # )
+        # Climatology
+        control_float = volcano_base.manipulate.get_median(
+            control_l, xarray=True
+        ).dropna("time")
+        control_dt = control_float.assign_coords(
+            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS")
         )
+        control_dt = volcano_base.manipulate.subtract_climatology(
+            control_dt, control_dt, "time.month"
+        )[0]
+        self._temperature_control = control_dt.assign_coords(time=control_float.time)
         subtract_control = (
             subtract_control_array if len(data) == 1 else subtract_control_mean
         )
@@ -572,6 +630,16 @@ class DeconvolveCESM(Deconvolve):
         )
 
     @cached_property
+    def rf_control(self) -> xr.DataArray:
+        """RF time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.rf_control * -1)
+            if self.pad_before
+            else self._data.rf_control * -1
+        )
+
+    @cached_property
     def temp(self) -> xr.DataArray:
         """Temperature time series data."""
         self._data.initialise_data()
@@ -672,10 +740,10 @@ class DeconvolveOB16(Deconvolve):
 
     Parameters
     ----------
-    normalise : bool, optional
-        Whether to normalise the data, by default False.
     data : volcano_base.load.OttoBliesner | Literal["h0", "h1"], optional
         The OB16 data class to use. If not given, the h1 (daily) data will be loaded.
+    normalise : bool, optional
+        Whether to normalise the data, by default False.
 
     Raises
     ------
@@ -685,8 +753,8 @@ class DeconvolveOB16(Deconvolve):
 
     def __init__(
         self,
-        normalise: bool = False,
         data: volcano_base.load.OttoBliesner | Literal["h0", "h1"] = "h1",
+        normalise: bool = False,
     ) -> None:
         super().__init__(normalise)
         match data:
@@ -728,6 +796,11 @@ class DeconvolveOB16(Deconvolve):
     def rf(self) -> xr.DataArray:
         """Radiative forcing time series data."""
         return self.data.aligned_arrays["rf"]
+
+    @cached_property
+    def rf_control(self) -> xr.DataArray:
+        """RF time series data."""
+        return xr.align(self.data.rf_control, self.rf)[0]
 
     @cached_property
     def temp(self) -> xr.DataArray:
