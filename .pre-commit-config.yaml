@@ -1,63 +1,75 @@
 # See https://pre-commit.com/ for usage and config
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
-    hooks:
-      - id: check-yaml
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
 
-  - repo: local
-    hooks:
-      - id: check-added-large-files
-        name: Check for added large files
-        stages: [commit]
-        entry: check-added-large-files
-        language: system
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.12.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent, '2']
 
-      - id: ruff_format
-        name: ruff_format
-        stages: [commit]
-        language: system
-        entry: rye fmt
-        types: [python]
+- repo: local
+  hooks:
+  - id: dprint
+    name: dprint format
+    stages: [commit]
+    entry: dprint fmt
+    language: system
 
-      - id: ruff
-        name: ruff_check
-        stages: [commit]
-        language: system
-        entry: rye lint
-        types: [python]
+  - id: check-added-large-files
+    name: Check for added large files
+    stages: [commit]
+    entry: check-added-large-files
+    language: system
 
-      - id: xdoctest
-        name: xdoctest
-        stages: [commit]
-        language: system
-        entry: rye run xdoctest
-        types: [python]
+  - id: ruff_format
+    name: ruff_format
+    stages: [commit]
+    language: system
+    entry: rye fmt
+    types: [python]
 
-      - id: pydocstringformatter
-        name: pydocstringformatter
-        stages: [commit]
-        language: system
-        entry: rye run pydocstringformatter src tests
-        types: [python]
+  - id: ruff
+    name: ruff_check
+    stages: [commit]
+    language: system
+    entry: rye lint
+    types: [python]
 
-      - id: mypy
-        name: mypy
-        stages: [commit]
-        language: system
-        entry: rye run mypy
-        types: [python]
-        require_serial: true
+  - id: xdoctest
+    name: xdoctest
+    stages: [commit]
+    language: system
+    entry: rye run xdoctest
+    types: [python]
 
-      - id: pydoclint
-        name: pydoclint
-        stages: [commit]
-        language: system
-        entry: rye run pydoclint # src tests
-        types: [python]
-        require_serial: true
+  - id: pydocstringformatter
+    name: pydocstringformatter
+    stages: [commit]
+    language: system
+    entry: rye run pydocstringformatter src tests
+    types: [python]
+
+  - id: mypy
+    name: mypy
+    stages: [commit]
+    language: system
+    entry: rye run mypy
+    types: [python]
+    require_serial: true
+
+  - id: pydoclint
+    name: pydoclint
+    stages: [commit]
+    language: system
+    entry: rye run pydoclint     # src tests
+    types: [python]
+    require_serial: true
 
       # - id: pytest
       #   name: pytest

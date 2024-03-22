@@ -1,11 +1,12 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
 [project]
 name = "volcano-data-deconvolution"
 version = "0.3.0"
 description = "Deconvolution applied to volcanic eruption time series"
 authors = [{ name = "engeir", email = "engeir@pm.me" }]
-license = { file = "LICENSE" }
-readme = "README.md"
-requires-python = ">= 3.12"
 dependencies = [
   "numpy>=1.26.4",
   "matplotlib>=3.8.3",
@@ -20,37 +21,21 @@ dependencies = [
   "pyqt5>=5.15.10",
   "plastik>=0.6.2",
 ]
-[project.urls]
-repository = "https://github.com/engeir/volcano-data-deconvolution"
+description = "Deconvolution applied to volcanic eruption time series"
+license = { file = "LICENSE" }
+name = "volcano-data-deconvolution"
+readme = "README.md"
+requires-python = ">= 3.12"
+version = "0.2.0"
 
 [project.scripts]
 vdd = "vdd.__main__:main"
 
-# [build-system]
-# requires = ["hatchling"]
-# build-backend = "hatchling.build"
+[project.urls]
+repository = "https://github.com/engeir/volcano-data-deconvolution"
 
-# [tool.hatch.build.targets.wheel]
-# only-include = ["src/vdd"]
-
-# [tool.hatch.build.targets.wheel.sources]
-# "src" = ""
-# "vdd" = "vdd"
-# [tool.hatch.build.targets.wheel]
-# packages = ["src/vdd"]
-# [tool.hatch.build]
-# include = ["vdd"]
-# where = "src"
-
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool]
-rye = { dev-dependencies = [
+[tool.rye]
+dev-dependencies = [
   "pytest>=8.1.1",
   "pydocstringformatter>=0.7.3",
   "pydoclint>=0.4.1",
@@ -58,14 +43,23 @@ rye = { dev-dependencies = [
   "pre-commit>=3.6.2",
   "pre-commit-hooks>=4.5.0",
   "mypy>=1.9.0",
-] }
+]
+
+[tool.isort]
+combine_as_imports = true
+force_grid_wrap = 0
+include_trailing_comma = true
+line_length = 88
+multi_line_output = 3
+profile = "black"
+use_parentheses = true
 
 [tool.mypy]
-files = ["src", "tests"]
-ignore_missing_imports = true
 allow_redefinition = false
 check_untyped_defs = true
+files = ["src", "tests"]
 ignore_errors = false
+ignore_missing_imports = true
 implicit_reexport = false
 local_partial_types = true
 no_implicit_optional = true
@@ -76,6 +70,13 @@ warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
+
+[tool.pydocstringformatter]
+numpydoc-section-hyphen-length = true
+split-summary-body = false
+strip-whitespaces = true
+style = ["pep257", "numpydoc"]
+write = true
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -104,26 +105,16 @@ exclude = [
 ]
 # Files that were downloaded
 extend-exclude = ["python-ucar.cgd.ccsm4.cesmLME*py"]
-
 # Same as Black.
 line-length = 88
-
 # Assume Python 3.12
 target-version = "py312"
 
 [tool.ruff.lint]
-per-file-ignores = {}
-
-select = [ # https://docs.astral.sh/ruff/rules/
-  "B",  # flake8-bugbear
-  "D",  # pydocstyle
-  "E",  # pycodestyle
-  "F",  # pyflakes
-  "I",  # isort
-  "PL", # pylint
-  "Q",  # flake8-quotes
-  "UP", # pyupgrade
-]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
@@ -145,24 +136,23 @@ ignore = [
   "Q001",
   "Q002",
   "Q003",
-  # "W191",  # Since we don't select W, this is already ignored
 ]
-
-# Allow fix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
+per-file-ignores = {}
+select = [
+  # https://docs.astral.sh/ruff/rules/
+  "B", # flake8-bugbear
+  "D", # pydocstyle
+  "E", # pycodestyle
+  "F", # pyflakes
+  "I", # isort
+  "PL", # pylint
+  "Q", # flake8-quotes
+  "UP", # pyupgrade
+]
 unfixable = []
 
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
-ignore-decorators = ["typing.overload"]
-
-[tool.ruff.lint.flake8-quotes]
-docstring-quotes = "double"
-
 [tool.ruff.lint.flake8-import-conventions]
+
 [tool.ruff.lint.flake8-import-conventions.aliases]
 # Declare the default aliases.
 "matplotlib.pyplot" = "plt"
@@ -170,22 +160,16 @@ numpy = "np"
 scipy = "sp"
 xarray = "xr"
 
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
 [tool.ruff.lint.isort]
 case-sensitive = true
 known-local-folder = ["src", "vdd"]
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-line_length = 88
-profile = "black"
-combine_as_imports = true
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = ["typing.overload"]
 
-[tool.pydocstringformatter]
-write = true
-strip-whitespaces = true
-split-summary-body = false
-numpydoc-section-hyphen-length = true
-style = ["pep257", "numpydoc"]
+[tool.setuptools.packages.find]
+where = ["src"]
