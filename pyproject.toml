@@ -1,6 +1,6 @@
 [project]
 name = "volcano-data-deconvolution"
-version = "0.2.0"
+version = "0.3.0"
 description = "Deconvolution applied to volcanic eruption time series"
 authors = [{ name = "engeir", email = "engeir@pm.me" }]
 license = { file = "LICENSE" }
