@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/engeir/volcano-data-deconvolution/compare/v0.3.0...v0.3.1) (2024-03-22)
+
+
+### Bug Fixes
+
+* **build:** remove duplicate entries in pyproject.toml ([91cb558](https://github.com/engeir/volcano-data-deconvolution/commit/91cb55870e9796cd8eac5f9c38b02fcd29c3c460))
+
+
+### Styles
+
+* **pre-commit:** format TOML and YAML in pre-commit hook ([92242de](https://github.com/engeir/volcano-data-deconvolution/commit/92242de9d1f23bbe451acec317fa502ddfa80072))
+
 ## [0.3.0](https://github.com/engeir/volcano-data-deconvolution/compare/v0.2.0...v0.3.0) (2024-03-22)
 
 
