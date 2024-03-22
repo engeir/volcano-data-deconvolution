@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/engeir/volcano-data-deconvolution/compare/v0.2.0...v0.3.0) (2024-03-22)
+
+
+### Features
+
+* **cut off:** implement class to cut response functions and recreate with noise ([cd4cef6](https://github.com/engeir/volcano-data-deconvolution/commit/cd4cef6fbb8c1abeab8ea6208d7fd132d7ef29f7))
+* **load:** add RF control data property to data and deconvolve classes ([696f789](https://github.com/engeir/volcano-data-deconvolution/commit/696f7897319916950fe01413598e191542003999))
+
+
+### Styles
+
+* **format:** run updated ruff style formatting via rye ([2d933fe](https://github.com/engeir/volcano-data-deconvolution/commit/2d933fef33a1d2ab5435f51c99a6586d1d03599b))
+
 ## [0.2.0](https://github.com/engeir/volcano-data-deconvolution/compare/v0.1.2...v0.2.0) (2024-03-20)
 
 
