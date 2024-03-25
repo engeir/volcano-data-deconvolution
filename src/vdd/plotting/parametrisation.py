@@ -12,6 +12,7 @@
 import datetime
 
 import cftime
+import cosmoplots
 import fppanalysis
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,7 +50,6 @@ all_decs = (
     dec_cesm_e,
     dec_cesm_s,
     dec_cesm_p,
-    # dec_cesm_m,
     dec_ob16_month,
 )
 
@@ -277,6 +277,20 @@ def _plot_response_functions() -> None:
     pp.strategy()
     pp.plot_simulations()
     plt.show()
+    # Combine the response functions I'm interested in
+    cosmoplots.combine(
+        *[
+            _SAVE_DIR / f"parametrisation_{file}.png"
+            for file in [
+                "ob16-month",
+                "cesm2-medium-plus",
+                "cesm2-strong",
+                "cesm2-size5000",
+                "cesm2-tt-2sep",
+                "cesm2-double-overlap",
+            ]
+        ]
+    ).in_grid(2, 3).using(fontsize=50).save(_SAVE_DIR / "parametrisation_combined.png")
     pp.plot_method_comparisons()
     plt.show()
 

@@ -9,10 +9,13 @@
 #    - [ ] Owns a Deconvolve object.
 #    - [ ] Uses only one response function and corresponding signal (RF or temperature).
 
+import pathlib
 from collections.abc import Iterable
 from functools import cached_property
 from typing import Literal, Self
 
+import cftime
+import cosmoplots
 import fppanalysis
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,7 +37,6 @@ if not _SAVE_DIR.exists():
 
 type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
 type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
-# Only got temp ctrl from Otto-Bliesner dataset
 type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
 
 DataCESM = vdd.load.CESMData
@@ -154,23 +156,37 @@ class PlotCutOff:
                 for co in self.cut_offs:
                     getattr(co, method)(arg1)
 
-    def plot(self) -> None:
-        """Plot the results of the CutOff class."""
-        if not self.cut_offs:
-            raise ValueError(
-                "No CutOff objects have been created. Run `call_cut_offs`."
-            )
+    def plot(self, remove_grid_parts: bool = True) -> None:
+        """Plot the results of the CutOff class.
+
+        Parameters
+        ----------
+        remove_grid_parts : bool
+            If True, the individual images will be removed after combining them.
+
+        Raises
+        ------
+        ValueError
+            If no cuts have been made in the CutOff objects.
+        """
         for co in self.cut_offs:
             if not co.cuts:
                 raise ValueError(
                     "No cuts have been made. Run `call_cut_offs('cut_off', ...)`."
                 )
-            self._plot_single(co)
-            plt.close("all")
+            files = self._plot_single(co)
+            f1: pathlib.Path = files[0]
+            cosmoplots.combine(*files).in_grid(2, len(files) // 2).using(
+                fontsize=50
+            ).save(f1.parent / f"{f1.name[:-7]}combined.png")
+            if remove_grid_parts:
+                for f in files:
+                    f.unlink()
 
     @staticmethod
-    def _plot_single(co: CutOff) -> None:
+    def _plot_single(co: CutOff) -> tuple[pathlib.Path, ...]:
         """Plot the results of the CutOff class."""
+        files: tuple[pathlib.Path, ...] = ()
         for k, v in co.cuts.items():
             resp_f = plt.figure()
             resp_a = resp_f.gca()
@@ -181,13 +197,13 @@ class PlotCutOff:
             resp_a.plot(v.tau, v.response, label=v.response.attrs["label"])
             temp_a.plot(co.output.time, co.output, label="Temp")
             temp_a.plot(v.time, v.temp_rec, label=v.temp_rec.attrs["label"])
-            percs = []
+            percentiles = []
             for i, j in co.ensembles[k].items():
                 if "response" in str(i):
-                    percs.append(j)
+                    percentiles.append(j)
                     # label = j.attrs["label"]
                     # resp_a.plot(j.tau, j, label=f"_{label}", c="grey", alpha=0.3)
-            percs_np = np.asarray(percs)
+            percs_np = np.asarray(percentiles)
             resp_a = plastik.percentiles(
                 co.dec.tau, percs_np, plot_median=False, ax=resp_a
             )
@@ -197,11 +213,21 @@ class PlotCutOff:
             ymax = co.response.max()
             resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
             resp_a.legend(loc="upper right", framealpha=0.9)
+            match v.time.data[0]:
+                case cftime._cftime.DatetimeNoLeap():
+                    temp_a.set_xlim((-790 * 365, -650 * 365))
+                case _:
+                    pass
             num = "0" * (3 - len(k)) + k
             name = vdd.utils.clean_filename(co.dec.name)
             ts = vdd.utils.clean_filename("-".join(co.ts_specifier))
-            resp_f.savefig(_SAVE_DIR / f"{name}_resp_{ts}_{num}.png")
-            temp_f.savefig(_SAVE_DIR / f"{name}_temp_{ts}_{num}.png")
+            resp_name = _SAVE_DIR / f"{name}_resp_{ts}_{num}.png"
+            resp_f.savefig(resp_name)
+            temp_name = _SAVE_DIR / f"{name}_temp_{ts}_{num}.png"
+            temp_f.savefig(temp_name)
+            plt.close("all")
+            files += (resp_name, temp_name)
+        return files
 
 
 def _use_cut_off() -> None:

@@ -32,7 +32,7 @@ cmcrameri==1.8
     # via plastik
 contourpy==1.2.0
     # via matplotlib
-cosmoplots==0.3.0
+cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@ec369be63f0bcdc86ff12f44fe295b8df407ba03
     # via volcano-data-deconvolution
 cycler==0.12.1
     # via matplotlib

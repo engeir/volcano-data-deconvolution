@@ -1,5 +1,11 @@
 ---
+title: "Manuscript overview"
+author:
+- Eirik Rolland Enger
+date: \today{}
+geometry: margin=3cm
 header-includes: |
+  ```{=latex}
    \usepackage{tcolorbox}
    \usepackage{tikz}
    \usetikzlibrary{calc}
@@ -12,10 +18,13 @@ header-includes: |
    %   bookmark={Q\arabic{\tcbcounter}}
    }
    \newtcolorbox{myquote}{%
+       arc=0pt,
+       outer arc=0pt,
        breakable,
+       boxrule=0.5pt,
        pad at break*=1.5pc,
        colback=gray!15!white,
-       colframe=gray!15!white,
+       colframe=black,
        overlay first and middle={
          \coordinate (A1) at ($(interior.south east) + (-10pt,5pt)$);
          \coordinate (C1) at ($(interior.south east) + (-6pt,7.5pt)$);
@@ -23,39 +32,42 @@ header-includes: |
        }
    }
    \renewenvironment{quote}{\begin{NoHyper}\begin{myquote}}{\end{myquote}\end{NoHyper}}
+  ```
 ---
 
-# Manuscript overview
+## Preface
 
-## Structure and planned talking points
+### Structure and planned talking points
 
-- The deconvolution works well with SO2 delta pulses as forcing, both for daily and
+- The deconvolution works well with SO~2~ delta pulses as forcing, both for daily and
   monthly resolved dataset
 - Deconvolution of temperature to RF is worse due to the noise in the forcing signal
   (But this may be attempted with the alternative method)
-- The development of the temperature response to SO2 delta forcing is consistent between
-  the Otto-Bliesner et al. (2016) dataset and the CESM2 small volcanic eruption forcing
-- The amplitude of the temperature response to SO2 delta forcing within OB16 is smaller,
-  but similar to the intermediate CESM2 forcing (same as seen on previous paper)
-- The radiative forcing response to SO2 delta forcing within OB16 is relatively stronger
-  than that of temperature, with an amplitude between the smallest and second smallest
-  CESM2 forcing
+- The development of the temperature response to SO~2~ delta forcing is consistent
+  between the Otto-Bliesner et al. (2016) dataset and the CESM2 small volcanic eruption
+  forcing
+- The amplitude of the temperature response to SO~2~ delta forcing within OB16 is
+  smaller, but similar to the intermediate CESM2 forcing (same as seen on previous
+  paper)
+- The radiative forcing response to SO~2~ delta forcing within OB16 is relatively
+  stronger than that of temperature, with an amplitude between the smallest and second
+  smallest CESM2 forcing
 - The temperature response to radiative forcing normalised to OB16 has the best
   correspondence with the 2-year separated double waveform response function, suggesting
   that (1) the temperature does not combine linearly with the radiative forcing when
   perturbed and (2) the deconvolution may not be appropriate to fully describe the
   response function.
 
-## To do
+### To do
 
-1. ~~Compute the residual as $\mathrm{conv}(T, R_{\mathrm{RF~or~SO2}})-T$, that is, both
-   reconstructed from T---RF and T---SO2 response~~
+1. Compute the residual as $\mathrm{conv}(T, R_{\mathrm{RF~or~SO_2}})-T$, that is, both
+   reconstructed from T---RF and T---SO~2~ response
 2. ~~Look at the residual spectrum compared to that of a control simulation~~
    - Gaussian? **Yes**
-   - Any difference between the proper reconstruction (T---SO2) and the noisy one
+   - Any difference between the proper reconstruction (T---SO~2~) and the noisy one
      (T---RF)? **Slightly, see section below**
    - What happen at low frequency? **RF looses power**
-3. ~~Look at the correlation between the residual and the reconstructed~~
+3. ~~Look at the correlation between the residual and reconstructed~~
    - Any extra peaks in the residual? **Stronger correlation in the RF case**
 4. ~~Look at the difference in peak values between reconstructions and the original~~
    - Is the peak differences symmetric or skewed? If skewed, how? **Only about 22%
@@ -63,15 +75,16 @@ header-includes: |
 
 ---
 
-## Table of contents
+### Table of contents
 
 <!-- vim-markdown-toc GFM -->
 
-- [Definitions](#definitions)
-- [Should we expect linear temperature dependence on radiative forcing?](#should-we-expect-linear-temperature-dependence-on-radiative-forcing)
+- [Intro](#intro)
+  - [Definitions](#definitions)
+  - [Should we expect linear temperature dependence on radiative forcing?](#should-we-expect-linear-temperature-dependence-on-radiative-forcing)
 - [Response functions](#response-functions)
-  - [RF to SO2 response](#rf-to-so2-response)
-  - [Temperature to SO2 response](#temperature-to-so2-response)
+  - [RF to SO~2~ response](#rf-to-so2-response)
+  - [Temperature to SO~2~ response](#temperature-to-so2-response)
   - [Temperature to RF response](#temperature-to-rf-response)
 - [Reconstruction](#reconstruction)
   - [Time series](#time-series)
@@ -85,40 +98,59 @@ header-includes: |
   - [Reconstructed double waveforms](#reconstructed-double-waveforms)
 - [Cut off response function](#cut-off-response-function)
   - [Inspecting the noise floor](#inspecting-the-noise-floor)
+    - [Noise of OB16](#noise-of-ob16)
+    - [Noise of CESM2 strong](#noise-of-cesm2-strong)
+    - [Noise of CESM2 2-sep](#noise-of-cesm2-2-sep)
+    - [Noise of CESM2 4-sep](#noise-of-cesm2-4-sep)
+- [References](#references)
 
 <!-- vim-markdown-toc -->
 
-## Definitions
+## Intro
 
-- **SO2**: Sulphur dioxide --- $S$
-- **RF**: Radiative forcing --- $R$
-- **T**: Temperature --- $T$
-- Convolution is denoted as $\ast$
-- Deconvolution is denoted as $\tilde\ast$
-- The response function of $A$ from $B$ is denoted $\phi_{AB}$, where $A$ is the signal
-  and $B$ is the kernel
+### Definitions
+
+1. **SO~2~**: Sulphur dioxide --- $S$
+2. **RF**: Radiative forcing --- $R$
+3. **T**: Temperature --- $T$
+4. Convolution is denoted as $\ast$
+5. Deconvolution is denoted as $\tilde\ast$
+6. The response function of $A$ from $B$ is denoted $\phi_{AB}$, where $A$ is the signal
+   and $B$ is the kernel
 
 > Thus, $\phi_{AB}=A\tilde\ast B$, and $A=B\ast\phi_{AB}$.
 
-## Should we expect linear temperature dependence on radiative forcing?
+### Should we expect linear temperature dependence on radiative forcing?
 
 A lot of these results suggest that even though there are non-linearities in the
-conversion from SO2 to both radiative forcing and temperature, the temperature response
-may still be linearly dependent on the radiative forcing. This is a strong result in our
-previous paper investigating single waveform volcanic eruption simulations, but if this
-is either trivial or at least to be expected, there is less to be gained from finding a
-good estimate of the temperature to radiative forcing response function.
+conversion from SO~2~ to both radiative forcing and temperature, the temperature
+response may still be linearly dependent on the radiative forcing. This is a strong
+result in our previous paper investigating single waveform volcanic eruption
+simulations, but if this is either trivial or at least to be expected, there is less to
+be gained from finding a good estimate of the temperature to radiative forcing response
+function.
+
+Simple energy balance models [(EBMs) often assume a linear dependence between
+temperature and radiative forcing]{.underline}. It is common to discuss the climate
+feedback parameter to be a sum of individual feedbacks (clouds, aerosols, CO~2~, and
+more). However, this assumes that the climate sensitivity is a constant, while _from
+most AOGCM simulations of constant $4\times\mathrm{CO_2}$ forcing, the climate
+sensitivity is found to vary_ [@gregory2016].
+
+So, this topic revolves around whether the climate sensitivity is a constant for any
+given forcing, and further whether the climate sensitivity is the same for all forcings.
+The latter is very likely no, and the former seems to be incorrect for at least some
+forcings. Thus, we should not automatically expect the temperature response to radiative
+forcing to be linear, or dismiss it as trivial.
 
 ## Response functions
 
-### RF to SO2 response
+### RF to SO~2~ response
 
 Let us first look at the response function for the radiative forcing, both the true
 values and normalised for comparing the evolution.
 
-![Radiative forcing to SO2 response functions](./generated_files/deconv_ob16_cesm2/rf-so2.png)
-
-![Normalised radiative forcing to SO2 response functions](./generated_files/deconv_ob16_cesm2/rf-so2-norm.png)
+![Absolute and normalised radiative forcing to SO~2~ response functions](./generated_files/deconv_ob16_cesm2/rf-so2.png)
 
 As expected, the RF response functions are similar in shape across CESM2 simulations,
 but differ in amplitude. Compared to the RF response function of Otto-Bliesner et al.
@@ -128,27 +160,27 @@ of Otto-Bliesner et al. (2016) is right between the smallest and second smallest
 RF response functions, as expected considering this is where the most prominent volcanic
 eruptions in the Otto-Bliesner et al. (2016) dataset are located.
 
-### Temperature to SO2 response
+### Temperature to SO~2~ response
 
 Now we can look at the temperature response functions. Again, we show both the true
 responses and the normalised responses.
 
-![Temperature SO2 response functions](./generated_files/deconv_ob16_cesm2/temp-so2.png)
-
-![Normalised temperature to SO2 response functions](./generated_files/deconv_ob16_cesm2/temp-so2-norm.png)
+![Absolute and normalised temperature SO~2~ response functions](./generated_files/deconv_ob16_cesm2/temp-so2.png)
 
 For temperature, we find the Otto-Bliesner et al. (2016) response amplitude to lie
-between the second smallest and second largest CESM2 response amplitudes. The shape is
-however very similar to the smallest CESM2 response function, which in turn differs from
-the three larger CESM2 response functions.
+between the second smallest and second largest CESM2 response amplitudes. We also note
+that the initial rise of the responses across all intermediate and smaller eruption
+sizes is similar. However, they all reach the peak at different times, and decay at
+different rates. The shape of the OB16 response is similar to the smallest CESM2
+response function during the decaying phase (not shown), although there is significant
+noise in the smallest CESM2 response. Both OB16 and the smallest CESM2 differs from the
+three larger CESM2 response functions.
 
 ### Temperature to RF response
 
 Finally, we look at the temperature response to the radiative forcing.
 
-![Temperature response functions](./generated_files/deconv_ob16_cesm2/temp-rf.png)
-
-![Normalised temperature response functions](./generated_files/deconv_ob16_cesm2/temp-rf-norm.png)
+![Absolute and normalised temperature response functions](./generated_files/deconv_ob16_cesm2/temp-rf.png)
 
 The temperature to RF response functions are much harder to compute using the
 deconvolution algorithm. Since each of the two input time series to the algorithm are
@@ -162,24 +194,26 @@ response functions, is reasonable.
 ## Reconstruction
 
 We next reconstruct the OB16 dataset to compare the residual to a control simulation as
-well as the reconstructions themselves against the original. We use both the OB16
-response functions themselves, and the CESM2 strong simulation response functions in a
-pairwise comparison.
+well as the reconstructions themselves against the original.
+
+> **NOTE**: In the images that follow, we use both the OB16 response functions
+> themselves, and the CESM2 strong simulation response functions in a pairwise
+> comparison.
 
 ### Time series
 
-Let us first have a look at the temperature from both a control simulation, and the SO2
-forced simulation, as well as the reconstructed temperature from the SO2 response and
-the RF response.
+Let us first have a look at the temperature from both a control simulation, and the
+SO~2~ forced simulation, as well as the reconstructed temperature from the SO~2~
+response and the RF response.
 
 ![Reconstructed temperature time series OB16](./generated_files/reconstruction/ob16-month-temp-reconstructed.png){width=49%}
 ![Reconstructed temperature time series CESM2](./generated_files/reconstruction/cesm2-strong-temp-reconstructed.png){width=49%}
 
-We notice that the SO2 response reconstruction is almost without noise, which is to be
+We notice that the SO~2~ response reconstruction is almost without noise, which is to be
 expected as it is the convolution between the response function, and a train of delta
 pulses. The RF response reconstruction is very noisy, yet follows the original
 temperature time series more closely as more of the variability is captured from using
-the RF time series rather than the SO2 time series.
+the RF time series rather than the SO~2~ time series.
 
 ### Residuals
 
@@ -194,7 +228,7 @@ series and the reconstructed time series. As such, the correlation function betw
 reconstructed and residual from using the RF response function give strong negative
 correlation at small time lags, with a weaker positive correlation at larger time lags.
 
-The correlation function between the SO2 response reconstruction and the residual is
+The correlation function between the SO~2~ response reconstruction and the residual is
 much more flat, but with spuriously strong correlations at all time lags.
 
 ### Spectrum
@@ -205,7 +239,7 @@ the control temperature time series.
 ![Spectrum OB16](./generated_files/reconstruction/ob16-month-spectrum-residual-control_temp.png){width=49%}
 ![Spectrum CESM2](./generated_files/reconstruction/cesm2-strong-spectrum-residual-control_temp.png){width=49%}
 
-Based on how the reconstructed temperature time series from the SO2 and RF response
+Based on how the reconstructed temperature time series from the SO~2~ and RF response
 functions are constructed, we expect the residual from the RF response reconstruction to
 feature more power at high frequencies, as the reconstructed time series contain noise
 from both the response function and the radiative forcing time series. Likewise, the
@@ -217,9 +251,9 @@ this is indeed what the spectrum shows.
 
 ### Peak differences
 
-We want to investigate how well we are able to resolve the true peaks in the temperature
-from the reconstructions. Ideally, the only differences in peak values should be due to
-noise in the temperature time series, and not due to the reconstruction method.
+We want to investigate how well we can resolve the true peaks in the temperature from
+the reconstructions. Ideally, the only differences in peak values should be due to noise
+in the temperature time series, and not due to the reconstruction method.
 
 We plot both the PDF, and the CDF of the peak difference time series.
 
@@ -231,14 +265,13 @@ We plot both the PDF, and the CDF of the peak difference time series.
 
 ## Parametrisation
 
-We have good estimates of the RF to SO2 and T to SO2 response functions. Both from CESM2
-simulations, but also from the Otto-Bliesner et al. (2016) dataset. The next step is to
-obtain a good estimate of the T to RF response function. This is ideally as simple as
-deconvolving the RF to SO2 response function from the T to SO2 response function, but as
-both response functions have a width as well as being noisy, this is not a trivial task.
+We have good estimates of the RF to SO~2~ and T to SO~2~ response functions. Both from
+CESM2 simulations, but also from the Otto-Bliesner et al. (2016) dataset. The next step
+is to get a good estimate of the T to RF response function. This is ideally as simple as
+deconvolving the RF to SO~2~ response function from the T to SO~2~ response function,
+but as both response functions have a width and are noisy, this is not a trivial task.
 
-We first list up some useful relations in order to better understand the problem at
-hand.
+We first list up some useful relations to better understand the problem at hand.
 
 <!-- dprint-ignore-start -->
 $$
@@ -247,14 +280,16 @@ R&:=S\ast\phi_{RS}\\
 T&:=S\ast\phi_{TS}\\
 T&:=R\ast\phi_{TR}=S\ast\phi_{RS}\ast\phi_{TR}\\
 \Rightarrow \phi_{TS}&=\phi_{RS}\ast\phi_{TR}\\
-\Rightarrow \phi_{TR}&=\phi_{TS}\tilde\ast\phi_{RS}=(T\tilde\ast S)\tilde\ast (R\tilde\ast S)=T\tilde\ast R\quad[=T\tilde\ast(S\ast\phi_{RS})]\\
+\Rightarrow \phi_{TR}&=\phi_{TS}\tilde\ast\phi_{RS}
+                      =(T\tilde\ast S)\tilde\ast (R\tilde\ast S)
+                      =T\tilde\ast R\quad[=T\tilde\ast(S\ast\phi_{RS})]\\
 \end{aligned}
 $$ {#eq:label}
 <!-- dprint-ignore-end -->
 
 - [x] $\phi_{RS}=R\tilde\ast S$
 - [x] $\phi_{TS}=T\tilde\ast S$
-- [ ] $\phi_{TR}=T\tilde\ast R = (T\tilde\ast S)\tilde\ast (R\tilde\ast S) =
+- [x] $\phi_{TR}=T\tilde\ast R = (T\tilde\ast S)\tilde\ast (R\tilde\ast S) =
       \phi_{TS}\tilde\ast\phi_{RS}$
 
 We conclude that we may compute $\phi_{TR}$ in two ways, (1) either by **deconvolving
@@ -273,30 +308,16 @@ three different ways in all figures. The responses are
 3. Deconvolving $\phi_{TS}$ with $\phi_{RS}$ while enforcing negative time lags to be
    zero (`dec(dec(T, SO2), dec(R, SO2)), corrected`)
 
-![Otto-Bliesner daily](./generated_files/parametrisation/parametrisation_ob16.png)
-
-![Otto-Bliesner monthly](./generated_files/parametrisation/parametrisation_ob16-month.png)
-
-![CESM2 small](./generated_files/parametrisation/parametrisation_cesm2-medium.png)
-
-![CESM2 intermediate](./generated_files/parametrisation/parametrisation_cesm2-medium-plus.png)
-
-![CESM2 large](./generated_files/parametrisation/parametrisation_cesm2-strong.png)
-
-![CESM2 extra large](./generated_files/parametrisation/parametrisation_cesm2-size5000.png)
-
-![CESM2 double 2-sep](./generated_files/parametrisation/parametrisation_cesm2-tt-2sep.png)
-
-![CESM2 double 4-sep](./generated_files/parametrisation/parametrisation_cesm2-double-overlap.png)
+![In the figures above, response functions are generated from (a) Otto-Bliesner et al.
+(2016), (b) CESM2 intermediate, (c) CESM2 large, (d) CESM2 extra large, (e) CESM2 double
+2-year, and (f) CESM2 double 4-year simulations.](./generated_files/parametrisation/parametrisation_combined.png)
 
 An average across the three estimation methods, with all datasets shown in the same
-plot:
+plot; an average across a subset of all simulation cases for all three estimation
+methods:
 
-![Average](./generated_files/parametrisation/parametrisation_ensemble.png)
-
-An average across a subset of all simulation cases for all three estimation methods:
-
-![Method means](./generated_files/parametrisation/parametrisation_method.png)
+![Average](./generated_files/parametrisation/parametrisation_ensemble.png){width=49%}
+![Method means](./generated_files/parametrisation/parametrisation_method.png){width=49%}
 
 From this, we find that the overall best estimates are form directly deconvolving $T$
 with $R$. Evidently, it seems that noise is not the main issue, but rather the
@@ -312,12 +333,15 @@ functions in simulations where volcanic eruptions occur close in time.
 ### Double waveform response functions
 
 We first compare the response functions estimated from the CESM2 double waveform
-simulations, where a two year (Fig \ref{fig:responses_rf}) and four year (Fig
-\ref{fig:responses_temp}) separation between the volcanic eruptions have been used.
+simulations, where a two year and four year separation between the volcanic eruptions
+have been used.
 
-![Response functions RF](./generated_files/waveform/responses_rf.png){#fig:responses_rf}
+![Response functions RF](./generated_files/waveform/responses_rf.png){#fig:responses_rf
+width=49%}
+![Response functions T](./generated_files/waveform/responses_temp.png){#fig:responses_temp
+width=49%}
 
-![Response functions T](./generated_files/waveform/responses_temp.png){#fig:responses_temp}
+_The RF to SO~2~ and T to SO~2~ response functions for the double waveform simulations._
 
 ### Reconstructed double waveforms
 
@@ -325,35 +349,31 @@ Let us use the CESM2 strong eruption ensemble as a good estimate of the true res
 functions, and then compare the climate model output of $R$ and $T$ with the
 reconstructed ones from the CESM2 strong ensemble response functions.
 
-![True (old) versus reconstructed (new) AOD](./generated_files/waveform/recreated_waveforms_aod.png)
-
-![True (old) versus reconstructed (new) RF](./generated_files/waveform/recreated_waveforms_rf.png)
-
-![True (old) versus reconstructed (new) T](./generated_files/waveform/recreated_waveforms_temp.png)
+![True versus resonstructed waveforms of (a) AOD, (b) RF, and (c) T](./generated_files/waveform/responses_combined.png)
 
 The response functions have here been rescaled to have amplitude equal to the amplitude
 of the corresponding response functions generated from the simulation in question. The
 plots give good indications that for the four year separated double waveform, the
 reconstruction is indistinguishable from the true response functions at the current
 noise level. However, the two year separated double waveform shows a clear non-linear
-dependence between the injected SO2 and resulting $R$ and $T$ time series. A
+dependence between the injected SO~2~ and resulting $R$ and $T$ time series. A
 significantly weaker response in both $R$ and $T$ is seen in the second eruption, most
-notably in the $T$ plot.
+notably in the plot of $T$.
 
 ## Cut off response function
 
 To check how far into the response functions the noise is substantial, we cut the
 response function at a certain time lag, before we generate an ensemble of temperature
 output signals by first convolving the cut response function with the forcing, and then
-adding phase shifted noise to the temperature signal. The precedure can be summarise in
+adding phase shifted noise to the temperature signal. The procedure can be summarise in
 the following steps:
 
 1. Cut the response function at a given index.
-2. Convolve the cut response function with the forcing signal to obtain a temperature
+2. Convolve the cut response function with the forcing signal to get a temperature
    estimate $T_{\mathrm{est}}$.
-3. Add noise represented by a phase shifted temperature control signal to obtain an
+3. Add noise represented by a phase shifted temperature control signal to create an
    ensemble of temperature estimates $T_i$.
-4. Deconvolve the ensemble of temperature estimates with the forcing signal to obtain an
+4. Deconvolve the ensemble of temperature estimates with the forcing signal to create an
    ensemble of response functions for the given cut off index.
 
 ### Inspecting the noise floor
@@ -363,12 +383,54 @@ bootstrapping method outlined above. The noise is then illustrated as percentile
 that show the percentiles as layers of shaded filled in area plots.
 
 Let us look at how the cut off ensemble looks like for the Otto-Bliesner dataset when
-cutting the response function off at years 2, 4, 8 and 16.
+cutting the response function off at years 2, 4, 8 and 16 (specified in months in the
+plot labels).
 
-![Cut off response function OB16](./generated_files/cut_off/resp_024.png)
+#### Noise of OB16
 
-![Cut off response function OB16](./generated_files/cut_off/resp_048.png)
+We find that when estimating the temperature time series back from the radiative forcing
+and the temperature to radiative forcing response function, most of the features are
+resolved even when cutting off at two years. Keeping the first four years also captures
+more irregularities during the decay. However, there might be considerable contributions
+of the decay from the largest eruption in the dataset, which also features a large bump
+in during the decay, between roughly 2 and 4 years.
 
-![Cut off response function OB16](./generated_files/cut_off/resp_096.png)
+For example, the eruption in about the year $1340$ is well captured in all scenarios,
+while the largest as well as the two eruption following closely in time deviates more.
 
-![Cut off response function OB16](./generated_files/cut_off/resp_192.png)
+![Cut off response function OB16, $T$ against $R$](./generated_files/cut_off/ob16-month_resp_temp-rf_combined.png)
+
+#### Noise of CESM2 strong
+
+The time series from the CESM2 simulations are not long enough to fully capture the
+temperature decay. It is evident that the temperature response to RF is not fully
+decayed after $20$ years, but the shape seems rather well captured up to the point where
+the time series ends. Noise come mostly from having a kernel in the deconvolution that
+is non-delta like.
+
+![Cut off response function CESM2 strong, $T$ against $R$](./generated_files/cut_off/cesm2-strong_resp_temp-rf_combined.png)
+
+#### Noise of CESM2 2-sep
+
+Similarly to the strong CESM2 simulation, the response function is not fully decayed
+after the $12$ years available in the time series. The noise is more substantial in the
+double waveform simulations due to a smaller ensemble. We do however get very different
+response function shapes, where the $2$ year separated double waveform response has a
+much faster decay.
+
+![Cut off response function CESM2 2-sep, $T$ against $R$](./generated_files/cut_off/cesm2-tt-2sep_resp_temp-rf_combined.png)
+
+#### Noise of CESM2 4-sep
+
+As the $4$ year separated double waveform response function contain only a single
+ensemble member, the noise is substantial. However, we are able to recreate both the RF
+and the temperature time series using the raw SO~2~ time series and the response
+functions from CESM2 strong of the RF and temperature to SO~2~. Therefore, we expect the
+shape of the response of temperature to RF to be similar to what obtained from CESM2
+strong.
+
+![Cut off response function CESM2 4-sep, $T$ against $R$](./generated_files/cut_off/cesm2-double-overlap_resp_temp-rf_combined.png)
+
+\clearpage{}
+
+## References

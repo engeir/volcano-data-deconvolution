@@ -16,10 +16,11 @@ repos:
 - repo: local
   hooks:
   - id: dprint
-    name: dprint format
-    stages: [commit]
-    entry: dprint fmt
-    language: system
+    name: dprint
+    entry: dprint fmt --incremental=false --allow-no-files
+    language: node
+    pass_filenames: false
+    additional_dependencies: [dprint]
 
   - id: check-added-large-files
     name: Check for added large files
@@ -71,10 +72,10 @@ repos:
     types: [python]
     require_serial: true
 
-      # - id: pytest
-      #   name: pytest
-      #   stages: [commit]
-      #   language: system
-      #   entry: rye run pytest tests
-      #   types: [python]
-      #   pass_filenames: false
+          # - id: pytest
+          #   name: pytest
+          #   stages: [commit]
+          #   language: system
+          #   entry: rye run pytest tests
+          #   types: [python]
+          #   pass_filenames: false

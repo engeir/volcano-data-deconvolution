@@ -1,5 +1,6 @@
 """Plot the deconvolution comparison between OB16 and CESM2."""
 
+import cosmoplots
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import volcano_base
@@ -81,7 +82,7 @@ class PlotResponseFunctions:
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"rf-so2{"-norm" if self.norm else ""}.png")
+                fig.savefig(_SAVE_DIR / f"rf-so2-{"norm" if self.norm else "abs"}.png")
                 return fig
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
@@ -100,7 +101,9 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"temp-so2{"-norm" if self.norm else ""}.png")
+                fig.savefig(
+                    _SAVE_DIR / f"temp-so2-{"norm" if self.norm else "abs"}.png"
+                )
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
@@ -119,7 +122,7 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"temp-rf{"-norm" if self.norm else ""}.png")
+                fig.savefig(_SAVE_DIR / f"temp-rf-{"norm" if self.norm else "abs"}.png")
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
@@ -159,4 +162,15 @@ class PlotResponseFunctions:
 if __name__ == "__main__":
     PlotResponseFunctions(*all_decs, norm=True).run()
     PlotResponseFunctions(*all_decs, norm=False).run()
+    files = (
+        [_SAVE_DIR / f"rf-so2-{k}.png" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"temp-so2-{k}.png" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"temp-rf-{k}.png" for k in ["abs", "norm"]],
+    )
+    for file in files:
+        cosmoplots.combine(*file).in_grid(2, 1).using(fontsize=50).save(
+            _SAVE_DIR / file[0].name.replace("-abs", "")
+        )
+        for f in file:
+            f.unlink()
     plt.show()

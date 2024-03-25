@@ -4,6 +4,7 @@ We also check how well we are able to recreate the double waveform time series f
 response functions of other simulations.
 """
 
+import cosmoplots
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -60,9 +61,10 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
     aod_a.legend()
     rf_a.legend()
     temp_a.legend()
-    aod_f.savefig(_SAVE_DIR / "responses_aod.png")
-    rf_f.savefig(_SAVE_DIR / "responses_rf.png")
-    temp_f.savefig(_SAVE_DIR / "responses_temp.png")
+    files = [_SAVE_DIR / f"responses_{k}.png" for k in ["aod", "rf", "temp"]]
+    aod_f.savefig(files[0])
+    rf_f.savefig(files[1])
+    temp_f.savefig(files[2])
     plt.show()
 
 
@@ -100,9 +102,15 @@ def check_recreated_waveforms(*decs: vdd.load.DeconvolveCESM) -> None:
     axs["aod"].set_ylabel("Radiative Forcing [W/m$^2$]")
     axs["rf"].set_ylabel("Radiative Forcing [W/m$^2$]")
     axs["temp"].set_ylabel("Temperature [K]")
-    figs["aod"].savefig(_SAVE_DIR / "recreated_waveforms_aod.png")
-    figs["rf"].savefig(_SAVE_DIR / "recreated_waveforms_rf.png")
-    figs["temp"].savefig(_SAVE_DIR / "recreated_waveforms_temp.png")
+    files = [_SAVE_DIR / f"recreated_waveforms_{k}.png" for k in ["aod", "rf", "temp"]]
+    figs["aod"].savefig(files[0])
+    figs["rf"].savefig(files[1])
+    figs["temp"].savefig(files[2])
+    cosmoplots.combine(*files).in_grid(1, 3).using(fontsize=50).save(
+        _SAVE_DIR / "responses_combined.png"
+    )
+    for f in files:
+        f.unlink()
     plt.show()
 
 
