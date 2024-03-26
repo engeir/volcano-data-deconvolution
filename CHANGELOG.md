@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/engeir/volcano-data-deconvolution/compare/v0.3.1...v0.4.0) (2024-03-26)
+
+
+### Features
+
+* **cut off:** implement cut off analysis ([3afc16d](https://github.com/engeir/volcano-data-deconvolution/commit/3afc16d32e7959b9d630c6a4ef32b3562e0a3ddf))
+* **cut off:** scale single response to fit with any(?) super position ([9761f46](https://github.com/engeir/volcano-data-deconvolution/commit/9761f46c59558c72743b82691c1d4ef93ed2a13c))
+
 ## [0.3.1](https://github.com/engeir/volcano-data-deconvolution/compare/v0.3.0...v0.3.1) (2024-03-22)
 
 
