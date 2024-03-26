@@ -16,6 +16,7 @@
 #        OB16 response sum (layman's integral) be the true sum, or to normalise every
 #        array we come across. Try all. (Amplitude seems to work best.)
 
+import pathlib
 import warnings
 from functools import cached_property
 from typing import Literal
@@ -43,18 +44,45 @@ plt.style.use(
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
 )
 
-ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
-# dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_month)
-# dec_ob16.name = "OB16 month"
-# dec_reconstructor = vdd.load.DeconvolveOB16(normalise=False, data=ob16_month)
-# dec_reconstructor.name = "OB16 month"
-# cesm = vdd.load.CESMData(strength="tt-2sep")
-# cesm = vdd.load.CESMData(strength="medium")
-# cesm = vdd.load.CESMData(strength="medium-plus")
-# cesm = vdd.load.CESMData(strength="size5000")
-# cesm = vdd.load.CESMData(strength="double-overlap")
-cesm = vdd.load.CESMData(strength="strong")
-dec_reconstructor = vdd.load.DeconvolveCESM(normalise=False, pad_before=True, cesm=cesm)
+
+def _setup() -> (
+    tuple[volcano_base.load.OttoBliesner, tuple[vdd.load.Reconstructor, ...]]
+):
+    # Used as a reference for the reconstruction.
+    ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
+    dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_month)
+    dec_ob16.name = "OB16 month"
+    recs: tuple[vdd.load.Reconstructor, ...] = ()
+    # OB16 month -----------------------------------------------------------------------
+    rec_ob16 = vdd.load.DeconvolveOB16(normalise=False, data=ob16_month)
+    rec_ob16.name = "OB16 month"
+    recs += (rec_ob16.dump_reconstructor(),)
+    # OB16 cut offs --------------------------------------------------------------------
+    co_ob16_temp_so2 = vdd.load.CutOff(dec_ob16, ("temp", "so2"))
+    co_ob16_temp_rf = vdd.load.CutOff(dec_ob16, ("temp", "rf"))
+    meta_years = {12 * i for i in [2, 4, 8, 16]}
+    for co in (co_ob16_temp_so2, co_ob16_temp_rf):
+        co.cut_off(meta_years)
+    for meta_year_ in meta_years:
+        meta_year = int(meta_year_)
+        rec_co = co_ob16_temp_so2.dump_reconstructor(
+            cut=meta_year, temp_rf=co_ob16_temp_rf.cuts[str(meta_year)].response.data
+        )
+        num = str(meta_year // 12)
+        num = "0" * (2 - len(num)) + num
+        rec_co.name = f"cut off {num} years"
+        recs += (rec_co,)
+    # CESM2 ----------------------------------------------------------------------------
+    cesm_2 = vdd.load.CESMData(strength="tt-2sep")
+    cesm_s = vdd.load.CESMData(strength="medium")
+    cesm_i = vdd.load.CESMData(strength="medium-plus")
+    cesm_e = vdd.load.CESMData(strength="size5000")
+    cesm_4 = vdd.load.CESMData(strength="double-overlap")
+    cesm_s = vdd.load.CESMData(strength="strong")
+    for cesm in (cesm_2, cesm_s, cesm_i, cesm_e, cesm_4, cesm_s):
+        rec_cesm = vdd.load.DeconvolveCESM(normalise=False, pad_before=True, cesm=cesm)
+        recs += (rec_cesm.dump_reconstructor(),)
+    return ob16_month, recs
 
 
 class PlotReconstruction:
@@ -65,7 +93,7 @@ class PlotReconstruction:
     ob16 : volcano_base.load.OttoBliesner
         OB16 monthly data. This is what we compare against and what we try to
         reconstruct.
-    reconstruction : vdd.load.Deconvolve
+    reconstruction : vdd.load.Reconstructor
         The reconstruction object. We use the response functions from this object to
         reconstruct the OB16 data via convolution of response functions.
 
@@ -77,7 +105,7 @@ class PlotReconstruction:
         Whether to normalise the data or not.
     dec_ob16 : vdd.load.DeconvolveOB16
         Deconvolved OB16 data.
-    reconstruction : vdd.load.Deconvolve
+    reconstruction : vdd.load.Reconstructor
         The reconstruction object.
     sim_name : pathlib.Path
         Name of the simulation extracted from the reconstruction object, used for saving
@@ -85,7 +113,9 @@ class PlotReconstruction:
     """
 
     def __init__(
-        self, ob16: volcano_base.load.OttoBliesner, reconstruction: vdd.load.Deconvolve
+        self,
+        ob16: volcano_base.load.OttoBliesner,
+        reconstruction: vdd.load.Reconstructor,
     ):
         self.ob16 = ob16
         self.normalise = reconstruction.normalise
@@ -254,15 +284,16 @@ class PlotReconstruction:
         # conv_norm_temp_rf = np.convolve(
         #     rf.data, rec.response_temp_rf / rec.response_temp_rf.max() * rtr, "same"
         # )
-        lso2 = f"From SO2 ({rec.name})"
-        lrf = f"From RF ({rec.name})"
+        lso2 = f"SO2 ({rec.name})"
+        lrf = f"RF ({rec.name})"
         abso_a.plot(time_, self.rec_temp_so2, label=lso2)
         abso_a.plot(time_, self.rec_temp_rf, label=lrf)
         # norm_a.plot(time_, vdd.utils.normalise(self.rec_temp_so2), label=lso2)
         # norm_a.plot(time_, vdd.utils.normalise(self.rec_temp_rf), label=lrf)
         # nor2_a.plot(time_, conv_norm_temp_so2, label=lso2)
         # nor2_a.plot(time_, conv_norm_temp_rf, label=lrf)
-        abso_a.legend()
+        abso_a.set_xlim((-790 * 365, -650 * 365))
+        abso_a.legend(framealpha=0.5)
         # norm_a.legend()
         # nor2_a.legend()
         plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.png")
@@ -342,15 +373,15 @@ class PlotReconstruction:
         def info(name, p_value) -> None:
             rprint(
                 f"[blue][bold]{name}[/bold]: I can with [/blue][red]"
-                f"{(1-p_value)*100:.4f}% confidence[/red][blue] say that the "
+                f"{(1 - p_value) * 100:.4f}% confidence[/red][blue] say that the "
                 f"distribution does not have a mean of {test_value}[/blue]"
             )
 
         # Check if the p-value is less than a significance level (e.g., 0.05) to
         # determine symmetry (meaning a confidence level of 95%)
         sl = 0.01
-        reject = f"The distribution does not have a mean of {test_value} (confidence of {int((1-sl)*100)}%)"
-        reject_no = f"I cannot with at least {int((1-sl)*100)}% confidence say that the distribution does not have a mean of {test_value}"
+        reject = f"The distribution does not have a mean of {test_value} (confidence of {int((1 - sl) * 100)}%)"
+        reject_no = f"I cannot with at least {int((1 - sl) * 100)}% confidence say that the distribution does not have a mean of {test_value}"
         if p_value_so2 < sl:
             print(reject)
         else:
@@ -444,10 +475,63 @@ class PlotReconstruction:
         plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.png")
 
 
+class PlotManyReconstructions:
+    """Wrapper class that creates any number of reconstructions."""
+
+    def __init__(
+        self, ob16: volcano_base.load.OttoBliesner, *recs: vdd.load.Reconstructor
+    ):
+        self.ob16 = ob16
+        self.recs = recs
+
+    def run(self) -> None:
+        """Run the reconstructions."""
+        for rec in self.recs:
+            rec_class = PlotReconstruction(self.ob16, rec)
+            rec_class.plot_reconstruction_temp()
+            rec_class.peak_difference_analysis()
+            rec_class.correlation()
+            rec_class.spectrum()
+            plt.close("all")
+
+
 if __name__ == "__main__":
-    rec_class = PlotReconstruction(ob16_month, dec_reconstructor)
-    rec_class.plot_reconstruction_temp()
-    rec_class.peak_difference_analysis()
-    rec_class.correlation()
-    rec_class.spectrum()
-    plt.show()
+    ob16, recs = _setup()
+    plot_recs = PlotManyReconstructions(ob16, *recs)
+    plot_recs.run()
+    # We take extra care of the cut-off data.
+    files = pathlib.Path(_SAVE_DIR).glob("cut-off*")
+    temp = []
+    pdf = []
+    cdf = []
+    power = []
+    correlation = []
+    for f in files:
+        match f.name:
+            case _ if "temp-reconstructed" in f.name:
+                temp.append(f)
+            case _ if "peak-difference-pdf" in f.name:
+                pdf.append(f)
+            case _ if "peak-difference-cdf" in f.name:
+                cdf.append(f)
+            case _ if "spectrum-residual-control_temp" in f.name:
+                power.append(f)
+            case _ if "correlation-residual-reconstructed" in f.name:
+                correlation.append(f)
+            case _:
+                pass
+    temp.sort()
+    pdf.sort()
+    cdf.sort()
+    power.sort()
+    correlation.sort()
+    for list_, name in zip(
+        (temp, pdf, cdf, power, correlation),
+        ("temp", "pdf", "cdf", "power", "correlation"),
+        strict=True,
+    ):
+        cosmoplots.combine(*list_).in_grid(2, len(list_) // 2).using(fontsize=50).save(
+            _SAVE_DIR / f"cut-off-{name}-combined.png"
+        )
+        for f in list_:
+            f.unlink()

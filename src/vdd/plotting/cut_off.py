@@ -10,18 +10,13 @@
 #    - [ ] Uses only one response function and corresponding signal (RF or temperature).
 
 import pathlib
-from collections.abc import Iterable
-from functools import cached_property
-from typing import Literal, Self
 
 import cftime
 import cosmoplots
-import fppanalysis
 import matplotlib.pyplot as plt
 import numpy as np
 import plastik
 import volcano_base
-import xarray as xr
 
 import vdd.load
 import vdd.utils
@@ -35,10 +30,6 @@ _SAVE_DIR = volcano_base.config.SAVE_PATH / "cut_off"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
-type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
-type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
-
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
@@ -50,103 +41,10 @@ dec_ob16_month.name = "OB16 month"
 all_decs = (dec_cesm_4sep, dec_cesm_2sep, dec_cesm_s, dec_ob16_month)
 
 
-class CutOff:
-    """Cut off the response functions of a deconvolution object."""
-
-    def __init__(self, dec: vdd.load.Deconvolve, arrays: T_RF | T_SO2 | RF_SO2) -> None:
-        self.dec = dec
-        self.ts_specifier: T_RF | T_SO2 | RF_SO2 = arrays
-        self.cuts: dict[str, xr.Dataset] = {}
-        self.ensembles: dict[str, xr.Dataset] = {}
-
-    @cached_property
-    def response(self) -> np.ndarray:
-        """The response function in the convolution."""
-        out = getattr(
-            self.dec, f"response_{self.ts_specifier[0]}_{self.ts_specifier[1]}"
-        )
-        out[self.dec.tau <= 0] = 0
-        return out
-
-    @cached_property
-    def forcing(self) -> xr.DataArray:
-        """The forcing time series in the convolution."""
-        return getattr(self.dec, self.ts_specifier[1])
-
-    @cached_property
-    def output(self) -> xr.DataArray:
-        """The final output time series of the convolution."""
-        return getattr(self.dec, self.ts_specifier[0])
-
-    @cached_property
-    def control(self) -> xr.DataArray:
-        """The control time series in the convolution."""
-        return getattr(self.dec, f"{self.ts_specifier[0]}_control")
-
-    def cut_off(self, cutoff: int | Iterable[int]) -> Self:
-        """Cut off the response function at a given time lag."""
-        match cutoff:
-            case int():
-                self._single_cut_off(cutoff)
-            case Iterable():
-                for c in set(cutoff):
-                    if not isinstance(c, int):
-                        raise ValueError(
-                            "cutoff must be an integer or a sequence of integers."
-                        )
-                    self._single_cut_off(c)
-            case _:
-                raise ValueError("cutoff must be an integer or a sequence of integers.")
-        return self
-
-    def _single_cut_off(self, cutoff: int) -> None:
-        if str(cutoff) in self.cuts:
-            return
-        r_cut = self.response.copy()
-        r_cut[len(r_cut) // 2 + cutoff :] = 0
-        tau = self.dec.tau
-        time = self.output.time
-        temp_r = np.convolve(self.forcing, r_cut, "same")
-        ds = xr.Dataset(
-            {
-                "response": ("tau", r_cut, {"label": f"cut {cutoff}"}),
-                "temp_rec": ("time", temp_r, {"label": f"temp rec {cutoff}"}),
-            },
-            coords={"tau": tau, "time": time},
-        )
-        self.cuts[str(cutoff)] = ds
-
-    def generate_ensembles(self, n: int) -> None:
-        """Generate an ensemble of response function estimates."""
-        if not self.cuts:
-            raise ValueError("No cuts have been made.")
-        iters = np.arange(200)
-        for k, v in self.cuts.items():
-            if k in self.ensembles:
-                continue
-            arrays: dict[str, tuple] = {}
-            for i in range(n):
-                temp_rec = v.temp_rec.copy()
-                temp_random = fppanalysis.signal_rand_phase(self.control.data)
-                temp_rec += temp_random
-                res_rec, err = fppanalysis.RL_gauss_deconvolve(
-                    temp_rec, self.forcing, len(iters) - 1
-                )
-                r_cut_rec = res_rec.flatten()
-                r_cut_rec[self.dec.tau <= 0] = 0
-                arrays[f"response_{i}"] = ("tau", r_cut_rec, {"label": f"response {i}"})
-                arrays[f"iters_{i}"] = ("iters", err.flatten(), {"label": f"err {i}"})
-                # arrays[f"temp_{i}"] = rec
-            self.ensembles[k] = xr.Dataset(
-                arrays,
-                coords={"tau": self.dec.tau, "time": self.output.time, "iters": iters},
-            )
-
-
 class PlotCutOff:
     """Plot the results of the CutOff class for any deconvolution object."""
 
-    def __init__(self, *cut_offs: CutOff) -> None:
+    def __init__(self, *cut_offs: vdd.load.CutOff) -> None:
         self.cut_offs = cut_offs
 
     def call_cut_offs(self, method: str, *args, **kwargs) -> None:
@@ -184,7 +82,7 @@ class PlotCutOff:
                     f.unlink()
 
     @staticmethod
-    def _plot_single(co: CutOff) -> tuple[pathlib.Path, ...]:
+    def _plot_single(co: vdd.load.CutOff) -> tuple[pathlib.Path, ...]:
         """Plot the results of the CutOff class."""
         files: tuple[pathlib.Path, ...] = ()
         for k, v in co.cuts.items():
@@ -232,21 +130,21 @@ class PlotCutOff:
 
 def _use_cut_off() -> None:
     # OB16
-    co_ob16_rf_so2 = CutOff(dec_ob16_month, ("rf", "so2"))
-    co_ob16_temp_so2 = CutOff(dec_ob16_month, ("temp", "so2"))
-    co_ob16_temp_rf = CutOff(dec_ob16_month, ("temp", "rf"))
+    co_ob16_rf_so2 = vdd.load.CutOff(dec_ob16_month, ("rf", "so2"))
+    co_ob16_temp_so2 = vdd.load.CutOff(dec_ob16_month, ("temp", "so2"))
+    co_ob16_temp_rf = vdd.load.CutOff(dec_ob16_month, ("temp", "rf"))
     # CESM2 strong
-    co_cesm_s_rf_so2 = CutOff(dec_cesm_s, ("rf", "so2"))
-    co_cesm_s_temp_so2 = CutOff(dec_cesm_s, ("temp", "so2"))
-    co_cesm_s_temp_rf = CutOff(dec_cesm_s, ("temp", "rf"))
+    co_cesm_s_rf_so2 = vdd.load.CutOff(dec_cesm_s, ("rf", "so2"))
+    co_cesm_s_temp_so2 = vdd.load.CutOff(dec_cesm_s, ("temp", "so2"))
+    co_cesm_s_temp_rf = vdd.load.CutOff(dec_cesm_s, ("temp", "rf"))
     # CESM2 2sep
-    co_2sep_rf_so2 = CutOff(dec_cesm_2sep, ("rf", "so2"))
-    co_2sep_temp_so2 = CutOff(dec_cesm_2sep, ("temp", "so2"))
-    co_2sep_temp_rf = CutOff(dec_cesm_2sep, ("temp", "rf"))
+    co_2sep_rf_so2 = vdd.load.CutOff(dec_cesm_2sep, ("rf", "so2"))
+    co_2sep_temp_so2 = vdd.load.CutOff(dec_cesm_2sep, ("temp", "so2"))
+    co_2sep_temp_rf = vdd.load.CutOff(dec_cesm_2sep, ("temp", "rf"))
     # CESM2 4sep
-    co_4sep_rf_so2 = CutOff(dec_cesm_4sep, ("rf", "so2"))
-    co_4sep_temp_so2 = CutOff(dec_cesm_4sep, ("temp", "so2"))
-    co_4sep_temp_rf = CutOff(dec_cesm_4sep, ("temp", "rf"))
+    co_4sep_rf_so2 = vdd.load.CutOff(dec_cesm_4sep, ("rf", "so2"))
+    co_4sep_temp_so2 = vdd.load.CutOff(dec_cesm_4sep, ("temp", "so2"))
+    co_4sep_temp_rf = vdd.load.CutOff(dec_cesm_4sep, ("temp", "rf"))
     pco = PlotCutOff(
         co_ob16_rf_so2,
         co_ob16_temp_so2,

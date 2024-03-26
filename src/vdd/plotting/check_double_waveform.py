@@ -68,7 +68,9 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
     plt.show()
 
 
-def check_recreated_waveforms(*decs: vdd.load.DeconvolveCESM) -> None:
+def check_recreated_waveforms(
+    *decs: vdd.load.DeconvolveCESM, scale_by_aod: bool = False
+) -> None:
     """Check how well we are able to recreate the double waveform time series."""
     figs = {"aod": plt.figure(), "rf": plt.figure(), "temp": plt.figure()}
     axs = {k: v.gca() for k, v in figs.items()}
@@ -84,13 +86,22 @@ def check_recreated_waveforms(*decs: vdd.load.DeconvolveCESM) -> None:
         ]
         for attr in ["aod", "rf", "temp"]:
             arr = getattr(dec, attr)
-            dec_rec = getattr(dec, f"response_{attr}_so2")
-            r_arr = getattr(dec_cesm_s, f"response_{attr}_so2")[
+            dec_resp = getattr(dec, f"response_{attr}_so2")
+            resp_arr = getattr(dec_cesm_s, f"response_{attr}_so2")[
                 diff_len // 2 : -diff_len // 2
             ]
-            r_arr = r_arr / np.max(r_arr) * np.max(dec_rec)
-            rec_same = np.convolve(dec_rec, so2, "same")
-            rec_new = np.convolve(r_arr, so2, "same")
+            # Scale r_arr
+            scale_arr = np.max(dec_resp) / np.max(resp_arr)
+            resp_arr = resp_arr * scale_arr
+            # Scale so2 for new array
+            so2_new = so2.copy()
+            idx = so2_new > 0
+            extra_scale_arr = (dec.aod.max() - dec.aod[idx]) / dec.aod.max()
+            so2_new[idx] = (
+                so2_new[idx] * extra_scale_arr**0.5 if scale_by_aod else so2_new[idx]
+            )
+            rec_same = np.convolve(dec_resp, so2, "same")
+            rec_new = np.convolve(resp_arr, so2_new, "same")
             plot = axs[attr].plot
             plot(tau, arr, c="k", lw=0.5, label=f"{name} original")
             kwargs = {"ls": "--", "c": "k", "lw": 0.5, "path_effects": pe}
@@ -99,15 +110,19 @@ def check_recreated_waveforms(*decs: vdd.load.DeconvolveCESM) -> None:
     [axs[k].set_xlabel("Time [yr]") for k in axs]
     [axs[k].set_xlim((-2, 25)) for k in axs]
     [axs[k].legend() for k in axs]
-    axs["aod"].set_ylabel("Radiative Forcing [W/m$^2$]")
+    axs["aod"].set_ylabel("Aerosol optical depth [1]")
     axs["rf"].set_ylabel("Radiative Forcing [W/m$^2$]")
     axs["temp"].set_ylabel("Temperature [K]")
-    files = [_SAVE_DIR / f"recreated_waveforms_{k}.png" for k in ["aod", "rf", "temp"]]
+    corrected = "-aod-corrected" if scale_by_aod else ""
+    files = [
+        _SAVE_DIR / f"recreated_waveforms_{k}{corrected}.png"
+        for k in ["aod", "rf", "temp"]
+    ]
     figs["aod"].savefig(files[0])
     figs["rf"].savefig(files[1])
     figs["temp"].savefig(files[2])
     cosmoplots.combine(*files).in_grid(1, 3).using(fontsize=50).save(
-        _SAVE_DIR / "responses_combined.png"
+        _SAVE_DIR / f"responses_combined{corrected}.png"
     )
     for f in files:
         f.unlink()
@@ -117,6 +132,7 @@ def check_recreated_waveforms(*decs: vdd.load.DeconvolveCESM) -> None:
 def main() -> None:
     """Run the main script."""
     # check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
+    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod=True)
     check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep)
 
 

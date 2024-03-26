@@ -1,9 +1,9 @@
 """Functions that fetches data from files and returns it as an xarray.DataArray."""
 
 from abc import ABC, abstractmethod, abstractproperty
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from functools import cached_property
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 import cftime
 import fppanalysis
@@ -15,6 +15,10 @@ from pydantic import BaseModel, Field
 
 import vdd.utils
 
+type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
+type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
+type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
+
 
 def _convert_time_start_zero(arr: xr.DataArray) -> xr.DataArray:
     """Convert the time to start from zero."""
@@ -22,6 +26,49 @@ def _convert_time_start_zero(arr: xr.DataArray) -> xr.DataArray:
     arr.coords["time"].attrs["long_name"] = "Time-after-eruption"
     arr.coords["time"].attrs["units"] = "yr"
     return arr
+
+
+class Reconstructor(BaseModel):
+    """Class that keeps a static set of arrays.
+
+    The arrays represent time series that have already been deconvolved completely, thus
+    we assume no further deconvolution analysis is needed.
+
+    Parameters
+    ----------
+    tau : np.ndarray
+        The time axis for the deconvolution.
+    time : xr.DataArray
+        The time axis for the response functions.
+    response_temp_so2 : np.ndarray
+        The temperature to SO2 response function.
+    response_temp_rf : np.ndarray
+        The temperature to RF response function.
+    forcing : xr.DataArray
+        The forcing time series.
+    signal : xr.DataArray
+        The signal time series.
+    name : str
+        The name of the reconstructor.
+    normalise : bool
+        Whether the data is normalised.
+    """
+
+    class Config:
+        """Configuration for the Reconstructor BaseModel object."""
+
+        validate_assignment = True
+        strict = True
+        arbitrary_types_allowed = True
+
+    tau: np.ndarray = Field(..., alias="tau", frozen=True)
+    time: xr.DataArray = Field(..., alias="time", frozen=True)
+    response_temp_so2: np.ndarray = Field(..., alias="response_temp_so2", frozen=True)
+    response_temp_rf: np.ndarray = Field(..., alias="response_temp_rf", frozen=True)
+    forcing: xr.DataArray = Field(..., alias="forcing", frozen=True)
+    signal: xr.DataArray = Field(..., alias="signal", frozen=True)
+    name: str = Field(..., frozen=False)
+    normalise: bool = Field(..., frozen=True)
 
 
 class CESMData(BaseModel):
@@ -424,6 +471,19 @@ class Deconvolve(metaclass=_PostInitCaller):
         """Temperature control time series data."""
         raise NotImplementedError
 
+    def dump_reconstructor(self) -> Reconstructor:
+        """Dump the current deconvolution object into a reconstructor object."""
+        return Reconstructor(
+            tau=self.tau,
+            time=self.temp.time,
+            response_temp_so2=self.response_temp_so2,
+            response_temp_rf=self.response_temp_rf,
+            forcing=self.rf,
+            signal=self.temp,
+            name=self.name,
+            normalise=self.normalise,
+        )
+
     def change_deconvolution_method(
         self,
         method: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
@@ -790,7 +850,7 @@ class DeconvolveOB16(Deconvolve):
             self.so2.time.data[len(self.so2.time.data) // 2]
             - cftime.DatetimeNoLeap(0, 1, 1, has_year_zero=True, calendar="noleap")
         )
-        return volcano_base.manipulate.dt2float(tau)
+        return np.asarray(volcano_base.manipulate.dt2float(tau))
 
     @cached_property
     def rf(self) -> xr.DataArray:
@@ -811,3 +871,146 @@ class DeconvolveOB16(Deconvolve):
     def temp_control(self) -> xr.DataArray:
         """Temperature time series data."""
         return xr.align(self.data.temperature_control, self.temp)[0]
+
+
+class CutOff:
+    """Cut off the response functions of a deconvolution object."""
+
+    def __init__(self, dec: Deconvolve, arrays: T_RF | T_SO2 | RF_SO2) -> None:
+        self.dec = dec
+        self.ts_specifier: T_RF | T_SO2 | RF_SO2 = arrays
+        self.cuts: dict[str, xr.Dataset] = {}
+        self.ensembles: dict[str, xr.Dataset] = {}
+
+    def dump_reconstructor(
+        self,
+        cut: int,
+        temp_so2: np.ndarray | None = None,
+        temp_rf: np.ndarray | None = None,
+    ) -> Reconstructor:
+        """Dump the current deconvolution object into a reconstructor object.
+
+        Parameters
+        ----------
+        cut : int
+            The cut-off time lag to use.
+        temp_so2 : np.ndarray | None, optional
+            The response function of the SO2 signal, by default None.
+        temp_rf : np.ndarray | None, optional
+            The response function of the RF signal, by default None.
+
+        Returns
+        -------
+        Reconstructor
+            The reconstructor object.
+
+        Raises
+        ------
+        ValueError
+            If not exactly one of temp_so2 or temp_rf is given.
+        """
+        kwargs = {
+            "tau": self.dec.tau,
+            "time": self.dec.rf.time,
+            "forcing": self.forcing,
+            "signal": self.output,
+            "name": self.dec.name,
+            "normalise": self.dec.normalise,
+        }
+        match temp_so2, temp_rf:
+            case (None, None) | (np.ndarray(), np.ndarray()):
+                raise ValueError("Exactly one of temp_so2 or temp_rf must be given.")
+            case np.ndarray(), None:
+                kwargs["response_temp_so2"] = temp_so2
+                kwargs["response_temp_rf"] = self.cuts[str(cut)].response.data
+            case None, np.ndarray():
+                kwargs["response_temp_so2"] = self.cuts[str(cut)].response.data
+                kwargs["response_temp_rf"] = temp_rf
+            case _:
+                raise ValueError(
+                    f"I do not recognise the types of the response functions. Got: {temp_so2}, {temp_rf}"
+                )
+        return Reconstructor(**kwargs)
+
+    @cached_property
+    def response(self) -> np.ndarray:
+        """The response function in the convolution."""
+        out = getattr(
+            self.dec, f"response_{self.ts_specifier[0]}_{self.ts_specifier[1]}"
+        )
+        out[self.dec.tau <= 0] = 0
+        return out
+
+    @cached_property
+    def forcing(self) -> xr.DataArray:
+        """The forcing time series in the convolution."""
+        return getattr(self.dec, self.ts_specifier[1])
+
+    @cached_property
+    def output(self) -> xr.DataArray:
+        """The final output time series of the convolution."""
+        return getattr(self.dec, self.ts_specifier[0])
+
+    @cached_property
+    def control(self) -> xr.DataArray:
+        """The control time series in the convolution."""
+        return getattr(self.dec, f"{self.ts_specifier[0]}_control")
+
+    def cut_off(self, cutoff: int | Iterable[int]) -> Self:
+        """Cut off the response function at a given time lag."""
+        match cutoff:
+            case int():
+                self._single_cut_off(cutoff)
+            case Iterable():
+                for c in set(cutoff):
+                    if not isinstance(c, int):
+                        raise ValueError(
+                            "cutoff must be an integer or a sequence of integers."
+                        )
+                    self._single_cut_off(c)
+            case _:
+                raise ValueError("cutoff must be an integer or a sequence of integers.")
+        return self
+
+    def _single_cut_off(self, cutoff: int) -> None:
+        if str(cutoff) in self.cuts:
+            return
+        r_cut = self.response.copy()
+        r_cut[len(r_cut) // 2 + cutoff :] = 0
+        tau = self.dec.tau
+        time = self.output.time
+        temp_r = np.convolve(self.forcing, r_cut, "same")
+        ds = xr.Dataset(
+            {
+                "response": ("tau", r_cut, {"label": f"cut {cutoff}"}),
+                "temp_rec": ("time", temp_r, {"label": f"temp rec {cutoff}"}),
+            },
+            coords={"tau": tau, "time": time},
+        )
+        self.cuts[str(cutoff)] = ds
+
+    def generate_ensembles(self, n: int) -> None:
+        """Generate an ensemble of response function estimates."""
+        if not self.cuts:
+            raise ValueError("No cuts have been made.")
+        iters = np.arange(200)
+        for k, v in self.cuts.items():
+            if k in self.ensembles:
+                continue
+            arrays: dict[str, tuple] = {}
+            for i in range(n):
+                temp_rec = v.temp_rec.copy()
+                temp_random = fppanalysis.signal_rand_phase(self.control.data)
+                temp_rec += temp_random
+                res_rec, err = fppanalysis.RL_gauss_deconvolve(
+                    temp_rec, self.forcing, len(iters) - 1
+                )
+                r_cut_rec = res_rec.flatten()
+                r_cut_rec[self.dec.tau <= 0] = 0
+                arrays[f"response_{i}"] = ("tau", r_cut_rec, {"label": f"response {i}"})
+                arrays[f"iters_{i}"] = ("iters", err.flatten(), {"label": f"err {i}"})
+                # arrays[f"temp_{i}"] = rec
+            self.ensembles[k] = xr.Dataset(
+                arrays,
+                coords={"tau": self.dec.tau, "time": self.output.time, "iters": iters},
+            )
