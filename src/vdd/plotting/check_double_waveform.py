@@ -4,6 +4,8 @@ We also check how well we are able to recreate the double waveform time series f
 response functions of other simulations.
 """
 
+from typing import Literal
+
 import cosmoplots
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,7 +71,8 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
 
 
 def check_recreated_waveforms(
-    *decs: vdd.load.DeconvolveCESM, scale_by_aod: bool = False
+    *decs: vdd.load.DeconvolveCESM,
+    scale_by_aod: Literal["log", "log-inside", "root"] | bool = False,
 ) -> None:
     """Check how well we are able to recreate the double waveform time series."""
     figs = {"aod": plt.figure(), "rf": plt.figure(), "temp": plt.figure()}
@@ -78,6 +81,28 @@ def check_recreated_waveforms(
     for i, dec in enumerate(decs):
         tau = dec.tau
         so2 = dec.so2
+        so2_new = so2.copy()
+        idx = so2_new > 0
+        extra_scale_arr = dec.aod[idx] / dec.aod.max()
+        match scale_by_aod:
+            case "log":
+                so2_new[idx] = (
+                    so2_new[idx] * np.log(1 + 1 - extra_scale_arr) / np.log(2)
+                    if scale_by_aod
+                    else so2_new[idx]
+                )
+            case "log-inside":
+                so2_new[idx] = (
+                    so2_new[idx] * 1 - np.log(1 + extra_scale_arr) / np.log(2)
+                    if scale_by_aod
+                    else so2_new[idx]
+                )
+            case "root":
+                so2_new[idx] = (
+                    so2_new[idx] * (1 - extra_scale_arr) ** 0.5
+                    if scale_by_aod
+                    else so2_new[idx]
+                )
         diff_len = len(response_rf) - len(so2)
         name = "2sep" if "2sep" in dec.name else "4sep"
         pe = [
@@ -94,12 +119,6 @@ def check_recreated_waveforms(
             scale_arr = np.max(dec_resp) / np.max(resp_arr)
             resp_arr = resp_arr * scale_arr
             # Scale so2 for new array
-            so2_new = so2.copy()
-            idx = so2_new > 0
-            extra_scale_arr = (dec.aod.max() - dec.aod[idx]) / dec.aod.max()
-            so2_new[idx] = (
-                so2_new[idx] * extra_scale_arr**0.5 if scale_by_aod else so2_new[idx]
-            )
             rec_same = np.convolve(dec_resp, so2, "same")
             rec_new = np.convolve(resp_arr, so2_new, "same")
             plot = axs[attr].plot
@@ -113,7 +132,7 @@ def check_recreated_waveforms(
     axs["aod"].set_ylabel("Aerosol optical depth [1]")
     axs["rf"].set_ylabel("Radiative Forcing [W/m$^2$]")
     axs["temp"].set_ylabel("Temperature [K]")
-    corrected = "-aod-corrected" if scale_by_aod else ""
+    corrected = f"-aod-{scale_by_aod}-corrected" if scale_by_aod else ""
     files = [
         _SAVE_DIR / f"recreated_waveforms_{k}{corrected}.png"
         for k in ["aod", "rf", "temp"]
@@ -132,7 +151,9 @@ def check_recreated_waveforms(
 def main() -> None:
     """Run the main script."""
     # check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
-    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod=True)
+    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log")
+    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside")
+    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root")
     check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep)
 
 

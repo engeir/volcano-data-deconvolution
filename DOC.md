@@ -379,7 +379,28 @@ by the AOD values at the time of the eruptions. Fig. \ref{waveform-comparison-sc
 shows the results of this scaling, which are far better than I expected, albeit with an
 additional square root that needs to be addressed.
 
-![True versus reconstructed and AOD corrected waveforms of (a) AOD, (b) RF, and (c) T](./generated_files/waveform/responses_combined-aod-corrected.png){#waveform-comparison-scaled}
+![True versus reconstructed and AOD square root corrected waveforms of (a) AOD, (b) RF,
+and (c)
+T](./generated_files/waveform/responses_combined-aod-root-corrected.png){#waveform-comparison-scaled}
+
+Can we do better? Let us try to use a logarithmic scaling instead, and see if this gives
+a better result or at least a better understanding of the scaling. We again use the "one
+minus AOD ratio" as the starting point of our scaling factor, so we need a mapping that
+preserves the endpoint values of $0$ and $1$. The logarithmic scaling is then given by
+$\log(1+1-A/A_{\mathrm{max}})/\log(2)$. (A third option could be
+$1-\log(1+A/A_{\mathrm{max}})/\log(2)$, but this yields a too small scaling.)
+
+<!-- dprint-ignore-start -->
+$$
+T^{\dagger}=\phi_{TS,\mathrm{strong}}
+            \frac{\phi_{TS,\mathrm{double}}}{\phi_{TS,\mathrm{strong}}}
+            *S\frac{\log\left(1+1-\frac{A}{A_{\mathrm{max}}}\right)}{\log(2)}.
+$$
+<!-- dprint-ignore-end -->
+
+![True versus reconstructed and AOD logarithmic corrected waveforms of (a) AOD, (b) RF,
+and (c)
+T](./generated_files/waveform/responses_combined-aod-log-corrected.png){#waveform-comparison-scaled}
 
 ## Cut off response function
 
