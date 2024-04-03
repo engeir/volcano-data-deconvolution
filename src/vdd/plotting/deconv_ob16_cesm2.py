@@ -41,7 +41,7 @@ dec_ob16_month.name = "OB16 month"
 all_decs = (
     # dec_ob16,
     dec_ob16_month,
-    # dec_cesm_m,
+    dec_cesm_m,
     dec_cesm_p,
     dec_cesm_s,
     dec_cesm_e,
@@ -135,14 +135,29 @@ class PlotResponseFunctions:
         rf_so2_a = rf_so2.gca()
         temp_so2_a = temp_so2.gca()
         temp_rf_a = temp_rf.gca()
+        # so2s = {
+        #     "CESM2 strong": 1629,
+        #     "CESM2 medium": 26,
+        #     "CESM2 medium-plus": 400,
+        #     "CESM2 double-overlap": 400,
+        #     "CESM2 tt-2sep": 400,
+        #     "CESM2 size5000": 3000,
+        #     "OB16 month": 200,
+        # }
         for dec in self.decs:
             rf_so2_resp = (
                 vdd.utils.normalise(dec.response_rf_so2)
+                # dec.response_rf_so2 / np.log(1+(400 / so2s[dec.name]))
+                # dec.response_rf_so2 / (400 / so2s[dec.name])**(1/1.5)
+                # dec.response_rf_so2 / (400 / so2s[dec.name])**(1/2)
                 if self.norm
                 else dec.response_rf_so2
             )
             temp_so2_resp = (
                 vdd.utils.normalise(dec.response_temp_so2)
+                # dec.response_rf_so2 / np.log(1+(400 / so2s[dec.name]))
+                # dec.response_rf_so2 / (400 / so2s[dec.name])**(1/1.5)
+                # dec.response_rf_so2 / (400 / so2s[dec.name])**(1/2)
                 if self.norm
                 else dec.response_temp_so2
             )
