@@ -70,7 +70,12 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
     plt.show()
 
 
-def check_recreated_waveforms(
+def curve_fit_aod(aod, alpha, beta):
+    """Fit values using AOD as input."""
+    return alpha * np.log(beta * aod + 1)
+
+
+def check_recreated_waveforms(  # noqa: PLR0915
     *decs: vdd.load.DeconvolveCESM,
     scale_by_aod: Literal["log", "log-inside", "root"] | bool = False,
 ) -> None:
@@ -122,13 +127,44 @@ def check_recreated_waveforms(
             rec_same = np.convolve(dec_resp, so2, "same")
             rec_new = np.convolve(resp_arr, so2_new, "same")
             plot = axs[attr].plot
+            if attr == "aod":
+                # Area of the Earth is 5.1e14 m2
+                plot(tau, dec.tmso2 * 5.1e3, label="TMSO2")
+            elif attr == "rf":
+                # params, _ = curve_fit(curve_fit_aod, dec.aod, dec.rf)
+                # print(params)
+                # [53.04185578  0.24951242]  # 2sep
+                # [59.44007657  0.23123325]  # 4sep
+                params = [22.34317318, 0.97876114]  # Single peaks
+                plot(
+                    tau,
+                    curve_fit_aod(dec.aod, *params),
+                    c="r",
+                    lw=0.5,
+                    label=f"{name} AOD",
+                )
+            elif attr == "temp":
+                # params, _ = curve_fit(curve_fit_aod, dec.aod, dec.temp)
+                # print(params)
+                # [ 1.18746129 28.08689995]  # 2sep
+                # [ 1.03776542 65.61337388]  # 4sep
+                # params = [3.02039794, 1.19424641]  # Single peaks
+                params = [22.34317318, 0.97876114]  # Single peaks, RF/AOD
+                # resp_temp_rf = dec_cesm_s.response_temp_rf[
+                #     diff_len // 2 : -diff_len // 2
+                # ]
+                resp_temp_rf = dec.response_temp_rf
+                temp = np.convolve(
+                    resp_temp_rf, curve_fit_aod(dec.aod, *params), mode="same"
+                )
+                plot(tau, temp, c="r", lw=0.5, label=f"{name} AOD")
             plot(tau, arr, c="k", lw=0.5, label=f"{name} original")
             kwargs = {"ls": "--", "c": "k", "lw": 0.5, "path_effects": pe}
             plot(tau, rec_same, label=f"{name} reconstruct self", **kwargs)  # type: ignore
             plot(tau, rec_new, c=_COLORS[i], label=f"{name} reconstruc other")
     [axs[k].set_xlabel("Time [yr]") for k in axs]
     [axs[k].set_xlim((-2, 25)) for k in axs]
-    [axs[k].legend() for k in axs]
+    [axs[k].legend(framealpha=0.5) for k in axs]
     axs["aod"].set_ylabel("Aerosol optical depth [1]")
     axs["rf"].set_ylabel("Radiative Forcing [W/m$^2$]")
     axs["temp"].set_ylabel("Temperature [K]")
@@ -151,9 +187,9 @@ def check_recreated_waveforms(
 def main() -> None:
     """Run the main script."""
     # check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
-    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log")
-    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside")
-    check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root")
+    # check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log")
+    # check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside")
+    # check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root")
     check_recreated_waveforms(dec_cesm_2sep, dec_cesm_4sep)
 
 

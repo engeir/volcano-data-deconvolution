@@ -15,11 +15,13 @@ dependencies = [
   "dask>=2024.2.0",
   "nc-time-axis>=1.4.1",
   "xarray>=2024.2.0",
-  "volcano-base>=1.8.1",
+  "volcano-base>=1.8.3",
   "pydantic>=2.6.4",
   "pyqt5>=5.15.10",
   "plastik>=0.6.2",
   "cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@image-concat",
+  "sympy>=1.12",
+  "numba>=0.59.1",
 ]
 license = { file = "LICENSE" }
 readme = "README.md"

@@ -127,6 +127,18 @@ class CESMData(BaseModel):
         return self._align_arrays("so2", out)
 
     @cached_property
+    def tmso2(self) -> xr.DataArray:
+        """Get the CESM2 TMSO2 data.
+
+        Returns
+        -------
+        xr.DataArray
+            The TMSO2 data.
+        """
+        out = self._get_tmso2_cesm()
+        return self._align_arrays("tmso2", out)
+
+    @cached_property
     def aod(self) -> xr.DataArray:
         """Get the CESM2 AOD data.
 
@@ -204,7 +216,7 @@ class CESMData(BaseModel):
     def _align_arrays(self, new: str, new_obj: xr.DataArray) -> xr.DataArray:
         out = list(
             set(self.__dict__.keys())
-            & {"temperature_control", "rf_control", "temp", "so2", "rf", "aod"}
+            & {"temperature_control", "rf_control", "temp", "tmso2", "so2", "rf", "aod"}
         )
         if out:
             aligned = xr.align(new_obj, *[getattr(self, o) for o in out])
@@ -212,6 +224,35 @@ class CESMData(BaseModel):
         else:
             aligned = (new_obj,)
         return aligned[0]
+
+    def _get_tmso2_cesm(self, plot_example: bool = False) -> xr.DataArray:
+        """Get the CESM2 TMSO2 data."""
+        data = (
+            volcano_base.load.FindFiles()
+            .find("e_fSST1850", "TMSO2", "h0", self.strength)
+            .remove("ens1" if self.strength != "tt-2sep" else "ens0")
+            .keep_most_recent()
+        )
+        files = data.load()
+        shift = 35 if self.strength == "double-overlap" else None
+        files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
+        files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
+        files = volcano_base.manipulate.shift_arrays(files, custom=1)
+        files = volcano_base.manipulate.subtract_mean_of_tail(files)
+        files = volcano_base.manipulate.data_array_operation(
+            files, _convert_time_start_zero
+        )
+        files = list(xr.align(*files))
+        if plot_example:
+            plt.figure()
+            [f.plot() for f in files]
+            plt.show()
+        mean_array = volcano_base.manipulate.get_median(files, xarray=True)
+        if plot_example:
+            plt.figure()
+            mean_array.plot()
+            plt.show()
+        return mean_array.dropna("time")
 
     def _get_aod_cesm(self, plot_example: bool = False) -> xr.DataArray:
         """Get the CESM2 AOD data."""
@@ -638,6 +679,7 @@ class DeconvolveCESM(Deconvolve):
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
+        self.tmso2 = (self.tmso2 - self.tmso2.mean()) / self.tmso2.std()
         self.aod = (self.aod - self.aod.mean()) / self.aod.std()
         self.rf = (self.rf - self.rf.mean()) / self.rf.std()
         self.temp = (self.temp - self.temp.mean()) / self.temp.std()
@@ -667,6 +709,16 @@ class DeconvolveCESM(Deconvolve):
             self.so2.time.data
             if self.pad_before
             else self.so2.time.data - self.so2.time.data[len(self.so2.time.data) // 2]
+        )
+
+    @cached_property
+    def tmso2(self) -> xr.DataArray:
+        """SO2 column burden."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.tmso2)
+            if self.pad_before
+            else self._data.tmso2
         )
 
     @cached_property

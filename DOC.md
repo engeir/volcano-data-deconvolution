@@ -354,11 +354,12 @@ should get a better estimate of $R$ and $T$ (but of course not of AOD, which we 
 is roughly linearly dependent on injected SO~2~).
 
 So, while we previously scaled the single eruption response function, say, from the
-CESM2 strong simulation, to get estimates of $R$ and $T$ as
+CESM2 strong simulation, to get estimates of $R$ and $T$ as (where $a$ is $R$ or $T$)
 
 <!-- dprint-ignore-start -->
 $$
-T=\phi_{TS,\mathrm{strong}}\frac{\phi_{TS,\mathrm{double}}}{\phi_{TS,\mathrm{strong}}}
+a=\phi_{aS,\mathrm{strong}}
+  \frac{\phi_{aS,\mathrm{double}}^{\max}}{\phi_{aS,\mathrm{strong}}^{\max}}
   *S,
 $$
 <!-- dprint-ignore-end -->
@@ -368,9 +369,9 @@ function a second time). This yields
 
 <!-- dprint-ignore-start -->
 $$
-T^{\dagger}=\phi_{TS,\mathrm{strong}}
-            \frac{\phi_{TS,\mathrm{double}}}{\phi_{TS,\mathrm{strong}}}
-            *S\left(1-\frac{A}{A_{\mathrm{max}}}\right)^{1/2}.
+a^{\dagger}=\phi_{aS,\mathrm{strong}}
+            \frac{\phi_{aS,\mathrm{double}}^{\max}}{\phi_{aS,\mathrm{strong}}^{\max}}
+            *S\left(1-\frac{A}{A^{\max}}\right)^{1/2}.
 $$
 <!-- dprint-ignore-end -->
 
@@ -387,20 +388,59 @@ Can we do better? Let us try to use a logarithmic scaling instead, and see if th
 a better result or at least a better understanding of the scaling. We again use the "one
 minus AOD ratio" as the starting point of our scaling factor, so we need a mapping that
 preserves the endpoint values of $0$ and $1$. The logarithmic scaling is then given by
-$\log(1+1-A/A_{\mathrm{max}})/\log(2)$. (A third option could be
-$1-\log(1+A/A_{\mathrm{max}})/\log(2)$, but this yields a too small scaling.)
+$\log(1+1-A/A^{\max})/\log(2)$. (A third option could be $1-\log(1+A/A^{\max})/\log(2)$,
+but this yields a too small scaling.)
 
 <!-- dprint-ignore-start -->
 $$
-T^{\dagger}=\phi_{TS,\mathrm{strong}}
-            \frac{\phi_{TS,\mathrm{double}}}{\phi_{TS,\mathrm{strong}}}
-            *S\frac{\log\left(1+1-\frac{A}{A_{\mathrm{max}}}\right)}{\log(2)}.
+a^{\dagger}=\phi_{aS,\mathrm{strong}}
+            \frac{\phi_{aS,\mathrm{double}}^{\max}}{\phi_{aS,\mathrm{strong}}^{\max}}
+            *S\frac{\log\left(1+1-\frac{A}{A^{\max}}\right)}{\log(2)}.
 $$
 <!-- dprint-ignore-end -->
 
 ![True versus reconstructed and AOD logarithmic corrected waveforms of (a) AOD, (b) RF,
 and (c)
 T](./generated_files/waveform/responses_combined-aod-log-corrected.png){#waveform-comparison-scaled}
+
+### Unwrapping the scaling
+
+There are a few things to note from this procedure. We not only scale the SO~2~
+injections, we also scale the single waveform response function to have the same maximum
+as the response function from the double waveform simulation. Then, after this initial
+scaling, we compare the scale of the SO~2~ time series according to the AOD time series
+to manipulate the amplitude of the response function depending on the state of the AOD
+at the time of the eruption.
+
+So, if we assume for a moment that the peak temperature response goes as the square root
+of the injected SO~2~. Then the response function from eruption $\alpha$ would be scaled
+as $\phi_{aS}^\alpha=\sqrt{S^\beta/S^\alpha}\phi_{aS}^\beta$ to represent the response
+function from eruption $\beta$. We get the inverse expression in the ratio of SO~2~s
+since the deconvolution mimic a division in the Fourier domain. Combining this with the
+above scaling, we get
+
+#### Scale the response function
+
+$$ \phi_{aS}^\alpha=\sqrt{S^\beta/S^\alpha}\phi_{aS}^\beta $$
+
+or more pragmatically
+
+$$ \phi_{aS}^\alpha=(\phi_{aS}^{\alpha,\max}/\phi_{aS}^{\beta,\max})\phi_{aS}^\beta. $$
+
+#### Scale the time series
+
+<!-- dprint-ignore-start -->
+$$
+a^{\alpha,\dagger}=
+  \phi_{aS}^\beta
+  \frac{\phi_{aS}^{\alpha,\max}}{\phi_{aS}^{\beta,\max}}
+  *[S^\alpha]_i\frac{\log\left(1+1-\frac{[A^\alpha]_i}{A^{\alpha,\max}}\right)}{\log(2)}
+  \approx
+  \phi_{aS}^\beta \sqrt{\frac{S^\beta}{S^\alpha}}
+  *[S^\alpha]_i
+  \frac{\log\left(1+1-\frac{[A^\alpha]_i}{A^{\alpha,\max}}\right)}{\log(2)}.
+$$
+<!-- dprint-ignore-end -->
 
 ## Cut off response function
 
