@@ -1,5 +1,81 @@
 # Changelog
 
+## [0.5.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.4.0...volcano-data-deconvolution-v0.5.0) (2024-04-04)
+
+
+### Features
+
+* **cut off:** implement class to cut response functions and recreate with noise ([cd4cef6](https://github.com/engeir/volcano-data-deconvolution/commit/cd4cef6fbb8c1abeab8ea6208d7fd132d7ef29f7))
+* **cut off:** implement cut off analysis ([3afc16d](https://github.com/engeir/volcano-data-deconvolution/commit/3afc16d32e7959b9d630c6a4ef32b3562e0a3ddf))
+* **cut off:** implement cut off test of response functions ([3775fff](https://github.com/engeir/volcano-data-deconvolution/commit/3775fff83a5810af4617dc4c81c49b293c832442))
+* **cut off:** scale single response to fit with any(?) super position ([9761f46](https://github.com/engeir/volcano-data-deconvolution/commit/9761f46c59558c72743b82691c1d4ef93ed2a13c))
+* double waveform, T2RF response plots, and more ([715e608](https://github.com/engeir/volcano-data-deconvolution/commit/715e6087fe293ea0f905545edf5ff3b265d4bc3e))
+* **load:** add RF control data property to data and deconvolve classes ([696f789](https://github.com/engeir/volcano-data-deconvolution/commit/696f7897319916950fe01413598e191542003999))
+* **load:** deconvolution classes accepts custom deconvolver ([6a3b94d](https://github.com/engeir/volcano-data-deconvolution/commit/6a3b94d6a49253a72557f05ad27a855f42d5554f))
+* **ob16:** create reconstruction class ([bb8f887](https://github.com/engeir/volcano-data-deconvolution/commit/bb8f8871789f953a53fd6b10a7c8de58dfeafed9))
+* plots of reconstructing temp and more ([405245f](https://github.com/engeir/volcano-data-deconvolution/commit/405245f00b6b3b0d5f229b3a2011195e06c196fc))
+* **tmso2:** include TMSO2 as a CESM2 output variable ([34bdaf1](https://github.com/engeir/volcano-data-deconvolution/commit/34bdaf1ee137e96b49d760033edcf7ff7801fee2))
+* working first impl of parametrisation analysis ([44f1ac1](https://github.com/engeir/volcano-data-deconvolution/commit/44f1ac15f99bffef3bf72029a4178ce9869030e1))
+
+
+### Bug Fixes
+
+* **build:** remove duplicate entries in pyproject.toml ([91cb558](https://github.com/engeir/volcano-data-deconvolution/commit/91cb55870e9796cd8eac5f9c38b02fcd29c3c460))
+* **README:** incorrect git clone link ([a1451ba](https://github.com/engeir/volcano-data-deconvolution/commit/a1451ba1e1d57d7655df30842df79a9fcecb6f47))
+
+
+### Miscellaneous
+
+* add tests of deconv CESM T with RF and AOD ([65ccd5e](https://github.com/engeir/volcano-data-deconvolution/commit/65ccd5ed8da1ce13c29faa7d9de7a330e3ef6353))
+* **deps:** add some standard dependencies ([d283699](https://github.com/engeir/volcano-data-deconvolution/commit/d2836998284f179a4cac103f54892b6d8ac2b4b1))
+* **double waveform:** reconstruct based on analytic curve fit ([34bdaf1](https://github.com/engeir/volcano-data-deconvolution/commit/34bdaf1ee137e96b49d760033edcf7ff7801fee2))
+* fix similar deconvolution of OB16 for daily and monthly data ([c7dccee](https://github.com/engeir/volcano-data-deconvolution/commit/c7dcceef1a2d82b422ded3eb6356689f1cb14943))
+* initial setup of the project ([57d0f1e](https://github.com/engeir/volcano-data-deconvolution/commit/57d0f1e1651a30e3407da3be11846d366966c850))
+* lots more updates to plots and other unimportant things ([6a3b94d](https://github.com/engeir/volcano-data-deconvolution/commit/6a3b94d6a49253a72557f05ad27a855f42d5554f))
+* **main:** release 0.1.0 ([d0d6888](https://github.com/engeir/volcano-data-deconvolution/commit/d0d6888bd50b11739551e0c327b223f5ad65b4c4))
+* **main:** release 0.1.1 ([4455ea2](https://github.com/engeir/volcano-data-deconvolution/commit/4455ea2bcd63f4bb512a146de38a85391d7bdc56))
+* **main:** release 0.1.2 ([#3](https://github.com/engeir/volcano-data-deconvolution/issues/3)) ([bed95b1](https://github.com/engeir/volcano-data-deconvolution/commit/bed95b16a98dfa574aa8be04b657f7db2a68b281))
+* **main:** release 0.2.0 ([#4](https://github.com/engeir/volcano-data-deconvolution/issues/4)) ([866523f](https://github.com/engeir/volcano-data-deconvolution/commit/866523f329908543ba36489713a748e85b511474))
+* **main:** release 0.3.0 ([#5](https://github.com/engeir/volcano-data-deconvolution/issues/5)) ([570d767](https://github.com/engeir/volcano-data-deconvolution/commit/570d76706462ad80879ce9ecc24cc30dadec0578))
+* **main:** release 0.3.1 ([#6](https://github.com/engeir/volcano-data-deconvolution/issues/6)) ([0babfc3](https://github.com/engeir/volcano-data-deconvolution/commit/0babfc3d9ae5457414bce3295c2c64401ca16f9c))
+* **main:** release 0.4.0 ([#7](https://github.com/engeir/volcano-data-deconvolution/issues/7)) ([c1e9cff](https://github.com/engeir/volcano-data-deconvolution/commit/c1e9cffbde2fc07d2deb81fcf80eb3483de52df8))
+* push recent WIP ([dff53d4](https://github.com/engeir/volcano-data-deconvolution/commit/dff53d47b73d5aa23bd98f90893d10dc6d67e065))
+* **response:** try simple functional scalings to compare simulations ([56fa769](https://github.com/engeir/volcano-data-deconvolution/commit/56fa769f39d0e88b68145a604858d384e3ecf3b2))
+* small changes ([33048d8](https://github.com/engeir/volcano-data-deconvolution/commit/33048d8d67cf6c0093d541c1485bd583fa11f06c))
+* **waveform:** add log scaling of SO2 ([557b42a](https://github.com/engeir/volcano-data-deconvolution/commit/557b42a9517f66de038a41d2a3b7c9bdd9cf5936))
+* wip ([27bb56f](https://github.com/engeir/volcano-data-deconvolution/commit/27bb56f23c3ec179d474f457b489c94d47eb508a))
+
+
+### Styles
+
+* **format:** run updated ruff style formatting via rye ([2d933fe](https://github.com/engeir/volcano-data-deconvolution/commit/2d933fef33a1d2ab5435f51c99a6586d1d03599b))
+* **pre-commit:** format TOML and YAML in pre-commit hook ([92242de](https://github.com/engeir/volcano-data-deconvolution/commit/92242de9d1f23bbe451acec317fa502ddfa80072))
+
+
+### Code Refactoring
+
+* **load:** even lazier loading of arrays in deconvolution classes ([c0b37c4](https://github.com/engeir/volcano-data-deconvolution/commit/c0b37c4bfd5c1bc6b981a79f11638faf78980a52))
+* **savefig:** move figures to generated_files dir ([3b8b62d](https://github.com/engeir/volcano-data-deconvolution/commit/3b8b62da2d2bddae19e8c2d5366f995ee561bdd2))
+
+
+### Continuous Integration
+
+* **release-please:** bump to v4 and fix config issue ([bfb47e2](https://github.com/engeir/volcano-data-deconvolution/commit/bfb47e2057b6e4ffa02b19cbd9d68dbd5ac8cc94))
+
+
+### Build System
+
+* change from poetry to rye ([54afd72](https://github.com/engeir/volcano-data-deconvolution/commit/54afd72d939a4705070069f683cb00398a108c6e))
+
+
+### Documentation
+
+* add install instructions ([662b4f8](https://github.com/engeir/volcano-data-deconvolution/commit/662b4f899d83d1699501906c018d0b89fedaed40))
+* change descriptions to use rye rather than poetry ([d53dd43](https://github.com/engeir/volcano-data-deconvolution/commit/d53dd43c87bd76abf4eaa1789c0d6882ac579cb2))
+* **fix:** !INFO not available as highlight, use !NOTE ([e9ee60f](https://github.com/engeir/volcano-data-deconvolution/commit/e9ee60f2e80dd2b2b9991cadac188b7ea34a0a54))
+* start taking some notes for paper ([6a3b94d](https://github.com/engeir/volcano-data-deconvolution/commit/6a3b94d6a49253a72557f05ad27a855f42d5554f))
+* update DOC ([c537a50](https://github.com/engeir/volcano-data-deconvolution/commit/c537a507c6cc76967cce18f7dfcb03fefbbaf9f2))
+
 ## [0.4.0](https://github.com/engeir/volcano-data-deconvolution/compare/v0.3.1...v0.4.0) (2024-03-26)
 
 
