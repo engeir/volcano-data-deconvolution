@@ -332,7 +332,14 @@ class CESMData(BaseModel):
         def remove_control(rf: xr.DataArray) -> xr.DataArray:
             rf, c_s, c_l = xr.align(rf, c_fsnt_xr, c_flnt_xr)
             rf.data = rf.data - (c_s.data - c_l.data)
-            return rf.assign_attrs(attr="RF")
+            # Combine attributes, overwrite if needed
+            original_attrs = rf.attrs
+            new_attrs = {
+                "attr": "RF",
+                "long_name": "Net radiative flux (residual) at top-of-model",
+            }
+            combined_attrs = {**original_attrs, **new_attrs}
+            return rf.assign_attrs(**combined_attrs).rename("RESTOM")
 
         def difference(
             short: list[xr.DataArray], long: list[xr.DataArray]
@@ -403,6 +410,7 @@ class CESMData(BaseModel):
             .keep_most_recent()
         )
         files = data.load()
+        orig_attrs = files[0].attrs
         shift = 35 if self.strength == "double-overlap" else None
         files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
         control = control_l[0]
@@ -455,7 +463,7 @@ class CESMData(BaseModel):
             plt.figure()
             plt.plot(mean_array)
             plt.show()
-        return mean_array.dropna("time")
+        return mean_array.dropna("time").assign_attrs(**orig_attrs)
 
 
 class _PostInitCaller(ABC, type):
@@ -735,11 +743,12 @@ class DeconvolveCESM(Deconvolve):
     def rf(self) -> xr.DataArray:
         """Radiative forcing time series data."""
         self._data.initialise_data()
+        attrs = self._data.rf.attrs
         return (
             vdd.utils.pad_before_convolution(self._data.rf * -1)
             if self.pad_before
             else self._data.rf * -1
-        )
+        ).assign_attrs(**attrs)
 
     @cached_property
     def rf_control(self) -> xr.DataArray:
@@ -755,11 +764,12 @@ class DeconvolveCESM(Deconvolve):
     def temp(self) -> xr.DataArray:
         """Temperature time series data."""
         self._data.initialise_data()
+        attrs = self._data.temp.attrs
         return (
             vdd.utils.pad_before_convolution(self._data.temp * -1)
             if self.pad_before
             else self._data.temp * -1
-        )
+        ).assign_attrs(**attrs)
 
     @cached_property
     def temp_control(self) -> xr.DataArray:
