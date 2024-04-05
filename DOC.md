@@ -442,6 +442,64 @@ a^{\alpha,\dagger}=
 $$
 <!-- dprint-ignore-end -->
 
+### Numerical solution
+
+We here assume that we can get the SO~2~ content from a simple exponential decay model
+as
+
+<!-- dprint-ignore-start -->
+$$
+S(t)=C_1\int_{0}^{t}\exp\left(-\frac{t-t'}{\tau_S}\right)\sum_k S_k\delta(t'-t_k)dt',
+$$
+<!-- dprint-ignore-end -->
+
+and further that the AOD is given by a second exponential decay model as
+
+<!-- dprint-ignore-start -->
+$$
+A(t)=\int_{0}^{t}C_1\exp\left(-\frac{t-t'}{\tau_A}\right)S(t)dt'.
+$$
+<!-- dprint-ignore-end -->
+
+We assume a logarithmic relation between the RF and the AOD, yielding
+
+<!-- dprint-ignore-start -->
+$$
+R(A(t))=C_1\log(1+C_2A(t)),
+$$
+<!-- dprint-ignore-end -->
+
+where $C_i$ are constants.
+
+### But wait, there is more
+
+We actually get pretty good results _if we optimize the RF signal based on SO~2~ input
+via the AOD estimation_, which is not really what we wanted! Ideally, we would get a
+good AOD estimate from SO~2~ input, and then a good RF estimate from using the AOD
+estimate as input. Similarly, we get a good AOD estimate when optimising the AOD based
+on SO~2~ as input, via an intermediate AOD estimate.
+
+Thus, what we are left with are that the best estimate RF and AOD are given as $R$ and
+$A^\dagger$ as
+
+$$ R(t)=R(A(S(t))), $$
+
+and
+
+$$ A^\dagger(t)=A^\dagger(A(S(t))). $$
+
+![SO2 fit for CESM small](./generated_files/relationships/numerical_so2_cesm-cesm2-medium_combined.png)
+
+![AOD fit for CESM small](./generated_files/relationships/numerical_aod_cesm-cesm2-medium_combined.png)
+
+![RF fit for CESM small](./generated_files/relationships/numerical_rf_cesm-cesm2-medium_combined.png)
+
+![SO2 fit for CESM intermediate](./generated_files/relationships/numerical_so2_cesm-cesm2-medium-plus_combined.png)
+
+![AOD fit for CESM intermediate](./generated_files/relationships/numerical_aod_cesm-cesm2-medium-plus_combined.png)
+
+![RF fit for CESM intermediate](./generated_files/relationships/numerical_rf_cesm-cesm2-medium-plus_combined.png)
+
 ## Cut off response function
 
 To check how far into the response functions the noise is substantial, we cut the
