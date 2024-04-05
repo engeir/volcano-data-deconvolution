@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.5.0...volcano-data-deconvolution-v0.6.0) (2024-04-05)
+
+
+### Features
+
+* **analytic:** implement numerical soln to anaalytic expressions ([1ae1f78](https://github.com/engeir/volcano-data-deconvolution/commit/1ae1f781d92959eb8e8a9fbf9fa9b489d993b446))
+
+
+### Bug Fixes
+
+* **attrs:** disappearing in Deconvolution class during padding operation ([05bd23a](https://github.com/engeir/volcano-data-deconvolution/commit/05bd23af7761ee60424fb2ff0d3a5a728da28a20))
+
+
+### Miscellaneous
+
+* **analytic soln:** start implementation of numerical soln to analytic expression ([97c06f3](https://github.com/engeir/volcano-data-deconvolution/commit/97c06f30a33185e346306f8190250aef48f5b1be))
+
 ## [0.5.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.4.0...volcano-data-deconvolution-v0.5.0) (2024-04-04)
 
 
