@@ -209,7 +209,7 @@ urllib3==2.2.1
     # via requests
 virtualenv==20.25.0
     # via pre-commit
-volcano-base==1.8.3
+volcano-base==1.8.4
     # via volcano-data-deconvolution
 xarray==2024.2.0
     # via volcano-base

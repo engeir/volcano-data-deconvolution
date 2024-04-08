@@ -72,8 +72,8 @@ header-includes: |
 
 ### To do {-}
 
-1. Compute the residual as $T-\mathrm{conv}(T, \phi_{TS\mathrm{~~or~~}TR})$, that is,
-   both reconstructed from T---RF and T---SO~2~ response
+1. ~~Compute the residual as $T-\mathrm{conv}(T, \phi_{TS\mathrm{ or }TR})$, that is,
+   both reconstructed from T---RF and T---$\mathrm{SO_2}$ response~~
 2. ~~Look at the residual spectrum compared to that of a control simulation~~
    - Gaussian? **Yes**
    - Any difference between the proper reconstruction (T---SO~2~) and the noisy one

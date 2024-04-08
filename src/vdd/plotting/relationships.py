@@ -1,6 +1,7 @@
 """Plot the relationships between AOD, RF, T and more."""
 
 from collections.abc import Callable
+from typing import Literal
 
 import cosmoplots
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ import vdd.load
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "relationships"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
+_MAXFEV = 0
 
 plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
 plt.style.use(
@@ -25,6 +27,7 @@ plt.style.use(
         {"legend.fontsize": 6},
     ]
 )
+Params_T = Literal["SO2", "AOD", "AOD-AOD", "AOD-RF", "RF"]
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
@@ -37,6 +40,277 @@ dec_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 # OB16
 dec_ob16 = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16.name = "OB16 month"
+
+# cesm-cesm2-double-overlap parameters, fake so2
+param_dict_4sep_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.20648891265424113, 14.33051338439839),
+    "AOD": (1.3701140219220893, 0.05344061819620313),
+    "AOD-AOD": (
+        0.28111196173184444,
+        0.59365187011508,
+        0.8667623279669701,
+        0.4679529190185629,
+    ),
+    "AOD-RF": (
+        0.7728077201434438,
+        0.31837600012104006,
+        20.783872003959562,
+        0.3193658567153462,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+# cesm-cesm2-double-overlap parameters, true so2
+param_dict_4sep_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.20648891265424113, 14.33051338439839),
+    "AOD": (1.4818306343193342, 0.04986290216778253),
+    "AOD-AOD": (
+        0.967108417490067,
+        0.5469632323924328,
+        0.24464680182046572,
+        0.5238136820461587,
+    ),
+    "AOD-RF": (
+        0.6523297356943707,
+        0.5293992625811754,
+        13.920698910261406,
+        0.5532246284318106,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+
+# cesm-cesm2-tt-2sep parameters, fake so2
+param_dict_2sep_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.2167868651072701, 13.53308031600478),
+    "AOD": (1.203125151744134, 0.052691850392018943),
+    "AOD-AOD": (
+        0.49212675714195747,
+        0.4716115580822787,
+        0.5021080703992524,
+        0.5119517599440576,
+    ),
+    "AOD-RF": (
+        0.5685344215329661,
+        0.5275774262454338,
+        13.829249312705794,
+        0.5283797893316774,
+    ),
+    "RF": (200.300474548285, 0.05311253870584331),
+}
+# cesm-cesm2-tt-2sep parameters, true so2
+param_dict_2sep_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.2167868651072701, 13.53308031600478),
+    "AOD": (1.3381979458180546, 0.048768716856846264),
+    "AOD-AOD": (
+        0.29439053899882894,
+        0.5290502104203028,
+        0.853603593442637,
+        0.4640462596879809,
+    ),
+    "AOD-RF": (
+        0.6289972280314285,
+        -0.4227960794134276,
+        16.01088137252591,
+        -0.42435068061118325,
+    ),
+    "RF": (200.300474548285, 0.05311253870584331),
+}
+
+# cesm-cesm2-size5000 parameters, fake so2
+param_dict_e_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.49929255956304486, 13.666770936658683),
+    "AOD": (0.8374064644849375, 0.019674030248830014),
+    "AOD-AOD": (
+        0.3903728505112651,
+        0.3494130112162795,
+        0.31730245658123996,
+        0.3448631214287202,
+    ),
+    "AOD-RF": (
+        0.3790555690876411,
+        -0.13255768061180853,
+        28.145013986772078,
+        -0.1310272783432714,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+# cesm-cesm2-size5000 parameters, true so2
+param_dict_e_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.49929255956304486, 13.666770936658683),
+    "AOD": (0.8907361662029977, 0.019143680887591163),
+    "AOD-AOD": (
+        0.5536372838129326,
+        0.3611276179620605,
+        0.2173158438760093,
+        0.3560047476936677,
+    ),
+    "AOD-RF": (
+        0.43208961426821774,
+        0.13856045895467978,
+        25.64485372331202,
+        0.14032258394251887,
+    ),
+    "RF": (495.38696139905596, 0.008917135191374624),
+}
+
+# cesm-cesm2-strong parameters, fake so2
+param_dict_s_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.3751117448661117, 13.824922745411444),
+    "AOD": (0.9945571186419672, 0.028828278613217097),
+    "AOD-AOD": (
+        0.40939242347216864,
+        0.3919386260669227,
+        0.409769055994987,
+        0.3924878432544051,
+    ),
+    "AOD-RF": (
+        0.531807911246878,
+        0.15641879300382192,
+        29.529072144938482,
+        0.1594303090956324,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+# cesm-cesm2-strong parameters, true so2
+param_dict_s_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.3751117448661117, 13.824922745411444),
+    "AOD": (1.0535013138978253, 0.02837383155494114),
+    "AOD-AOD": (
+        0.4264535902986881,
+        0.3825137942433982,
+        0.42710806772921195,
+        0.38242429166124947,
+    ),
+    "AOD-RF": (
+        0.5404768768976129,
+        0.19056778896953694,
+        25.37958322184627,
+        0.18740378955177064,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+
+# cesm-cesm2-medium-plus parameters, fake so2
+param_dict_p_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.24053102992514483, 14.154608712216556),
+    "AOD": (1.3189023376025042, 0.047756232254152625),
+    "AOD-AOD": (
+        0.3384112260966441,
+        0.5087015664959406,
+        0.7291531985922045,
+        0.4469191714817084,
+    ),
+    "AOD-RF": (
+        0.7899896297431088,
+        -0.2760069396404453,
+        22.070795441096834,
+        -0.27312241845184915,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+# cesm-cesm2-medium-plus parameters, true so2
+param_dict_p_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.24053102992514483, 14.154608712216556),
+    "AOD": (1.3457829280226425, 0.04842795556722085),
+    "AOD-AOD": (
+        0.38698679506121814,
+        0.4303465386484054,
+        0.6794926156127085,
+        0.5103959724549507,
+    ),
+    "AOD-RF": (
+        0.7633365441277841,
+        0.3142637772230818,
+        19.7639144463403,
+        0.3162380155223765,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+
+# cesm-cesm2-medium parameters, fake so2
+param_dict_m_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.15205927660923824, 13.7343385672187),
+    "AOD": (1.493642882429071, 0.0911080785832632),
+    "AOD-AOD": (
+        0.19122776892038992,
+        0.6632526511506003,
+        1.1240849391562433,
+        0.8746048676041859,
+    ),
+    "AOD-RF": (
+        0.872206432128419,
+        0.6620391968401917,
+        7.717841579740749,
+        0.6632777677979476,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+# cesm-cesm2-medium parameters, true so2
+param_dict_m_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (0.15205927660923824, 13.7343385672187),
+    "AOD": (1.5419746250465045, 0.09407498843543649),
+    "AOD-AOD": (
+        0.21903393729028367,
+        0.8362481216678737,
+        1.1058241798998705,
+        0.653546777856078,
+    ),
+    "AOD-RF": (
+        0.8539273546067695,
+        0.8254226441630498,
+        5.956262267697095,
+        0.8254328108119243,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+
+# ob16-ob16-month parameters, fake so2
+param_dict_ob16_fake: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (1.0192882358961923, 12.08452750238792),
+    "AOD": (0.99455712, 0.02882828),
+    "AOD-AOD": (0.40939242, 0.39193863, 0.40976906, 0.39248784),
+    "AOD-RF": (
+        0.1821773347875807,
+        0.03523696921973355,
+        521.4159485898647,
+        0.03506365160959408,
+    ),
+    "RF": (18.50045044, 2.53849499),
+}
+# ob16-ob16-month parameters, true so2
+param_dict_ob16_true: dict[Params_T, tuple[float, ...]] = {
+    "SO2": (1.0192882358961923, 12.08452750238792),
+    "AOD": (0.99455712, 0.02882828),
+    "AOD-AOD": (0.40939242, 0.39193863, 0.40976906, 0.39248784),
+    "AOD-RF": (
+        0.11168491836166736,
+        0.17293165085203288,
+        37.79409160216243,
+        0.17295461630506495,
+    ),
+    "RF": (1599.2742610451014, 0.0026568467327948895),
+}
+
+decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
+# decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m)
+# decs = (dec_m,)
+param_dicts_fake = (
+    param_dict_4sep_fake,
+    param_dict_2sep_fake,
+    param_dict_e_fake,
+    param_dict_s_fake,
+    param_dict_p_fake,
+    param_dict_m_fake,
+    param_dict_ob16_fake,
+)
+param_dicts_true = (
+    param_dict_4sep_true,
+    param_dict_2sep_true,
+    param_dict_e_true,
+    param_dict_s_true,
+    param_dict_p_true,
+    param_dict_m_true,
+    param_dict_ob16_true,
+)
 
 
 class AnalyticSolution:
@@ -80,11 +354,12 @@ class NumericalSolver:
 
     def __init__(self, dec: vdd.load.Deconvolve) -> None:
         self.reset_all_switch = False
-        self.params_so2 = (3.75111622e-01, 2.71076963e-05)
+        self.estimate_so2 = True
+        self.params_so2 = (0.37511174, 13.82492275)
         # self.params_aod = (0.40676405, 4.07634108)
-        self.params_aod = (0.5, 18e3)
-        self.params_aod_aod = (0.4093926, 280.0960872, 0.40976931, 280.09609081)
-        self.params_aod_rf = (0.5318085, 102.49535642, 29.52914528, 124.08601737)
+        self.params_aod = (0.99455712, 0.02882828)
+        self.params_aod_aod = (0.40939242, 0.39193863, 0.40976906, 0.39248784)
+        self.params_aod_rf = (0.53180791, 0.15641879, 29.52907214, 0.15943031)
         self.params_rf = (18.50045044, 2.53849499)
         self.delta_pulses = dec.so2.dropna("time").data
         match dec:
@@ -110,19 +385,27 @@ class NumericalSolver:
         so2_ob16, *_ = xr.align(
             so2_ob16, dec.so2.assign_coords({"time": self.time_axis})
         )
-        self.so2_true = np.roll(so2_ob16.data, 0) * 1e-6
+        self.so2_true = np.roll(so2_ob16.data, 0)  # * 1e-6
         self.rf_true = dec.rf.dropna("time").data
 
     def _setup_cesm(self, dec: vdd.load.DeconvolveCESM) -> None:
         self.time_axis = dec.rf.dropna("time").time.data
-        self.so2_true = dec.tmso2.data
+        self.so2_true = dec.tmso2.data * 510e3
         self.aod_true = dec.aod.data
         self.rf_true = np.roll(dec.rf.data, -1)
+
+    def use_true_so2(self, use_true_so2: bool) -> None:
+        """Decide whether to use the true or numerically estimated SO2 data."""
+        self.estimate_so2 = not use_true_so2
 
     @property
     def so2_fake(self) -> np.ndarray:
         """Fake SO2 data."""
-        return self.numerical_so2(self.time_axis, self.delta_pulses, *self.params_so2)
+        if self.estimate_so2:
+            return self.numerical_so2(
+                self.time_axis, self.delta_pulses, *self.params_so2
+            )
+        return self.so2_true
 
     @property
     def aod_fake(self) -> np.ndarray:
@@ -152,12 +435,14 @@ class NumericalSolver:
         ta = self.time_axis
         st = self.so2_true
         try:
-            params_so2, _ = curve_fit(self.numerical_so2_fit(dp), ta, st)
+            params_so2, _ = curve_fit(
+                self.numerical_so2_fit(dp), ta, st, maxfev=_MAXFEV
+            )
         except RuntimeError as e:
             print(e)
             print("Using previous parameters")
             params_so2 = self.params_so2
-        self.params_so2 = params_so2
+        self.params_so2 = tuple(params_so2)
 
     def reset_params_aod(self) -> None:
         """Reset the AOD parameters.
@@ -172,12 +457,14 @@ class NumericalSolver:
         sf = self.so2_fake
         at = self.aod_true
         try:
-            params_aod, _ = curve_fit(self.numerical_aod_fit(sf), ta, at)
+            params_aod, _ = curve_fit(
+                self.numerical_aod_fit(sf), ta, at, maxfev=_MAXFEV
+            )
         except RuntimeError as e:
             print(e)
             print("Using previous parameters")
             params_aod = self.params_aod
-        self.params_aod = params_aod
+        self.params_aod = tuple(params_aod)
 
     def reset_params_aod_aod(self) -> None:
         """Reset the AOD-AOD parameters.
@@ -192,12 +479,14 @@ class NumericalSolver:
         sf = self.so2_fake
         at = self.aod_true
         try:
-            params_aod_aod, _ = curve_fit(self.numerical_aod_aod_fit(sf), ta, at)
+            params_aod_aod, _ = curve_fit(
+                self.numerical_aod_aod_fit(sf), ta, at, maxfev=_MAXFEV
+            )
         except RuntimeError as e:
             print(e)
             print("Using previous parameters")
             params_aod_aod = self.params_aod_aod
-        self.params_aod_aod = params_aod_aod
+        self.params_aod_aod = tuple(params_aod_aod)
 
     def reset_params_aod_rf(self) -> None:
         """Reset the AOD-RF parameters.
@@ -212,12 +501,14 @@ class NumericalSolver:
         sf = self.so2_fake
         rt = self.rf_true
         try:
-            params_aod_rf, _ = curve_fit(self.numerical_aod_rf_fit(sf), ta, rt)
+            params_aod_rf, _ = curve_fit(
+                self.numerical_aod_rf_fit(sf), ta, rt, maxfev=_MAXFEV
+            )
         except RuntimeError as e:
             print(e)
             print("Using previous parameters")
             params_aod_rf = self.params_aod_rf
-        self.params_aod_rf = params_aod_rf
+        self.params_aod_rf = tuple(params_aod_rf)
 
     def reset_params_rf(self) -> None:
         """Reset the RF parameters.
@@ -231,16 +522,21 @@ class NumericalSolver:
         af = self.aod_fake
         rt = self.rf_true
         try:
-            params_rf, _ = curve_fit(self.numerical_rf, af, rt)
+            params_rf, _ = curve_fit(self.numerical_rf, af, rt, maxfev=_MAXFEV)
         except RuntimeError as e:
             print(e)
             print("Using previous parameters")
             params_rf = self.params_rf
-        self.params_rf = params_rf
+        self.params_rf = tuple(params_rf)
 
-    def reset_all(self) -> None:
+    def reset_all(
+        self, custom_params: dict[Params_T, tuple[float, ...]] | None = None
+    ) -> None:
         """Reset all parameters."""
         self.reset_all_switch = True
+        if custom_params is not None:
+            self._reset_all_custom(custom_params)
+            return
         print("")
         print(f"Resetting all parameters for {self.type_}")
         print("Resetting SO2 parameters")
@@ -254,6 +550,34 @@ class NumericalSolver:
         self.reset_params_aod_rf()
         print("Resetting RF parameters")
         self.reset_params_rf()
+
+    def _reset_all_custom(
+        self, custom_params: dict[Params_T, tuple[float, ...]]
+    ) -> None:
+        """Reset all parameters with custom parameters."""
+        for param, values in custom_params.items():
+            match param, values:
+                case "SO2", (tau, scale):
+                    self.params_so2 = (tau, scale)
+                case "AOD", (tau, scale):
+                    self.params_aod = (tau, scale)
+                case "AOD-AOD", (tau1, scale1, tau2, scale2):
+                    self.params_aod_aod = (tau1, scale1, tau2, scale2)
+                case "AOD-RF", (tau, scale_aod, scale_rf1, scale_rf2):
+                    self.params_aod_rf = (tau, scale_aod, scale_rf1, scale_rf2)
+                case "RF", (scale_a, scale_b):
+                    self.params_rf = (scale_a, scale_b)
+                case _:
+                    raise ValueError("Invalid input.")
+
+    def print_params(self) -> None:
+        """Print the parameters."""
+        print(f"{self.type_} parameters")
+        print(f"SO2: {self.params_so2}")
+        print(f"AOD: {self.params_aod}")
+        print(f"AOD-AOD: {self.params_aod_aod}")
+        print(f"AOD-RF: {self.params_aod_rf}")
+        print(f"RF: {self.params_rf}")
 
     @staticmethod
     @nb.njit
@@ -361,6 +685,7 @@ class NumericalSolver:
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("SO$_2$ [kg/m$^2$]")
+        self._set_xlim()
         plt.savefig(_SAVE_DIR / f"numerical_so2_{self.type_}{msg}")
 
     def _plot_aod(self, msg: str) -> None:
@@ -371,6 +696,7 @@ class NumericalSolver:
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Aerosol optical depth [1]")
+        self._set_xlim()
         plt.savefig(_SAVE_DIR / f"numerical_aod_{self.type_}{msg}")
 
     def _plot_rf(self, msg: str) -> None:
@@ -381,7 +707,14 @@ class NumericalSolver:
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Radiative forcing [W/m$^2$]")
+        self._set_xlim()
         plt.savefig(_SAVE_DIR / f"numerical_rf_{self.type_}{msg}")
+
+    def _set_xlim(self) -> None:
+        if self.type_.name.startswith("cesm"):
+            plt.xlim((-2, 15))
+        else:
+            plt.xlim((1210, 1350))
 
     def plot_available(self) -> None:
         """Plot the available data."""
@@ -389,6 +722,10 @@ class NumericalSolver:
             msg = "_optimised"
         else:
             msg = ""
+        if self.estimate_so2:
+            msg += "_fake-so2"
+        else:
+            msg += "_true-so2"
         self._plot_so2(msg)
         if self.type_.name.startswith("cesm"):
             self._plot_aod(msg)
@@ -496,27 +833,48 @@ def _analytic() -> None:
 
 
 def _numerical_solver() -> None:
-    decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
-    for dec in decs:
+    for dec, p_fake, p_true in zip(
+        decs, param_dicts_fake, param_dicts_true, strict=True
+    ):
         ns = NumericalSolver(dec)
         ns.plot_available()
-        ns.reset_all()
+        ns.reset_all(p_fake)
+        ns.plot_available()
+        ns.use_true_so2(True)
+        ns.reset_all(p_true)
         ns.plot_available()
         for plot in ("so2", "aod", "rf"):
-            f1 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}.png"
-            f2 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised.png"
+            f1 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_fake-so2.png"
+            f2 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_fake-so2.png"
+            f3 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_true-so2.png"
+            f4 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_true-so2.png"
             try:
                 cosmoplots.combine(f1, f2).in_grid(2, 1).using(fontsize=50).save(
                     _SAVE_DIR / f"numerical_{plot}_{ns.type_}_combined.png"
                 )
             except FileNotFoundError:
                 pass
+            try:
+                cosmoplots.combine(f2, f3).in_grid(2, 1).using(fontsize=50).save(
+                    _SAVE_DIR / f"numerical_{plot}_{ns.type_}_combined_so2.png"
+                )
+            except FileNotFoundError:
+                pass
             f1.unlink(missing_ok=True)
             f2.unlink(missing_ok=True)
-        plt.show()
+            f3.unlink(missing_ok=True)
+            f4.unlink(missing_ok=True)
+        # plt.show()
         plt.close("all")
 
 
 if __name__ == "__main__":
+    # for dec in decs:
+    #     ns = NumericalSolver(dec)
+    #     ns.plot_available()
+    #     # ns.use_true_so2(True)
+    #     # ns.reset_all()
+    #     # ns.plot_available()
+    #     plt.show()
     _numerical_solver()
-    _scatterplot_comparison()
+    # _scatterplot_comparison()
