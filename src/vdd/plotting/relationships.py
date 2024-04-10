@@ -51,7 +51,8 @@ class AnalyticSolution:
     # Assume A depend linearly on SO2 (at least for small/realistic values)
     # Assume RF depend non-linearly on AOD
     # Assume T superpose and is constructed from RF and a response function
-    def ode_so2(self) -> None:
+    @staticmethod
+    def ode_so2() -> None:
         """Sympy solution to SO2."""
         tau_s, t, k, n = sp.symbols("tau_s, t, k, n", real=True)
         s = sp.Function("s")
@@ -68,7 +69,8 @@ class AnalyticSolution:
         # Eq((tau_s*Integral(exp(t/tau_s)*Sum(DiracDelta(t - t_k[_0])*s_k[_0], (_0, 0, n)), t) - Integral(s(t)*exp(t/tau_s), t))/tau_s, C3)
         print(check)
 
-    def analytic_so2(self) -> None:
+    @staticmethod
+    def analytic_so2() -> None:
         """Second sympy solution to SO2."""
         tau_s, t, t_upper, k, n = sp.symbols("tau_s, t, t_upper, k, n", real=True)
         # s = sp.Function("s")
@@ -167,7 +169,7 @@ class NumericalSolver:
         st = self.so2_true
         try:
             params_so2, _ = curve_fit(
-                self.numerical_so2_fit(dp), ta, st, maxfev=_MAXFEV
+                self._numerical_so2_fit(dp), ta, st, maxfev=_MAXFEV
             )
         except RuntimeError as e:
             print(e)
@@ -189,7 +191,7 @@ class NumericalSolver:
         at = self.aod_true
         try:
             params_aod, _ = curve_fit(
-                self.numerical_aod_fit(sf), ta, at, maxfev=_MAXFEV
+                self._numerical_aod_fit(sf), ta, at, maxfev=_MAXFEV
             )
         except RuntimeError as e:
             print(e)
@@ -211,7 +213,7 @@ class NumericalSolver:
         at = self.aod_true
         try:
             params_aod_aod, _ = curve_fit(
-                self.numerical_aod_aod_fit(sf), ta, at, maxfev=_MAXFEV
+                self._numerical_aod_aod_fit(sf), ta, at, maxfev=_MAXFEV
             )
         except RuntimeError as e:
             print(e)
@@ -233,7 +235,7 @@ class NumericalSolver:
         rt = self.rf_true
         try:
             params_aod_rf, _ = curve_fit(
-                self.numerical_aod_rf_fit(sf), ta, rt, maxfev=_MAXFEV
+                self._numerical_aod_rf_fit(sf), ta, rt, maxfev=_MAXFEV
             )
         except RuntimeError as e:
             print(e)
@@ -347,7 +349,7 @@ class NumericalSolver:
             out[i] = np.trapz(s_core, t)
         return out * scale
 
-    def numerical_so2_fit(self, base_array: np.ndarray) -> Callable:
+    def _numerical_so2_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
         def _wrapped(time_axis: np.ndarray, tau: float, scale: float) -> np.ndarray:
@@ -372,7 +374,7 @@ class NumericalSolver:
             out[i] = np.trapz(a_core, t)
         return out * scale_aod
 
-    def numerical_aod_fit(self, base_array: np.ndarray) -> Callable:
+    def _numerical_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
         def _wrapped(
@@ -411,10 +413,10 @@ class NumericalSolver:
         aod = self.numerical_aod(time_axis, so2, params[0], params[1], params[2])
         return self.numerical_aod(time_axis, aod, params[3], params[4], params[5])
 
-    def numerical_aod_aod_fit(self, base_array: np.ndarray) -> Callable:
+    def _numerical_aod_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(  # noqa: PLR0913
+        def _wrapped(  # noqa: PLR0913,PLR0917
             time_axis: np.ndarray,
             tau1: float,
             scale1: float,
@@ -457,10 +459,10 @@ class NumericalSolver:
         aod = self.numerical_aod(time_axis, so2, params[0], params[1], params[2])
         return self.numerical_rf(aod, params[3], params[4])
 
-    def numerical_aod_rf_fit(self, base_array: np.ndarray) -> Callable:
+    def _numerical_aod_rf_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(  # noqa: PLR0913
+        def _wrapped(  # noqa: PLR0913,PLR0917
             time_axis: np.ndarray,
             tau: float,
             scale_so2: float,
@@ -652,27 +654,37 @@ def _numerical_solver() -> None:
         ns = NumericalSolver(dec)
         # ns.plot_available()
         if from_json:
-            with open(_SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json") as f:
+            with open(
+                _SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json",
+                encoding="locale",
+            ) as f:
                 p_fake = json.load(f)
             ns.reset_all(p_fake)
         else:
             ns.reset_all()
             p_fake = ns.print_params()
             with open(
-                _SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json", "w"
+                _SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json",
+                "w",
+                encoding="locale",
             ) as f:
                 json.dump(p_fake, f, indent=4)
         ns.plot_available()
         ns.use_true_so2(True)
         if from_json:
-            with open(_SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json") as f:
+            with open(
+                _SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json",
+                encoding="locale",
+            ) as f:
                 p_true = json.load(f)
             ns.reset_all(p_true)
         else:
             ns.reset_all()
             p_true_ = ns.print_params()
             with open(
-                _SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json", "w"
+                _SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json",
+                "w",
+                encoding="locale",
             ) as f:
                 json.dump(p_true_, f, indent=4)
         ns.plot_available()

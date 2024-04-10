@@ -110,9 +110,9 @@ def main():
     cesm.rf.plot()
     cesm.temp.plot()
     plt.show()
-    t_rl_rf, err = fppanalysis.RL_gauss_deconvolve(cesm.temp, cesm.rf, 200)
+    t_rl_rf, _err = fppanalysis.RL_gauss_deconvolve(cesm.temp, cesm.rf, 200)
     t_rl_rf = t_rl_rf.flatten()
-    t_rl_aod, err = fppanalysis.RL_gauss_deconvolve(cesm.temp, cesm.aod, 200)
+    t_rl_aod, _err = fppanalysis.RL_gauss_deconvolve(cesm.temp, cesm.aod, 200)
     t_rl_aod = t_rl_aod.flatten()
     # TODO: convolve the found t_rl_rf with RF from OB16, and compare with T from OB16
     plt.figure()

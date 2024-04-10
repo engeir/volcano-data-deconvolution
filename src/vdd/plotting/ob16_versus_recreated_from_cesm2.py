@@ -44,7 +44,7 @@ for cesm, label in zip(
     # fmt: off
     conv_temp_so2 = np.convolve(ob16_so2.data, dec_ob16_month.response_temp_so2, "same")
     conv_temp_rf = np.convolve(ob16_rf.data, dec_ob16_month.response_temp_rf, "same")
-    conv_norm_temp_so2 = np.convolve(ob16_so2.data, cesm.response_temp_so2 /cesm.response_temp_so2.max() * ob16_rt2_amplitude, "same")
+    conv_norm_temp_so2 = np.convolve(ob16_so2.data, cesm.response_temp_so2 / cesm.response_temp_so2.max() * ob16_rt2_amplitude, "same")
     conv_norm_temp_rf = np.convolve(ob16_rf.data, cesm.response_temp_rf / cesm.response_temp_rf.max() * ob16_rtr_amplitude, "same")
     abso_a.plot(ob16_time, conv_temp_so2, label=f"Reconstructed from SO2 ({label})")
     abso_a.plot(ob16_time, conv_temp_rf, label=f"Reconstructed from RF ({label})")

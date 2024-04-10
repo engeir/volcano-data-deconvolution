@@ -73,13 +73,15 @@ def _setup() -> (
         rec_co.name = f"cut off {num} years"
         recs += (rec_co,)
     # CESM2 ----------------------------------------------------------------------------
-    cesm_2 = vdd.load.CESMData(strength="tt-2sep")
-    cesm_s = vdd.load.CESMData(strength="medium")
-    cesm_i = vdd.load.CESMData(strength="medium-plus")
-    cesm_e = vdd.load.CESMData(strength="size5000")
-    cesm_4 = vdd.load.CESMData(strength="double-overlap")
-    cesm_s = vdd.load.CESMData(strength="strong")
-    for cesm in (cesm_2, cesm_s, cesm_i, cesm_e, cesm_4, cesm_s):
+    for cesm_ in (
+        "tt-2sep",
+        "medium",
+        "medium-plus",
+        "size5000",
+        "double-overlap",
+        "strong",
+    ):
+        cesm = vdd.load.CESMData(strength=cesm_)  # type: ignore
         rec_cesm = vdd.load.DeconvolveCESM(normalise=False, pad_before=True, cesm=cesm)
         recs += (rec_cesm.dump_reconstructor(),)
     return ob16_month, recs
@@ -316,7 +318,8 @@ class PlotReconstruction:
             _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.png"
         )
 
-    def _spectrum_1d(self, signal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    @staticmethod
+    def _spectrum_1d(signal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Calculate the one sided spectrum of the signal.
 
         Parameters
@@ -396,7 +399,7 @@ class PlotReconstruction:
         info("RF", p_value_rf)
         return p_value_so2, p_value_rf
 
-    def peak_difference_analysis(self) -> None:
+    def peak_difference_analysis(self) -> None:  # noqa:PLR0914
         """Plot the difference between the reconstructed and the original peaks."""
         so2_basis = self.peaks_so2 - self.peaks_original
         rf_basis = self.peaks_rf - self.peaks_original
@@ -430,7 +433,7 @@ class PlotReconstruction:
             txt=(so2_conf, rf_conf),
         )
 
-    def _peak_difference_plot(
+    def _peak_difference_plot(  # noqa:PLR0914
         self,
         fpp_out: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
         fits: tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],

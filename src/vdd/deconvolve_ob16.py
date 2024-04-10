@@ -74,7 +74,7 @@ def compare_ob16_with_cesm() -> None:
     plt.show()
 
 
-def look_at_ob_data() -> None:
+def _look_at_ob_data() -> None:  # noqa: PLR0914
     """Deconvolve data."""
     # volcano_base.load.get_ob16_outputs()
     ob16_day = volcano_base.load.OttoBliesner(freq="h1", progress=True)
