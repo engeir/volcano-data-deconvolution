@@ -42,7 +42,8 @@ header-includes: |
 
 ### Structure and planned talking points {-}
 
-<!-- FIXME: update the talking points -->
+<!-- FIXME: update the talking points
+-->
 
 - The deconvolution works well with SO~2~ delta pulses as forcing, both for daily and
   monthly resolved dataset (section \ref{response-functions})
@@ -72,7 +73,7 @@ header-includes: |
 
 ### To do {-}
 
-1. ~~Compute the residual as $T-\mathrm{conv}(T, \phi_{TS\mathrm{ or }TR})$, that is,
+1. ~~Compute the residual as $T-\mathrm{conv}(T, \phi_{TS\mathrm{\,or\,}TR})$, that is,
    both reconstructed from T---RF and T---$\mathrm{SO_2}$ response~~
 2. ~~Look at the residual spectrum compared to that of a control simulation~~
    - Gaussian? **Yes**
@@ -104,6 +105,14 @@ header-includes: |
 
 ### Should we expect linear temperature dependence on radiative forcing?
 
+1. From simulations using ESMs, should we expect a linear dependence between temperature
+   and radiative forcing? Yes, provided that the forcing does not last very long, and
+   can be seen as a perturbation to the system.
+2. In nature, should we expect a linear dependence between temperature and radiative
+   forcing?
+3. The linear dependence is only valid for peak values, is this a counter-argument that
+   a linear dependence is not to be expected?
+
 A lot of these results suggest that even though there are non-linearities in the
 conversion from SO~2~ to both radiative forcing and temperature, the temperature
 response may still be linearly dependent on the radiative forcing. This is a strong
@@ -119,11 +128,19 @@ more). However, this assumes that the climate sensitivity is a constant, while _
 most AOGCM simulations of constant $4\times\mathrm{CO_2}$ forcing, the climate
 sensitivity is found to vary_ [@gregory2016].
 
+However, these processes occur on much longer time scales than the volcanic eruptions we
+simulate. Possible non-linear effects such as sea ice growth and subsequent stop due to
+lack of sea to grow into, and changes in ocean currents, both to the poles but also
+across the Pacific, are not fast enough to play a role over the three years until the
+anomalies peak.
+
 So, this topic revolves around whether the climate sensitivity is a constant for any
 given forcing, and further whether the climate sensitivity is the same for all forcings.
 The latter is very likely no, and the former seems to be incorrect for at least some
 forcings. Thus, we should not automatically expect the temperature response to radiative
-forcing to be linear, or dismiss it as trivial.
+forcing to be linear, or dismiss it as trivial. But it also matters how fast the changes
+are and for how long the changes are sustained, for which the single volcanic eruptions
+are likely too short-lived to yield non-linear effects.
 
 ## Response functions
 
@@ -562,11 +579,10 @@ much faster decay.
 #### Noise of CESM2 4-sep
 
 As the $4$ year separated double waveform response function contain only a single
-ensemble member, the noise is substantial. However, we are able to recreate both the RF
-and the temperature time series using the raw SO~2~ time series and the response
-functions from CESM2 strong of the RF and temperature to SO~2~. Therefore, we expect the
-shape of the response of temperature to RF to be similar to what obtained from CESM2
-strong.
+ensemble member, the noise is substantial. However, we can recreate both the RF and
+temperature time series using the raw SO~2~ time series, and the response functions from
+CESM2 strong of the RF and temperature to SO~2~. Therefore, we expect the shape of the
+response of temperature to RF to be similar to what obtained from CESM2 strong.
 
 ![Cut off response function CESM2 4-sep, $T$ against $R$](./generated_files/cut_off/cesm2-double-overlap_resp_temp-rf_combined.png)
 

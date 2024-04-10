@@ -20,13 +20,13 @@ if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 _MAXFEV = 10000
 
-plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
+plt.rc("text.latex", preamble=r"\usepackage{amsmath,siunitx}")
 plt.style.use([
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
     "vdd.extra",
     {"legend.fontsize": 6},
 ])
-Params_T = Literal["SO2", "AOD", "AOD-AOD", "AOD-RF", "RF"]
+Params_T = Literal["SO2", "AOD", "AOD-AOD", "AOD-RF", "RF-as-AOD", "RF"]
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
@@ -40,9 +40,14 @@ dec_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 dec_ob16 = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16.name = "OB16 month"
 
-# decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
+decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
 # decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m)
-decs = (dec_m,)
+# decs = (dec_m,)
+
+
+def s2n(num: float, decimal: int = 2) -> str:
+    """Convert a number to scientific notation."""
+    return f"\\num{{{num:.{decimal}e}}}"
 
 
 class AnalyticSolution:
@@ -93,6 +98,14 @@ class NumericalSolver:
         self.params_aod = (0.99455712, 0.02882828, 1.0)
         self.params_aod_aod = (0.40939242, 0.39193863, 1.0, 0.40976906, 0.39248784, 1.0)
         self.params_aod_rf = (0.53180791, 0.15641879, 1.0, 29.52907214, 0.15943031)
+        self.params_rf_as_aod = (
+            0.40939242,
+            0.39193863,
+            1.0,
+            0.40976906,
+            0.39248784,
+            1.0,
+        )
         self.params_rf = (18.50045044, 2.53849499)
         self.delta_pulses = dec.so2.dropna("time").data
         match dec:
@@ -135,7 +148,7 @@ class NumericalSolver:
     def so2_fake(self) -> np.ndarray:
         """Fake SO2 data."""
         if self.estimate_so2:
-            return self.numerical_so2(
+            return self._numerical_so2(
                 self.time_axis, self.delta_pulses, *self.params_so2
             )
         return self.so2_true
@@ -143,24 +156,33 @@ class NumericalSolver:
     @property
     def aod_fake(self) -> np.ndarray:
         """Fake AOD data."""
-        return self.numerical_aod(self.time_axis, self.so2_fake, *self.params_aod)
+        return self._numerical_aod(self.time_axis, self.so2_fake, *self.params_aod)
 
     @property
     def aod_aod_fake(self) -> np.ndarray:
         """Fake AOD data fitted from SO2 via AOD."""
-        return self.numerical_aod_aod(
+        return self._numerical_aod_aod(
             self.time_axis, self.so2_fake, *self.params_aod_aod
         )
 
     @property
     def aod_rf_fake(self) -> np.ndarray:
         """Fake RF data fitted from SO2 via AOD."""
-        return self.numerical_aod_rf(self.time_axis, self.so2_fake, *self.params_aod_rf)
+        return self._numerical_aod_rf(
+            self.time_axis, self.so2_fake, *self.params_aod_rf
+        )
+
+    @property
+    def rf_as_aod_fake(self) -> np.ndarray:
+        """Fake AOD data fitted from SO2 via AOD."""
+        return self._numerical_aod_aod(
+            self.time_axis, self.so2_fake, *self.params_rf_as_aod
+        )
 
     @property
     def rf_fake(self) -> np.ndarray:
         """Fake RF data."""
-        return self.numerical_rf(self.aod_fake, *self.params_rf)
+        return self._numerical_rf(self.aod_fake, *self.params_rf)
 
     def reset_params_so2(self) -> None:
         """Reset the SO2 parameters."""
@@ -243,6 +265,31 @@ class NumericalSolver:
             params_aod_rf = self.params_aod_rf
         self.params_aod_rf = tuple(params_aod_rf)
 
+    def reset_params_rf_as_aod(self) -> None:
+        """Reset the R(A(S)) parameters, where R(A) uses the A(S) functional.
+
+        This is equivalent to resetting the AOD-AOD parameters, but optimised for the RF
+        data.
+
+        Notes
+        -----
+        Keep in mind that when re-setting/updating the parameters, the fitting is done
+        based on the SO2 estimate. Thus, re-setting/updating of the SO2 estimate would
+        invalidate this estimate.
+        """
+        ta = self.time_axis
+        sf = self.so2_fake
+        rt = self.rf_true
+        try:
+            params_rf_as_aod, _ = curve_fit(
+                self._numerical_aod_aod_fit(sf), ta, rt, maxfev=_MAXFEV
+            )
+        except RuntimeError as e:
+            print(e)
+            print("Using previous parameters")
+            params_rf_as_aod = self.params_rf_as_aod
+        self.params_rf_as_aod = tuple(params_rf_as_aod)
+
     def reset_params_rf(self) -> None:
         """Reset the RF parameters.
 
@@ -255,7 +302,7 @@ class NumericalSolver:
         af = self.aod_fake
         rt = self.rf_true
         try:
-            params_rf, _ = curve_fit(self.numerical_rf, af, rt, maxfev=_MAXFEV)
+            params_rf, _ = curve_fit(self._numerical_rf, af, rt, maxfev=_MAXFEV)
         except RuntimeError as e:
             print(e)
             print("Using previous parameters")
@@ -281,6 +328,8 @@ class NumericalSolver:
             self.reset_params_aod_aod()
         print("Resetting AOD-RF parameters")
         self.reset_params_aod_rf()
+        print("Resetting RF as AOD parameters")
+        self.reset_params_rf_as_aod()
         print("Resetting RF parameters")
         self.reset_params_rf()
 
@@ -318,19 +367,36 @@ class NumericalSolver:
                         scale_rf1,
                         scale_rf2,
                     )
+                case "RF-as-AOD", (
+                    tau1,
+                    scale1_so2,
+                    scale1_aod,
+                    tau2,
+                    scale2_so2,
+                    scale2_aod,
+                ):
+                    self.params_rf_as_aod = (
+                        tau1,
+                        scale1_so2,
+                        scale1_aod,
+                        tau2,
+                        scale2_so2,
+                        scale2_aod,
+                    )
                 case "RF", (scale_a, scale_b):
                     self.params_rf = (scale_a, scale_b)
                 case _:
                     raise ValueError("Invalid input.")
 
-    def print_params(self) -> dict[str, tuple[float, ...]]:
+    def print_params(self) -> dict[Params_T, tuple[float, ...]]:
         """Print the parameters."""
         print(f"{self.type_} parameters")
-        d = {
+        d: dict[Params_T, tuple[float, ...]] = {
             "SO2": self.params_so2,
             "AOD": self.params_aod,
             "AOD-AOD": self.params_aod_aod,
             "AOD-RF": self.params_aod_rf,
+            "RF-as-AOD": self.params_rf_as_aod,
             "RF": self.params_rf,
         }
         print(d)
@@ -338,7 +404,7 @@ class NumericalSolver:
 
     @staticmethod
     @nb.njit
-    def numerical_so2(
+    def _numerical_so2(
         time_axis: np.ndarray, delta_pulses: np.ndarray, tau: float, scale: float
     ) -> np.ndarray:
         """Solution to SO2 exp decay time series."""
@@ -353,13 +419,13 @@ class NumericalSolver:
         """Wrap so that I can do curve fitting."""
 
         def _wrapped(time_axis: np.ndarray, tau: float, scale: float) -> np.ndarray:
-            return self.numerical_so2(time_axis, base_array, tau, scale)
+            return self._numerical_so2(time_axis, base_array, tau, scale)
 
         return _wrapped
 
     @staticmethod
     @nb.njit
-    def numerical_aod(
+    def _numerical_aod(
         time_axis: np.ndarray,
         so2: np.ndarray,
         tau: float,
@@ -380,11 +446,11 @@ class NumericalSolver:
         def _wrapped(
             time_axis: np.ndarray, tau: float, scale_so2: float, scale_aod: float
         ) -> np.ndarray:
-            return self.numerical_aod(time_axis, base_array, tau, scale_so2, scale_aod)
+            return self._numerical_aod(time_axis, base_array, tau, scale_so2, scale_aod)
 
         return _wrapped
 
-    def numerical_aod_aod(
+    def _numerical_aod_aod(
         self, time_axis: np.ndarray, so2: np.ndarray, *params: float
     ) -> np.ndarray:
         """Compute the AOD from an intermediate AOD of SO2, and SO2, simultaneously.
@@ -410,8 +476,8 @@ class NumericalSolver:
         """
         param_len = 6
         assert len(params) == param_len
-        aod = self.numerical_aod(time_axis, so2, params[0], params[1], params[2])
-        return self.numerical_aod(time_axis, aod, params[3], params[4], params[5])
+        aod = self._numerical_aod(time_axis, so2, params[0], params[1], params[2])
+        return self._numerical_aod(time_axis, aod, params[3], params[4], params[5])
 
     def _numerical_aod_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
@@ -425,13 +491,13 @@ class NumericalSolver:
             scale3: float,
             scale4: float,
         ) -> np.ndarray:
-            return self.numerical_aod_aod(
+            return self._numerical_aod_aod(
                 time_axis, base_array, tau1, scale1, scale2, tau2, scale3, scale4
             )
 
         return _wrapped
 
-    def numerical_aod_rf(
+    def _numerical_aod_rf(
         self, time_axis: np.ndarray, so2: np.ndarray, *params: float
     ) -> np.ndarray:
         """Compute the RF from AOD and SO2 simultaneously.
@@ -456,8 +522,8 @@ class NumericalSolver:
         """
         param_len = 5
         assert len(params) == param_len
-        aod = self.numerical_aod(time_axis, so2, params[0], params[1], params[2])
-        return self.numerical_rf(aod, params[3], params[4])
+        aod = self._numerical_aod(time_axis, so2, params[0], params[1], params[2])
+        return self._numerical_rf(aod, params[3], params[4])
 
     def _numerical_aod_rf_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
@@ -470,7 +536,7 @@ class NumericalSolver:
             scale_rf1: float,
             scale_rf2: float,
         ) -> np.ndarray:
-            return self.numerical_aod_rf(
+            return self._numerical_aod_rf(
                 time_axis, base_array, tau, scale_so2, scale_aod, scale_rf1, scale_rf2
             )
 
@@ -478,7 +544,7 @@ class NumericalSolver:
 
     @staticmethod
     @nb.njit
-    def numerical_rf(aod: np.ndarray, scale_a: float, scale_b: float) -> np.ndarray:
+    def _numerical_rf(aod: np.ndarray, scale_a: float, scale_b: float) -> np.ndarray:
         """Solution to RF from AOD."""
         rf = scale_a * np.log(1 + scale_b * aod)
         return rf
@@ -498,10 +564,19 @@ class NumericalSolver:
         plt.plot(self.time_axis, self.aod_true, label="Simulation output")
         plt.plot(self.time_axis, self.aod_fake, label="Numerical soln (A(S))")
         plt.plot(self.time_axis, self.aod_aod_fake, label="Numerical soln (A(A(S)))")
-        aod_str = f"$\\tau_A$: {self.params_aod[0]:.2f}, $C_S$: {self.params_aod[1]:.2f}, $C_A$: {self.params_aod[1]:.2f}"
-        aod_aod_str = f"$\\tau_A$: {self.params_aod_aod[0]:.2f}, $C_S$: {self.params_aod_aod[1]:.2f}, $\\tau_A$: {self.params_aod_aod[2]:.2f}, $C_A$: {self.params_aod_aod[3]:.2f}"
-        plt.text(0.4, 0.6, aod_str, transform=plt.gca().transAxes, size=6)
-        plt.text(0.4, 0.5, aod_aod_str, transform=plt.gca().transAxes, size=6)
+        aod_str = f"$\\tau_A$: {s2n(self.params_aod[0])}, $C_S$: {s2n(self.params_aod[1])}, $C_A$: {s2n(self.params_aod[2])}"
+        aod_aod_str = (
+            f"$\\tau_{{A2}}$: {s2n(self.params_aod_aod[0])}, "
+            f"$C_{{S1}}$: {s2n(self.params_aod_aod[1])}, "
+            f"$C_{{A1}}$: {s2n(self.params_aod_aod[2])}, "
+            f"$\\tau_{{A2}}$: {s2n(self.params_aod_aod[3])}, "
+            f"$C_{{S2}}$: {s2n(self.params_aod_aod[4])}, "
+            f"$C_{{A2}}$: {s2n(self.params_aod_aod[5])}"
+        )
+        plt.text(0.99, 0.6, aod_str, transform=plt.gca().transAxes, size=5, ha="right")
+        plt.text(
+            0.99, 0.5, aod_aod_str, transform=plt.gca().transAxes, size=5, ha="right"
+        )
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Aerosol optical depth [1]")
@@ -513,13 +588,40 @@ class NumericalSolver:
         plt.plot(self.time_axis, self.rf_true, label="Simulation output")
         plt.plot(self.time_axis, self.rf_fake, label="Numerical soln (R(A))")
         plt.plot(self.time_axis, self.aod_rf_fake, label="Numerical soln (R(A(S)))")
-        aod_str = f"$\\tau_A$: {self.params_aod[0]:.2f}, $C_S$: {self.params_aod[1]:.2f}, $C_A$: {self.params_aod[1]:.2f}"
-        rf_str = f"$C_R$: {self.params_rf[0]:.2f}, $C_A2$: {self.params_rf[1]:.2f}"
-        aod_rf_str = f"$\\tau_A$: {self.params_aod_rf[0]:.2f}, $C_S$: {self.params_aod_rf[1]:.2f}, $C_A$: {self.params_aod[1]:.2f}, $C_R$: {self.params_aod_rf[2]:.2f}, $C_A2$: {self.params_aod_rf[3]:.2f}"
-        plt.text(
-            0.4, 0.6, f"{aod_str}, {rf_str}", transform=plt.gca().transAxes, size=6
+        plt.plot(self.time_axis, self.rf_as_aod_fake, label="Numerical soln (A(A(S)))")
+        aod_str = f"$\\tau_A$: {s2n(self.params_aod[0])}, $C_S$: {s2n(self.params_aod[1])}, $C_{{A1}}$: {s2n(self.params_aod[2])}"
+        rf_str = (
+            f"$C_R$: {s2n(self.params_rf[0])}, $C_{{A2}}$: {s2n(self.params_rf[1])}"
         )
-        plt.text(0.4, 0.5, aod_rf_str, transform=plt.gca().transAxes, size=6)
+        aod_rf_str = (
+            f"$\\tau_A$: {s2n(self.params_aod_rf[0])}, "
+            f"$C_S$: {s2n(self.params_aod_rf[1])}, "
+            f"$C_{{A1}}$: {s2n(self.params_aod[2])}, "
+            f"$C_R$: {s2n(self.params_aod_rf[3])}, "
+            f"$C_{{A2}}$: {s2n(self.params_aod_rf[4])}"
+        )
+        aod_aod_str = (
+            f"$\\tau_{{A2}}$: {s2n(self.params_rf_as_aod[0])}, "
+            f"$C_{{S1}}$: {s2n(self.params_rf_as_aod[1])}, "
+            f"$C_{{A1}}$: {s2n(self.params_rf_as_aod[2])}, "
+            f"$\\tau_{{A2}}$: {s2n(self.params_rf_as_aod[3])}, "
+            f"$C_{{S2}}$: {s2n(self.params_rf_as_aod[4])}, "
+            f"$C_{{A2}}$: {s2n(self.params_rf_as_aod[5])}"
+        )
+        plt.text(
+            0.99,
+            0.6,
+            f"{aod_str}, {rf_str}",
+            transform=plt.gca().transAxes,
+            size=5,
+            ha="right",
+        )
+        plt.text(
+            0.99, 0.5, aod_rf_str, transform=plt.gca().transAxes, size=5, ha="right"
+        )
+        plt.text(
+            0.99, 0.4, aod_aod_str, transform=plt.gca().transAxes, size=5, ha="right"
+        )
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Radiative forcing [W/m$^2$]")
@@ -652,42 +754,21 @@ def _numerical_solver() -> None:
     from_json = True
     for dec in decs:
         ns = NumericalSolver(dec)
-        # ns.plot_available()
-        if from_json:
-            with open(
-                _SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json",
-                encoding="locale",
-            ) as f:
-                p_fake = json.load(f)
-            ns.reset_all(p_fake)
-        else:
-            ns.reset_all()
-            p_fake = ns.print_params()
-            with open(
-                _SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json",
-                "w",
-                encoding="locale",
-            ) as f:
-                json.dump(p_fake, f, indent=4)
-        ns.plot_available()
-        ns.use_true_so2(True)
-        if from_json:
-            with open(
-                _SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json",
-                encoding="locale",
-            ) as f:
-                p_true = json.load(f)
-            ns.reset_all(p_true)
-        else:
-            ns.reset_all()
-            p_true_ = ns.print_params()
-            with open(
-                _SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json",
-                "w",
-                encoding="locale",
-            ) as f:
-                json.dump(p_true_, f, indent=4)
-        ns.plot_available()
+        for true_so2 in (True, False):
+            ns.use_true_so2(true_so2)
+            filename = (
+                f"numerical_params_{ns.type_}_{"true" if true_so2 else "fake"}-so2.json"
+            )
+            if from_json:
+                with open(_SAVE_DIR / filename, encoding="locale") as f:
+                    params = json.load(f)
+                ns.reset_all(params)
+            else:
+                ns.reset_all()
+                params = ns.print_params()
+                with open(_SAVE_DIR / filename, "w", encoding="locale") as f:
+                    json.dump(params, f, indent=4)
+            ns.plot_available()
         for plot in ("so2", "aod", "rf"):
             f1 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_fake-so2.png"
             f2 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_fake-so2.png"
@@ -709,7 +790,7 @@ def _numerical_solver() -> None:
             f2.unlink(missing_ok=True)
             f3.unlink(missing_ok=True)
             f4.unlink(missing_ok=True)
-        plt.show()
+        not from_json or plt.show()  # type: ignore
         plt.close("all")
         # response = dec.response_temp_rf
         # plt.plot(ns.time_axis, np.convolve(ns.rf_fake, response, mode="same"))
@@ -726,4 +807,4 @@ if __name__ == "__main__":
     #     # ns.plot_available()
     #     plt.show()
     _numerical_solver()
-    # _scatterplot_comparison()
+    _scatterplot_comparison()
