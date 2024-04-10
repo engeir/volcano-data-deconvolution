@@ -164,3 +164,4 @@ cython_debug/
 # My additions
 *.png
 *.pdf
+generated_files/

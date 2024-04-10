@@ -1,5 +1,6 @@
 """Plot the relationships between AOD, RF, T and more."""
 
+import json
 from collections.abc import Callable
 from typing import Literal
 
@@ -17,7 +18,7 @@ import vdd.load
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "relationships"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
-_MAXFEV = 0
+_MAXFEV = 10000
 
 plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
 plt.style.use(
@@ -41,276 +42,9 @@ dec_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 dec_ob16 = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16.name = "OB16 month"
 
-# cesm-cesm2-double-overlap parameters, fake so2
-param_dict_4sep_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.20648891265424113, 14.33051338439839),
-    "AOD": (1.3701140219220893, 0.05344061819620313),
-    "AOD-AOD": (
-        0.28111196173184444,
-        0.59365187011508,
-        0.8667623279669701,
-        0.4679529190185629,
-    ),
-    "AOD-RF": (
-        0.7728077201434438,
-        0.31837600012104006,
-        20.783872003959562,
-        0.3193658567153462,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-# cesm-cesm2-double-overlap parameters, true so2
-param_dict_4sep_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.20648891265424113, 14.33051338439839),
-    "AOD": (1.4818306343193342, 0.04986290216778253),
-    "AOD-AOD": (
-        0.967108417490067,
-        0.5469632323924328,
-        0.24464680182046572,
-        0.5238136820461587,
-    ),
-    "AOD-RF": (
-        0.6523297356943707,
-        0.5293992625811754,
-        13.920698910261406,
-        0.5532246284318106,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-
-# cesm-cesm2-tt-2sep parameters, fake so2
-param_dict_2sep_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.2167868651072701, 13.53308031600478),
-    "AOD": (1.203125151744134, 0.052691850392018943),
-    "AOD-AOD": (
-        0.49212675714195747,
-        0.4716115580822787,
-        0.5021080703992524,
-        0.5119517599440576,
-    ),
-    "AOD-RF": (
-        0.5685344215329661,
-        0.5275774262454338,
-        13.829249312705794,
-        0.5283797893316774,
-    ),
-    "RF": (200.300474548285, 0.05311253870584331),
-}
-# cesm-cesm2-tt-2sep parameters, true so2
-param_dict_2sep_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.2167868651072701, 13.53308031600478),
-    "AOD": (1.3381979458180546, 0.048768716856846264),
-    "AOD-AOD": (
-        0.29439053899882894,
-        0.5290502104203028,
-        0.853603593442637,
-        0.4640462596879809,
-    ),
-    "AOD-RF": (
-        0.6289972280314285,
-        -0.4227960794134276,
-        16.01088137252591,
-        -0.42435068061118325,
-    ),
-    "RF": (200.300474548285, 0.05311253870584331),
-}
-
-# cesm-cesm2-size5000 parameters, fake so2
-param_dict_e_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.49929255956304486, 13.666770936658683),
-    "AOD": (0.8374064644849375, 0.019674030248830014),
-    "AOD-AOD": (
-        0.3903728505112651,
-        0.3494130112162795,
-        0.31730245658123996,
-        0.3448631214287202,
-    ),
-    "AOD-RF": (
-        0.3790555690876411,
-        -0.13255768061180853,
-        28.145013986772078,
-        -0.1310272783432714,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-# cesm-cesm2-size5000 parameters, true so2
-param_dict_e_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.49929255956304486, 13.666770936658683),
-    "AOD": (0.8907361662029977, 0.019143680887591163),
-    "AOD-AOD": (
-        0.5536372838129326,
-        0.3611276179620605,
-        0.2173158438760093,
-        0.3560047476936677,
-    ),
-    "AOD-RF": (
-        0.43208961426821774,
-        0.13856045895467978,
-        25.64485372331202,
-        0.14032258394251887,
-    ),
-    "RF": (495.38696139905596, 0.008917135191374624),
-}
-
-# cesm-cesm2-strong parameters, fake so2
-param_dict_s_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.3751117448661117, 13.824922745411444),
-    "AOD": (0.9945571186419672, 0.028828278613217097),
-    "AOD-AOD": (
-        0.40939242347216864,
-        0.3919386260669227,
-        0.409769055994987,
-        0.3924878432544051,
-    ),
-    "AOD-RF": (
-        0.531807911246878,
-        0.15641879300382192,
-        29.529072144938482,
-        0.1594303090956324,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-# cesm-cesm2-strong parameters, true so2
-param_dict_s_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.3751117448661117, 13.824922745411444),
-    "AOD": (1.0535013138978253, 0.02837383155494114),
-    "AOD-AOD": (
-        0.4264535902986881,
-        0.3825137942433982,
-        0.42710806772921195,
-        0.38242429166124947,
-    ),
-    "AOD-RF": (
-        0.5404768768976129,
-        0.19056778896953694,
-        25.37958322184627,
-        0.18740378955177064,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-
-# cesm-cesm2-medium-plus parameters, fake so2
-param_dict_p_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.24053102992514483, 14.154608712216556),
-    "AOD": (1.3189023376025042, 0.047756232254152625),
-    "AOD-AOD": (
-        0.3384112260966441,
-        0.5087015664959406,
-        0.7291531985922045,
-        0.4469191714817084,
-    ),
-    "AOD-RF": (
-        0.7899896297431088,
-        -0.2760069396404453,
-        22.070795441096834,
-        -0.27312241845184915,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-# cesm-cesm2-medium-plus parameters, true so2
-param_dict_p_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.24053102992514483, 14.154608712216556),
-    "AOD": (1.3457829280226425, 0.04842795556722085),
-    "AOD-AOD": (
-        0.38698679506121814,
-        0.4303465386484054,
-        0.6794926156127085,
-        0.5103959724549507,
-    ),
-    "AOD-RF": (
-        0.7633365441277841,
-        0.3142637772230818,
-        19.7639144463403,
-        0.3162380155223765,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-
-# cesm-cesm2-medium parameters, fake so2
-param_dict_m_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.15205927660923824, 13.7343385672187),
-    "AOD": (1.493642882429071, 0.0911080785832632),
-    "AOD-AOD": (
-        0.19122776892038992,
-        0.6632526511506003,
-        1.1240849391562433,
-        0.8746048676041859,
-    ),
-    "AOD-RF": (
-        0.872206432128419,
-        0.6620391968401917,
-        7.717841579740749,
-        0.6632777677979476,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-# cesm-cesm2-medium parameters, true so2
-param_dict_m_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (0.15205927660923824, 13.7343385672187),
-    "AOD": (1.5419746250465045, 0.09407498843543649),
-    "AOD-AOD": (
-        0.21903393729028367,
-        0.8362481216678737,
-        1.1058241798998705,
-        0.653546777856078,
-    ),
-    "AOD-RF": (
-        0.8539273546067695,
-        0.8254226441630498,
-        5.956262267697095,
-        0.8254328108119243,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-
-# ob16-ob16-month parameters, fake so2
-param_dict_ob16_fake: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (1.0192882358961923, 12.08452750238792),
-    "AOD": (0.99455712, 0.02882828),
-    "AOD-AOD": (0.40939242, 0.39193863, 0.40976906, 0.39248784),
-    "AOD-RF": (
-        0.1821773347875807,
-        0.03523696921973355,
-        521.4159485898647,
-        0.03506365160959408,
-    ),
-    "RF": (18.50045044, 2.53849499),
-}
-# ob16-ob16-month parameters, true so2
-param_dict_ob16_true: dict[Params_T, tuple[float, ...]] = {
-    "SO2": (1.0192882358961923, 12.08452750238792),
-    "AOD": (0.99455712, 0.02882828),
-    "AOD-AOD": (0.40939242, 0.39193863, 0.40976906, 0.39248784),
-    "AOD-RF": (
-        0.11168491836166736,
-        0.17293165085203288,
-        37.79409160216243,
-        0.17295461630506495,
-    ),
-    "RF": (1599.2742610451014, 0.0026568467327948895),
-}
-
-decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
+# decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
 # decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m)
-# decs = (dec_m,)
-param_dicts_fake = (
-    param_dict_4sep_fake,
-    param_dict_2sep_fake,
-    param_dict_e_fake,
-    param_dict_s_fake,
-    param_dict_p_fake,
-    param_dict_m_fake,
-    param_dict_ob16_fake,
-)
-param_dicts_true = (
-    param_dict_4sep_true,
-    param_dict_2sep_true,
-    param_dict_e_true,
-    param_dict_s_true,
-    param_dict_p_true,
-    param_dict_m_true,
-    param_dict_ob16_true,
-)
+decs = (dec_m,)
 
 
 class AnalyticSolution:
@@ -356,10 +90,9 @@ class NumericalSolver:
         self.reset_all_switch = False
         self.estimate_so2 = True
         self.params_so2 = (0.37511174, 13.82492275)
-        # self.params_aod = (0.40676405, 4.07634108)
-        self.params_aod = (0.99455712, 0.02882828)
-        self.params_aod_aod = (0.40939242, 0.39193863, 0.40976906, 0.39248784)
-        self.params_aod_rf = (0.53180791, 0.15641879, 29.52907214, 0.15943031)
+        self.params_aod = (0.99455712, 0.02882828, 1.0)
+        self.params_aod_aod = (0.40939242, 0.39193863, 1.0, 0.40976906, 0.39248784, 1.0)
+        self.params_aod_rf = (0.53180791, 0.15641879, 1.0, 29.52907214, 0.15943031)
         self.params_rf = (18.50045044, 2.53849499)
         self.delta_pulses = dec.so2.dropna("time").data
         match dec:
@@ -385,7 +118,7 @@ class NumericalSolver:
         so2_ob16, *_ = xr.align(
             so2_ob16, dec.so2.assign_coords({"time": self.time_axis})
         )
-        self.so2_true = np.roll(so2_ob16.data, 0)  # * 1e-6
+        self.so2_true = np.roll(so2_ob16.data, 0)
         self.rf_true = dec.rf.dropna("time").data
 
     def _setup_cesm(self, dec: vdd.load.DeconvolveCESM) -> None:
@@ -559,25 +292,49 @@ class NumericalSolver:
             match param, values:
                 case "SO2", (tau, scale):
                     self.params_so2 = (tau, scale)
-                case "AOD", (tau, scale):
-                    self.params_aod = (tau, scale)
-                case "AOD-AOD", (tau1, scale1, tau2, scale2):
-                    self.params_aod_aod = (tau1, scale1, tau2, scale2)
-                case "AOD-RF", (tau, scale_aod, scale_rf1, scale_rf2):
-                    self.params_aod_rf = (tau, scale_aod, scale_rf1, scale_rf2)
+                case "AOD", (tau, scale_so2, scale_aod):
+                    self.params_aod = (tau, scale_so2, scale_aod)
+                case "AOD-AOD", (
+                    tau1,
+                    scale1_so2,
+                    scale1_aod,
+                    tau2,
+                    scale2_so2,
+                    scale2_aod,
+                ):
+                    self.params_aod_aod = (
+                        tau1,
+                        scale1_so2,
+                        scale1_aod,
+                        tau2,
+                        scale2_so2,
+                        scale2_aod,
+                    )
+                case "AOD-RF", (tau, scale_so2, scale_aod, scale_rf1, scale_rf2):
+                    self.params_aod_rf = (
+                        tau,
+                        scale_so2,
+                        scale_aod,
+                        scale_rf1,
+                        scale_rf2,
+                    )
                 case "RF", (scale_a, scale_b):
                     self.params_rf = (scale_a, scale_b)
                 case _:
                     raise ValueError("Invalid input.")
 
-    def print_params(self) -> None:
+    def print_params(self) -> dict[str, tuple[float, ...]]:
         """Print the parameters."""
         print(f"{self.type_} parameters")
-        print(f"SO2: {self.params_so2}")
-        print(f"AOD: {self.params_aod}")
-        print(f"AOD-AOD: {self.params_aod_aod}")
-        print(f"AOD-RF: {self.params_aod_rf}")
-        print(f"RF: {self.params_rf}")
+        d = {
+            "SO2": self.params_so2,
+            "AOD": self.params_aod,
+            "AOD-AOD": self.params_aod_aod,
+            "AOD-RF": self.params_aod_rf,
+            "RF": self.params_rf,
+        }
+        print(d)
+        return d
 
     @staticmethod
     @nb.njit
@@ -603,45 +360,73 @@ class NumericalSolver:
     @staticmethod
     @nb.njit
     def numerical_aod(
-        time_axis: np.ndarray, so2: np.ndarray, tau: float, scale: float
+        time_axis: np.ndarray,
+        so2: np.ndarray,
+        tau: float,
+        scale_so2: float,
+        scale_aod: float,
     ) -> np.ndarray:
         """Solution to AOD from SO2."""
         out = np.zeros_like(time_axis)
         for i, _ in enumerate(time_axis):
             t = time_axis[: i + 1]
-            a_core = np.exp(-(t[-1] - t) / tau) * scale * so2[: i + 1]
+            a_core = np.exp(-(t[-1] - t) / tau) * scale_so2 * so2[: i + 1]
             out[i] = np.trapz(a_core, t)
-        return out
+        return out * scale_aod
 
     def numerical_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(time_axis: np.ndarray, tau: float, scale: float) -> np.ndarray:
-            return self.numerical_aod(time_axis, base_array, tau, scale)
+        def _wrapped(
+            time_axis: np.ndarray, tau: float, scale_so2: float, scale_aod: float
+        ) -> np.ndarray:
+            return self.numerical_aod(time_axis, base_array, tau, scale_so2, scale_aod)
 
         return _wrapped
 
     def numerical_aod_aod(
         self, time_axis: np.ndarray, so2: np.ndarray, *params: float
     ) -> np.ndarray:
-        """Compute the AOD from an intermediate AOD of SO2, and SO2, simultaneously."""
-        param_len = 4
+        """Compute the AOD from an intermediate AOD of SO2, and SO2, simultaneously.
+
+        Parameters
+        ----------
+        time_axis : np.ndarray
+            Time axis.
+        so2 : np.ndarray
+            SO2 data.
+        *params : float
+            - tau_aod_1: float, time constant for initial AOD
+            - scale_so2_1: float, scale of the SO2 inside the initial AOD
+            - scale_aod_1: float, scale of the SO2 inside the initial AOD
+            - tau_aod_2: float, time constant for second AOD
+            - scale_so2_2: float, scale of the initial AOD inside the RF
+            - scale_aod_2: float, scale of the SO2 inside the initial AOD
+
+        Returns
+        -------
+        np.ndarray
+            AOD data as a function of the true AOD as a function SO2.
+        """
+        param_len = 6
         assert len(params) == param_len
-        aod = self.numerical_aod(time_axis, so2, params[0], params[1])
-        return self.numerical_aod(time_axis, aod, params[2], params[3])
+        aod = self.numerical_aod(time_axis, so2, params[0], params[1], params[2])
+        return self.numerical_aod(time_axis, aod, params[3], params[4], params[5])
 
     def numerical_aod_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(
+        def _wrapped(  # noqa: PLR0913
             time_axis: np.ndarray,
             tau1: float,
             scale1: float,
-            tau2: float,
             scale2: float,
+            tau2: float,
+            scale3: float,
+            scale4: float,
         ) -> np.ndarray:
             return self.numerical_aod_aod(
-                time_axis, base_array, tau1, scale1, tau2, scale2
+                time_axis, base_array, tau1, scale1, scale2, tau2, scale3, scale4
             )
 
         return _wrapped
@@ -649,24 +434,44 @@ class NumericalSolver:
     def numerical_aod_rf(
         self, time_axis: np.ndarray, so2: np.ndarray, *params: float
     ) -> np.ndarray:
-        """Compute the RF from AOD and SO2 simultaneously."""
-        param_len = 4
+        """Compute the RF from AOD and SO2 simultaneously.
+
+        Parameters
+        ----------
+        time_axis : np.ndarray
+            Time axis.
+        so2 : np.ndarray
+            SO2 data.
+        *params : float
+            - tau_aod: float, time constant for AOD
+            - scale_so2: float, scale of the SO2 inside the AOD
+            - scale_aod: float, scale of the AOD
+            - scale_rf1: float, scale of the RF
+            - scale_rf2: float, scale of the AOD inside the RF
+
+        Returns
+        -------
+        np.ndarray
+            RF data as a function of AOD as a function SO2.
+        """
+        param_len = 5
         assert len(params) == param_len
-        aod = self.numerical_aod(time_axis, so2, params[0], params[1])
-        return self.numerical_rf(aod, params[2], params[3])
+        aod = self.numerical_aod(time_axis, so2, params[0], params[1], params[2])
+        return self.numerical_rf(aod, params[3], params[4])
 
     def numerical_aod_rf_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(
+        def _wrapped(  # noqa: PLR0913
             time_axis: np.ndarray,
             tau: float,
+            scale_so2: float,
             scale_aod: float,
             scale_rf1: float,
             scale_rf2: float,
         ) -> np.ndarray:
             return self.numerical_aod_rf(
-                time_axis, base_array, tau, scale_aod, scale_rf1, scale_rf2
+                time_axis, base_array, tau, scale_so2, scale_aod, scale_rf1, scale_rf2
             )
 
         return _wrapped
@@ -693,6 +498,10 @@ class NumericalSolver:
         plt.plot(self.time_axis, self.aod_true, label="Simulation output")
         plt.plot(self.time_axis, self.aod_fake, label="Numerical soln (A(S))")
         plt.plot(self.time_axis, self.aod_aod_fake, label="Numerical soln (A(A(S)))")
+        aod_str = f"$\\tau_A$: {self.params_aod[0]:.2f}, $C_S$: {self.params_aod[1]:.2f}, $C_A$: {self.params_aod[1]:.2f}"
+        aod_aod_str = f"$\\tau_A$: {self.params_aod_aod[0]:.2f}, $C_S$: {self.params_aod_aod[1]:.2f}, $\\tau_A$: {self.params_aod_aod[2]:.2f}, $C_A$: {self.params_aod_aod[3]:.2f}"
+        plt.text(0.4, 0.6, aod_str, transform=plt.gca().transAxes, size=6)
+        plt.text(0.4, 0.5, aod_aod_str, transform=plt.gca().transAxes, size=6)
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Aerosol optical depth [1]")
@@ -704,6 +513,13 @@ class NumericalSolver:
         plt.plot(self.time_axis, self.rf_true, label="Simulation output")
         plt.plot(self.time_axis, self.rf_fake, label="Numerical soln (R(A))")
         plt.plot(self.time_axis, self.aod_rf_fake, label="Numerical soln (R(A(S)))")
+        aod_str = f"$\\tau_A$: {self.params_aod[0]:.2f}, $C_S$: {self.params_aod[1]:.2f}, $C_A$: {self.params_aod[1]:.2f}"
+        rf_str = f"$C_R$: {self.params_rf[0]:.2f}, $C_A2$: {self.params_rf[1]:.2f}"
+        aod_rf_str = f"$\\tau_A$: {self.params_aod_rf[0]:.2f}, $C_S$: {self.params_aod_rf[1]:.2f}, $C_A$: {self.params_aod[1]:.2f}, $C_R$: {self.params_aod_rf[2]:.2f}, $C_A2$: {self.params_aod_rf[3]:.2f}"
+        plt.text(
+            0.4, 0.6, f"{aod_str}, {rf_str}", transform=plt.gca().transAxes, size=6
+        )
+        plt.text(0.4, 0.5, aod_rf_str, transform=plt.gca().transAxes, size=6)
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Radiative forcing [W/m$^2$]")
@@ -833,15 +649,34 @@ def _analytic() -> None:
 
 
 def _numerical_solver() -> None:
-    for dec, p_fake, p_true in zip(
-        decs, param_dicts_fake, param_dicts_true, strict=True
-    ):
+    from_json = True
+    for dec in decs:
         ns = NumericalSolver(dec)
-        ns.plot_available()
-        ns.reset_all(p_fake)
+        # ns.plot_available()
+        if from_json:
+            with open(_SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json") as f:
+                p_fake = json.load(f)
+            ns.reset_all(p_fake)
+        else:
+            ns.reset_all()
+            p_fake = ns.print_params()
+            with open(
+                _SAVE_DIR / f"numerical_params_{ns.type_}_fake-so2.json", "w"
+            ) as f:
+                json.dump(p_fake, f, indent=4)
         ns.plot_available()
         ns.use_true_so2(True)
-        ns.reset_all(p_true)
+        if from_json:
+            with open(_SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json") as f:
+                p_true = json.load(f)
+            ns.reset_all(p_true)
+        else:
+            ns.reset_all()
+            p_true_ = ns.print_params()
+            with open(
+                _SAVE_DIR / f"numerical_params_{ns.type_}_true-so2.json", "w"
+            ) as f:
+                json.dump(p_true_, f, indent=4)
         ns.plot_available()
         for plot in ("so2", "aod", "rf"):
             f1 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_fake-so2.png"
@@ -864,8 +699,12 @@ def _numerical_solver() -> None:
             f2.unlink(missing_ok=True)
             f3.unlink(missing_ok=True)
             f4.unlink(missing_ok=True)
-        # plt.show()
+        plt.show()
         plt.close("all")
+        # response = dec.response_temp_rf
+        # plt.plot(ns.time_axis, np.convolve(ns.rf_fake, response, mode="same"))
+        # plt.plot(ns.time_axis, dec.temp)
+        # plt.show()
 
 
 if __name__ == "__main__":
