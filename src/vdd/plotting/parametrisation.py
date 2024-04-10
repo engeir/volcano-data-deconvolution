@@ -245,15 +245,15 @@ class PlotParametrisation:
         final_mean_app = final_mean.append
         for i in range(len(list(self.results.values())[0].data_vars.keys())):
             xr_aligned: tuple[xr.DataArray, ...] = xr.align(
-                *volcano_base.manipulate.approx_align(
-                    *[value[f"s{i+1}"] for value in self.results.values()]
-                )
+                *volcano_base.manipulate.approx_align(*[
+                    value[f"s{i + 1}"] for value in self.results.values()
+                ])
             )
             final_xr_app(xr_aligned)
             xr_mean = np.mean(xr_aligned, axis=0)
             final_mean_app(xr_mean)
             # label = xr_aligned[0].attrs["label"]
-            label = f"s{i+1} mean"
+            label = f"s{i + 1} mean"
             ls = xr_aligned[0].attrs["ls"]
             method_a.plot(xr_aligned[0].tau, xr_mean, label=label, ls=ls)
         final_plot = np.mean(final_mean, axis=0)
@@ -278,19 +278,17 @@ def _plot_response_functions() -> None:
     pp.plot_simulations()
     plt.show()
     # Combine the response functions I'm interested in
-    cosmoplots.combine(
-        *[
-            _SAVE_DIR / f"parametrisation_{file}.png"
-            for file in [
-                "ob16-month",
-                "cesm2-medium-plus",
-                "cesm2-strong",
-                "cesm2-size5000",
-                "cesm2-tt-2sep",
-                "cesm2-double-overlap",
-            ]
+    cosmoplots.combine(*[
+        _SAVE_DIR / f"parametrisation_{file}.png"
+        for file in [
+            "ob16-month",
+            "cesm2-medium-plus",
+            "cesm2-strong",
+            "cesm2-size5000",
+            "cesm2-tt-2sep",
+            "cesm2-double-overlap",
         ]
-    ).in_grid(2, 3).using(fontsize=50).save(_SAVE_DIR / "parametrisation_combined.png")
+    ]).in_grid(2, 3).using(fontsize=50).save(_SAVE_DIR / "parametrisation_combined.png")
     pp.plot_method_comparisons()
     plt.show()
 

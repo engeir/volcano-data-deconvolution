@@ -21,13 +21,11 @@ if not _SAVE_DIR.exists():
 _MAXFEV = 10000
 
 plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
-plt.style.use(
-    [
-        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-        "vdd.extra",
-        {"legend.fontsize": 6},
-    ]
-)
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.extra",
+    {"legend.fontsize": 6},
+])
 Params_T = Literal["SO2", "AOD", "AOD-AOD", "AOD-RF", "RF"]
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
@@ -109,9 +107,9 @@ class NumericalSolver:
         time_axis_ = dec.rf.dropna("time").time.data
         self.time_axis = np.asarray(volcano_base.manipulate.dt2float(time_axis_))
         so2_ob16 = dec.data.so2.dropna("time")
-        so2_ob16 = so2_ob16.assign_coords(
-            {"time": volcano_base.manipulate.dt2float(so2_ob16.time.data)}
-        )
+        so2_ob16 = so2_ob16.assign_coords({
+            "time": volcano_base.manipulate.dt2float(so2_ob16.time.data)
+        })
         so2_ob16 = so2_ob16[int(349 * 12) + 2 :]
         so2_ob16 = so2_ob16[: len(self.time_axis)]
         so2_ob16 = so2_ob16.assign_coords({"time": self.time_axis})

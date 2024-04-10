@@ -109,6 +109,11 @@ line-length = 88
 # Assume Python 3.12
 target-version = "py312"
 
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88
+preview = true
+
 [tool.ruff.lint]
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
