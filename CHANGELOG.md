@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.7.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.6.0...volcano-data-deconvolution-v0.7.0) (2024-04-11)
+
+
+### Features
+
+* **numerical soln:** set params in json files and iterate curvefit until a fit is found ([6adffd2](https://github.com/engeir/volcano-data-deconvolution/commit/6adffd28c3cf797708f09d71e73b7ab12b684761))
+
+
+### Bug Fixes
+
+* **numeric soln:** reduce number of scaling params ([0c8f40a](https://github.com/engeir/volcano-data-deconvolution/commit/0c8f40ab304efdc8e58676c19cf49ee348fffcfa))
+
+
+### Miscellaneous
+
+* **numerical soln:** add estimate of R based on two exponential models only ([39fafe6](https://github.com/engeir/volcano-data-deconvolution/commit/39fafe6707709c5a7a8013a6a7cca91c48754129))
+* **numerical soln:** save estimated parameters in dicts for later use ([9779027](https://github.com/engeir/volcano-data-deconvolution/commit/97790275707b36a36e3f4e93e8818a961de631ca))
+
+
+### Styles
+
+* **ruff:** add preview rules to lint/check and format ([4c618c6](https://github.com/engeir/volcano-data-deconvolution/commit/4c618c6d66fbee6b746dd22f9c69676be73e76bf))
+* **ruff:** format using the preview settings and add code-format ([7100d09](https://github.com/engeir/volcano-data-deconvolution/commit/7100d09ac6b85f049cac6948ed8afb308dfd832b))
+
+
+### Documentation
+
+* **DOC:** improve on the linearity discussion ([39fafe6](https://github.com/engeir/volcano-data-deconvolution/commit/39fafe6707709c5a7a8013a6a7cca91c48754129))
+
 ## [0.6.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.5.0...volcano-data-deconvolution-v0.6.0) (2024-04-05)
 
 
