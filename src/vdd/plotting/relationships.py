@@ -95,17 +95,10 @@ class NumericalSolver:
         self.reset_all_switch = False
         self.estimate_so2 = True
         self.params_so2 = (0.37511174, 13.82492275)
-        self.params_aod = (0.99455712, 0.02882828, 1.0)
-        self.params_aod_aod = (0.40939242, 0.39193863, 1.0, 0.40976906, 0.39248784, 1.0)
-        self.params_aod_rf = (0.53180791, 0.15641879, 1.0, 29.52907214, 0.15943031)
-        self.params_rf_as_aod = (
-            0.40939242,
-            0.39193863,
-            1.0,
-            0.40976906,
-            0.39248784,
-            1.0,
-        )
+        self.params_aod = (0.99455712, 0.02882828)
+        self.params_aod_aod = (0.40939242, 0.39193863, 0.40976906)
+        self.params_aod_rf = (0.53180791, 0.15641879, 29.52907214)
+        self.params_rf_as_aod = (1.40939242, 0.39193863, 0.40976906)
         self.params_rf = (18.50045044, 2.53849499)
         self.delta_pulses = dec.so2.dropna("time").data
         match dec:
@@ -341,48 +334,14 @@ class NumericalSolver:
             match param, values:
                 case "SO2", (tau, scale):
                     self.params_so2 = (tau, scale)
-                case "AOD", (tau, scale_so2, scale_aod):
-                    self.params_aod = (tau, scale_so2, scale_aod)
-                case "AOD-AOD", (
-                    tau1,
-                    scale1_so2,
-                    scale1_aod,
-                    tau2,
-                    scale2_so2,
-                    scale2_aod,
-                ):
-                    self.params_aod_aod = (
-                        tau1,
-                        scale1_so2,
-                        scale1_aod,
-                        tau2,
-                        scale2_so2,
-                        scale2_aod,
-                    )
-                case "AOD-RF", (tau, scale_so2, scale_aod, scale_rf1, scale_rf2):
-                    self.params_aod_rf = (
-                        tau,
-                        scale_so2,
-                        scale_aod,
-                        scale_rf1,
-                        scale_rf2,
-                    )
-                case "RF-as-AOD", (
-                    tau1,
-                    scale1_so2,
-                    scale1_aod,
-                    tau2,
-                    scale2_so2,
-                    scale2_aod,
-                ):
-                    self.params_rf_as_aod = (
-                        tau1,
-                        scale1_so2,
-                        scale1_aod,
-                        tau2,
-                        scale2_so2,
-                        scale2_aod,
-                    )
+                case "AOD", (tau, scale):
+                    self.params_aod = (tau, scale)
+                case "AOD-AOD", (tau1, tau2, scale):
+                    self.params_aod_aod = (tau1, tau2, scale)
+                case "AOD-RF", (tau, scale_aod, scale_rf):
+                    self.params_aod_rf = (tau, scale_aod, scale_rf)
+                case "RF-as-AOD", (tau1, tau2, scale):
+                    self.params_rf_as_aod = (tau1, tau2, scale)
                 case "RF", (scale_a, scale_b):
                     self.params_rf = (scale_a, scale_b)
                 case _:
@@ -429,24 +388,21 @@ class NumericalSolver:
         time_axis: np.ndarray,
         so2: np.ndarray,
         tau: float,
-        scale_so2: float,
-        scale_aod: float,
+        scale: float,
     ) -> np.ndarray:
         """Solution to AOD from SO2."""
         out = np.zeros_like(time_axis)
         for i, _ in enumerate(time_axis):
             t = time_axis[: i + 1]
-            a_core = np.exp(-(t[-1] - t) / tau) * scale_so2 * so2[: i + 1]
+            a_core = np.exp(-(t[-1] - t) / tau) * so2[: i + 1]
             out[i] = np.trapz(a_core, t)
-        return out * scale_aod
+        return out * scale
 
     def _numerical_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(
-            time_axis: np.ndarray, tau: float, scale_so2: float, scale_aod: float
-        ) -> np.ndarray:
-            return self._numerical_aod(time_axis, base_array, tau, scale_so2, scale_aod)
+        def _wrapped(time_axis: np.ndarray, tau: float, scale: float) -> np.ndarray:
+            return self._numerical_aod(time_axis, base_array, tau, scale)
 
         return _wrapped
 
@@ -463,37 +419,29 @@ class NumericalSolver:
             SO2 data.
         *params : float
             - tau_aod_1: float, time constant for initial AOD
-            - scale_so2_1: float, scale of the SO2 inside the initial AOD
-            - scale_aod_1: float, scale of the SO2 inside the initial AOD
             - tau_aod_2: float, time constant for second AOD
-            - scale_so2_2: float, scale of the initial AOD inside the RF
-            - scale_aod_2: float, scale of the SO2 inside the initial AOD
+            - scale: float, scale of the SO2 inside the initial AOD
 
         Returns
         -------
         np.ndarray
             AOD data as a function of the true AOD as a function SO2.
         """
-        param_len = 6
+        param_len = 3
         assert len(params) == param_len
-        aod = self._numerical_aod(time_axis, so2, params[0], params[1], params[2])
-        return self._numerical_aod(time_axis, aod, params[3], params[4], params[5])
+        aod = self._numerical_aod(time_axis, so2, params[0], 1.0)
+        return self._numerical_aod(time_axis, aod, params[1], params[2])
 
     def _numerical_aod_aod_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(  # noqa: PLR0913,PLR0917
+        def _wrapped(
             time_axis: np.ndarray,
             tau1: float,
-            scale1: float,
-            scale2: float,
             tau2: float,
-            scale3: float,
-            scale4: float,
+            scale: float,
         ) -> np.ndarray:
-            return self._numerical_aod_aod(
-                time_axis, base_array, tau1, scale1, scale2, tau2, scale3, scale4
-            )
+            return self._numerical_aod_aod(time_axis, base_array, tau1, tau2, scale)
 
         return _wrapped
 
@@ -510,43 +458,39 @@ class NumericalSolver:
             SO2 data.
         *params : float
             - tau_aod: float, time constant for AOD
-            - scale_so2: float, scale of the SO2 inside the AOD
             - scale_aod: float, scale of the AOD
-            - scale_rf1: float, scale of the RF
-            - scale_rf2: float, scale of the AOD inside the RF
+            - scale_rf: float, scale of the RF
 
         Returns
         -------
         np.ndarray
             RF data as a function of AOD as a function SO2.
         """
-        param_len = 5
+        param_len = 3
         assert len(params) == param_len
-        aod = self._numerical_aod(time_axis, so2, params[0], params[1], params[2])
-        return self._numerical_rf(aod, params[3], params[4])
+        aod = self._numerical_aod(time_axis, so2, params[0], 1.0)
+        return self._numerical_rf(aod, params[1], params[2])
 
     def _numerical_aod_rf_fit(self, base_array: np.ndarray) -> Callable:
         """Wrap so that I can do curve fitting."""
 
-        def _wrapped(  # noqa: PLR0913,PLR0917
+        def _wrapped(
             time_axis: np.ndarray,
             tau: float,
-            scale_so2: float,
             scale_aod: float,
-            scale_rf1: float,
-            scale_rf2: float,
+            scale_rf: float,
         ) -> np.ndarray:
             return self._numerical_aod_rf(
-                time_axis, base_array, tau, scale_so2, scale_aod, scale_rf1, scale_rf2
+                time_axis, base_array, tau, scale_aod, scale_rf
             )
 
         return _wrapped
 
     @staticmethod
     @nb.njit
-    def _numerical_rf(aod: np.ndarray, scale_a: float, scale_b: float) -> np.ndarray:
+    def _numerical_rf(aod: np.ndarray, scale_rf: float, scale_aod: float) -> np.ndarray:
         """Solution to RF from AOD."""
-        rf = scale_a * np.log(1 + scale_b * aod)
+        rf = scale_rf * np.log(1 + scale_aod * aod)
         return rf
 
     def _plot_so2(self, msg: str) -> None:
@@ -564,19 +508,18 @@ class NumericalSolver:
         plt.plot(self.time_axis, self.aod_true, label="Simulation output")
         plt.plot(self.time_axis, self.aod_fake, label="Numerical soln (A(S))")
         plt.plot(self.time_axis, self.aod_aod_fake, label="Numerical soln (A(A(S)))")
-        aod_str = f"$\\tau_A$: {s2n(self.params_aod[0])}, $C_S$: {s2n(self.params_aod[1])}, $C_A$: {s2n(self.params_aod[2])}"
-        aod_aod_str = (
-            f"$\\tau_{{A2}}$: {s2n(self.params_aod_aod[0])}, "
-            f"$C_{{S1}}$: {s2n(self.params_aod_aod[1])}, "
-            f"$C_{{A1}}$: {s2n(self.params_aod_aod[2])}, "
-            f"$\\tau_{{A2}}$: {s2n(self.params_aod_aod[3])}, "
-            f"$C_{{S2}}$: {s2n(self.params_aod_aod[4])}, "
-            f"$C_{{A2}}$: {s2n(self.params_aod_aod[5])}"
+        _aod_str = (
+            f"$\\tau_A$: {s2n(self.params_aod[0])}"
+            # f", $C$: {s2n(self.params_aod[1])}"
         )
-        plt.text(0.99, 0.6, aod_str, transform=plt.gca().transAxes, size=5, ha="right")
-        plt.text(
-            0.99, 0.5, aod_aod_str, transform=plt.gca().transAxes, size=5, ha="right"
+        _aod_aod_str = (
+            f"$\\tau_{{A1}}$: {s2n(self.params_aod_aod[0])}"
+            f", $\\tau_{{A2}}$: {s2n(self.params_aod_aod[1])}"
+            # f", $C$: {s2n(self.params_aod_aod[2])}"
         )
+        t = plt.gca().transAxes
+        plt.text(0.98, 0.6, _aod_str, transform=t, size=6, ha="right")
+        plt.text(0.98, 0.5, _aod_aod_str, transform=t, size=6, ha="right")
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Aerosol optical depth [1]")
@@ -589,39 +532,25 @@ class NumericalSolver:
         plt.plot(self.time_axis, self.rf_fake, label="Numerical soln (R(A))")
         plt.plot(self.time_axis, self.aod_rf_fake, label="Numerical soln (R(A(S)))")
         plt.plot(self.time_axis, self.rf_as_aod_fake, label="Numerical soln (A(A(S)))")
-        aod_str = f"$\\tau_A$: {s2n(self.params_aod[0])}, $C_S$: {s2n(self.params_aod[1])}, $C_{{A1}}$: {s2n(self.params_aod[2])}"
-        rf_str = (
-            f"$C_R$: {s2n(self.params_rf[0])}, $C_{{A2}}$: {s2n(self.params_rf[1])}"
+        _aod_str_rf_str = (
+            f"$\\tau_A$: {s2n(self.params_aod[0])}"
+            # f", $C_A$: {s2n(self.params_aod[1])}"
+            # f", $C_R$: {s2n(self.params_rf[0])}"
         )
-        aod_rf_str = (
-            f"$\\tau_A$: {s2n(self.params_aod_rf[0])}, "
-            f"$C_S$: {s2n(self.params_aod_rf[1])}, "
-            f"$C_{{A1}}$: {s2n(self.params_aod[2])}, "
-            f"$C_R$: {s2n(self.params_aod_rf[3])}, "
-            f"$C_{{A2}}$: {s2n(self.params_aod_rf[4])}"
+        _aod_rf_str = (
+            f"$\\tau_A$: {s2n(self.params_aod_rf[0])}"
+            # f", $C_A$: {s2n(self.params_aod_rf[1])}"
+            # f", $C_R$: {s2n(self.params_aod_rf[2])}"
         )
-        aod_aod_str = (
-            f"$\\tau_{{A2}}$: {s2n(self.params_rf_as_aod[0])}, "
-            f"$C_{{S1}}$: {s2n(self.params_rf_as_aod[1])}, "
-            f"$C_{{A1}}$: {s2n(self.params_rf_as_aod[2])}, "
-            f"$\\tau_{{A2}}$: {s2n(self.params_rf_as_aod[3])}, "
-            f"$C_{{S2}}$: {s2n(self.params_rf_as_aod[4])}, "
-            f"$C_{{A2}}$: {s2n(self.params_rf_as_aod[5])}"
+        _aod_aod_str = (
+            f"$\\tau_{{A1}}$: {s2n(self.params_rf_as_aod[0])}"
+            f", $\\tau_{{A2}}$: {s2n(self.params_rf_as_aod[1])}"
+            # f", $C$: {s2n(self.params_rf_as_aod[2])}"
         )
-        plt.text(
-            0.99,
-            0.6,
-            f"{aod_str}, {rf_str}",
-            transform=plt.gca().transAxes,
-            size=5,
-            ha="right",
-        )
-        plt.text(
-            0.99, 0.5, aod_rf_str, transform=plt.gca().transAxes, size=5, ha="right"
-        )
-        plt.text(
-            0.99, 0.4, aod_aod_str, transform=plt.gca().transAxes, size=5, ha="right"
-        )
+        t = plt.gca().transAxes
+        plt.text(0.98, 0.6, _aod_str_rf_str, transform=t, size=6, ha="right")
+        plt.text(0.98, 0.5, _aod_rf_str, transform=t, size=6, ha="right")
+        plt.text(0.98, 0.4, _aod_aod_str, transform=t, size=6, ha="right")
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("Radiative forcing [W/m$^2$]")
@@ -769,27 +698,34 @@ def _numerical_solver() -> None:
                 with open(_SAVE_DIR / filename, "w", encoding="locale") as f:
                     json.dump(params, f, indent=4)
             ns.plot_available()
+        files = {}
         for plot in ("so2", "aod", "rf"):
-            f1 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_fake-so2.png"
-            f2 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_fake-so2.png"
-            f3 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_true-so2.png"
-            f4 = _SAVE_DIR / f"numerical_{plot}_{ns.type_}_true-so2.png"
+            files[plot] = [
+                _SAVE_DIR / f"numerical_{plot}_{ns.type_}_fake-so2.png",
+                _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_fake-so2.png",
+                _SAVE_DIR / f"numerical_{plot}_{ns.type_}_optimised_true-so2.png",
+                _SAVE_DIR / f"numerical_{plot}_{ns.type_}_true-so2.png",
+            ]
             try:
-                cosmoplots.combine(f1, f2).in_grid(2, 1).using(fontsize=50).save(
-                    _SAVE_DIR / f"numerical_{plot}_{ns.type_}_combined.png"
-                )
+                cosmoplots.combine(files[plot][0], files[plot][1]).in_grid(2, 1).using(
+                    fontsize=50
+                ).save(_SAVE_DIR / f"numerical_{plot}_{ns.type_}_combined.png")
             except FileNotFoundError:
                 pass
             try:
-                cosmoplots.combine(f2, f3).in_grid(2, 1).using(fontsize=50).save(
-                    _SAVE_DIR / f"numerical_{plot}_{ns.type_}_combined_so2.png"
-                )
+                cosmoplots.combine(files[plot][1], files[plot][2]).in_grid(2, 1).using(
+                    fontsize=50
+                ).save(_SAVE_DIR / f"numerical_{plot}_{ns.type_}_combined_so2.png")
             except FileNotFoundError:
                 pass
-            f1.unlink(missing_ok=True)
-            f2.unlink(missing_ok=True)
-            f3.unlink(missing_ok=True)
-            f4.unlink(missing_ok=True)
+        try:
+            cosmoplots.combine(files["aod"][1], files["rf"][1]).in_grid(2, 1).using(
+                fontsize=50
+            ).save(_SAVE_DIR / f"numerical_aod_rf_{ns.type_}_combined_so2.png")
+        except FileNotFoundError:
+            pass
+
+        [f.unlink(missing_ok=True) for files_ in files.values() for f in files_]
         not from_json or plt.show()  # type: ignore
         plt.close("all")
         # response = dec.response_temp_rf
