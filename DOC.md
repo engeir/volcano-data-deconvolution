@@ -40,10 +40,13 @@ header-includes: |
 
 ## Preface {-}
 
-### Structure and planned talking points {-}
+### Idea {-}
 
-<!-- FIXME: update the talking points
--->
+The second manuscript (this) will utilize data from the first paper as well as already
+simulated data to investigate the effect of several volcanoes together. Some analysis as
+well as the writing remains.
+
+### Structure and planned talking points {-}
 
 - The deconvolution works well with SO~2~ delta pulses as forcing, both for daily and
   monthly resolved dataset (section \ref{response-functions})
@@ -64,12 +67,16 @@ header-includes: |
   that (1) the temperature does not combine linearly with the radiative forcing when
   perturbed and (2) the deconvolution may not be appropriate to fully describe the
   response function (section \ref{reconstruction})
+- Reconstructing the OB16 time series yields a good match with respect to peak values,
+  with peak differences being symmetrically distributed around zero (section
+  \ref{reconstruction})
 - Cut off analysis shows that the response of RF to SO~2~ is significant only up to
   about 4 years, while the temperature response to both SO~2~ and RF is significant up
   to at least 16 years (section \ref{cut-off-response-function})
-- The data suggest that as long as AOD is not perturbed, the temperature response to
-  volcanic eruptions combine linearly, and so does the radiative forcing (section
-  \ref{double-waveform}, double waveform analysis, Fig. \ref{waveform-comparison})
+- The data suggest that as long as AOD (or RF?) is not perturbed, the temperature
+  response to volcanic eruptions combine linearly, and so does the radiative forcing
+  (section \ref{double-waveform}, double waveform analysis, Fig.
+  \ref{waveform-comparison})
 
 ### To do {-}
 
@@ -252,6 +259,11 @@ the reconstructions. Ideally, the only differences in peak values should be due 
 in the temperature time series, and not due to the reconstruction method.
 
 We plot both the PDF, and the CDF of the peak difference time series.
+
+From OB16, we find that when recreating temperature with SO~2~ (RF) we can be at most
+$22\%$ ($47\%$) confident that the population mean of the peak is different from zero,
+while for the CESM2 strong simulation, we can be at most $74\%$ ($84\%$) confident that
+the population mean is different from zero.
 
 ![Peak difference PDF OB16](./generated_files/reconstruction/ob16-month-peak-difference-pdf.png){width=49%}
 ![Peak difference PDF CESM2](./generated_files/reconstruction/cesm2-strong-peak-difference-pdf.png){width=49%}
@@ -438,11 +450,13 @@ above scaling, we get
 
 #### Scale the response function
 
-$$ \phi_{aS}^\alpha=\sqrt{S^\beta/S^\alpha}\phi_{aS}^\beta $$
+$$ \phi_{aS}^\alpha=\sqrt{\frac{S^\beta}{S^\alpha}}\phi_{aS}^\beta $$
 
 or more pragmatically
 
-$$ \phi_{aS}^\alpha=(\phi_{aS}^{\alpha,\max}/\phi_{aS}^{\beta,\max})\phi_{aS}^\beta. $$
+$$
+\phi_{aS}^\alpha=\frac{\phi_{aS}^{\alpha,\max}}{\phi_{aS}^{\beta,\max}}\phi_{aS}^\beta.
+$$
 
 #### Scale the time series
 
@@ -459,7 +473,7 @@ a^{\alpha,\dagger}=
 $$
 <!-- dprint-ignore-end -->
 
-### Numerical solution
+### Numerical solutions
 
 We here assume that we can get the SO~2~ content from a simple exponential decay model
 as
@@ -474,7 +488,7 @@ and further that the AOD is given by a second exponential decay model as
 
 <!-- dprint-ignore-start -->
 $$
-A(t)=\int_{0}^{t}C_1\exp\left(-\frac{t-t'}{\tau_A}\right)S(t)dt'.
+A(t)=C_1\int_{0}^{t}\exp\left(-\frac{t-t'}{\tau_A}\right)S(t)dt'.
 $$
 <!-- dprint-ignore-end -->
 
@@ -499,23 +513,32 @@ on SO~2~ as input, via an intermediate AOD estimate.
 Thus, what we are left with are that the best estimate RF and AOD are given as $R$ and
 $A^\dagger$ as
 
-$$ R(t)=R(A(S(t))), $$
+$$
+R(t)=R(A(S(t)))=C_2\log\left(1+C_1\int_{0}^{t}\exp\left(-\frac{t-t'}{\tau_A}\right)S(t)dt'\right),
+$$
 
 and
 
-$$ A^\dagger(t)=A^\dagger(A(S(t))). $$
+$$ A^\dagger(t) = A(A(S(t))) = C_1\int_{0}^{t} \exp\left(-\frac{t-t'}{\tau_{A2}}\right)
+\left(\int_{0}^{t} \exp\left(-\frac{t-t'}{\tau_{A1}}\right) S(t)dt' \right) dt'. $$
 
-![SO2 fit for CESM small](./generated_files/relationships/numerical_so2_cesm-cesm2-medium_combined.png)
+For completeness, we also run the exponential decay model on the SO~2~ time series twice
+(like we do for $A^\dagger$) for the RF time series, that is,
 
-![AOD fit for CESM small](./generated_files/relationships/numerical_aod_cesm-cesm2-medium_combined.png)
+$$ R^\dagger(t)=A(A(S(t))). $$
 
-![RF fit for CESM small](./generated_files/relationships/numerical_rf_cesm-cesm2-medium_combined.png)
+The difference between $R^\dagger$ and $A^\dagger$ of course being that their parameters
+are optimised against their corresponding time series.
 
-![SO2 fit for CESM intermediate](./generated_files/relationships/numerical_so2_cesm-cesm2-medium-plus_combined.png)
+Now, let us look at some results from this procedure. We get lots of plots, so we focus
+on the CESM2 strong simulation, the CESM2 2-year double waveform simulation, ~~and the
+OB16 dataset~~.
 
-![AOD fit for CESM intermediate](./generated_files/relationships/numerical_aod_cesm-cesm2-medium-plus_combined.png)
+![AOD and RF estimates with time constants, CESM2
+strong](./generated_files/relationships/numerical_aod_rf_cesm-cesm2-strong_combined_so2.png)
 
-![RF fit for CESM intermediate](./generated_files/relationships/numerical_rf_cesm-cesm2-medium-plus_combined.png)
+![AOD and RF estimates with time constants, CESM2
+2-year double](./generated_files/relationships/numerical_aod_rf_cesm-cesm2-tt-2sep_combined_so2.png)
 
 ## Cut off response function
 
