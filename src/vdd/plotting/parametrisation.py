@@ -14,6 +14,7 @@ import datetime
 import cftime
 import cosmoplots
 import fppanalysis
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -54,6 +55,12 @@ all_decs = (
 )
 
 
+def d2n(date: datetime.datetime) -> float:
+    """Convert a datetime to a number, using 2000-01-01 as the reference date."""
+    unit = "days since 2000-01-01"
+    return cftime.date2num(date, units=unit, calendar="noleap", has_year_zero=True)
+
+
 class ReconstructOB16:
     """Class that reconstructs the temperature of OB16 from CESM2 simulations."""
 
@@ -64,13 +71,6 @@ class ReconstructOB16:
 
     def plot_temperature(self) -> None:
         """Plot the reconstructed temperatures."""
-
-        def d2n(date: datetime.datetime) -> float:
-            unit = "days since 2000-01-01"
-            return cftime.date2num(
-                date, units=unit, calendar="noleap", has_year_zero=True
-            )
-
         xlim = (
             d2n(datetime.datetime(1250, 1, 1, 0, 0)),
             d2n(datetime.datetime(1350, 1, 1, 0, 0)),
@@ -82,42 +82,9 @@ class ReconstructOB16:
         all_zoom_a = all_zoom_f.gca()
         all_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
         all_zoom_a.set_xlim(xlim)
-        res = []
+        res: list[tuple[str, str, str]] = []
         for dec in self.decs:
-            fn = vdd.utils.clean_filename(dec.name)
-            inv_f = plt.figure()
-            inv_a = inv_f.gca()
-            inv_zoom_f = plt.figure()
-            inv_zoom_a = inv_zoom_f.gca()
-            inv_zoom_a.set_xlim(xlim)
-            response = dec.response_temp_rf
-            response_scaled = (
-                response / response.max() * self.ob16.response_temp_rf.max()
-            )
-            new_temp = np.convolve(self.ob16.rf, response, mode="same")
-            new_temp_scaled = np.convolve(self.ob16.rf, response_scaled, mode="same")
-            all_a.plot(self.ob16.temp.time, new_temp_scaled, label=dec.name)
-            all_zoom_a.plot(self.ob16.temp.time, new_temp_scaled, label=dec.name)
-            inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
-            inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
-            inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
-            inv_a.legend()
-            inv_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}.png")
-            inv_zoom_a.plot(
-                self.ob16.temp.time, self.ob16.temp, label="OB16 temperature"
-            )
-            inv_zoom_a.plot(
-                self.ob16.temp.time, new_temp_scaled, label="Scaled response"
-            )
-            inv_zoom_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
-            inv_zoom_a.legend()
-            inv_zoom_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}_zoom.png")
-            # Print the distance away from the reconstructed
-            rob16 = self.ob16.response_temp_rf
-            ob16_temp = np.convolve(self.ob16.rf, rob16, mode="same")
-            ob16_diff = np.abs(ob16_temp - new_temp).sum()
-            ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
-            res.append((dec.name, f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
+            res = self._plot_temperature_single(dec, res, (all_a, all_zoom_a))
         table = Table(
             title="Difference between reconstructed temperature from OB16 and other simulations"
         )
@@ -132,6 +99,47 @@ class ReconstructOB16:
         all_f.savefig(_SAVE_DIR / "reconstruct_from_all.png")
         all_zoom_a.legend()
         all_zoom_f.savefig(_SAVE_DIR / "reconstruct_from_all_zoom.png")
+
+    def _plot_temperature_single(
+        self,
+        dec: vdd.load.Deconvolve,
+        res: list[tuple[str, str, str]],
+        axs: tuple[mpl.axes.Axes, mpl.axes.Axes],
+    ) -> list[tuple[str, str, str]]:
+        """Plot the reconstructed temperature for a single simulation."""
+        xlim = (
+            d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+            d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+        )
+        fn = vdd.utils.clean_filename(dec.name)
+        inv_f = plt.figure()
+        inv_a = inv_f.gca()
+        inv_zoom_f = plt.figure()
+        inv_zoom_a = inv_zoom_f.gca()
+        inv_zoom_a.set_xlim(xlim)
+        response = dec.response_temp_rf
+        response_scaled = response / response.max() * self.ob16.response_temp_rf.max()
+        new_temp = np.convolve(self.ob16.rf, response, mode="same")
+        new_temp_scaled = np.convolve(self.ob16.rf, response_scaled, mode="same")
+        axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=dec.name)
+        axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=dec.name)
+        inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
+        inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
+        inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
+        inv_a.legend()
+        inv_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}.png")
+        inv_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
+        inv_zoom_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
+        inv_zoom_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
+        inv_zoom_a.legend()
+        inv_zoom_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}_zoom.png")
+        # Print the distance away from the reconstructed
+        rob16 = self.ob16.response_temp_rf
+        ob16_temp = np.convolve(self.ob16.rf, rob16, mode="same")
+        ob16_diff = np.abs(ob16_temp - new_temp).sum()
+        ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
+        res.append((dec.name, f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
+        return res
 
 
 class PlotParametrisation:
