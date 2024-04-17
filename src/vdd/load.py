@@ -1,17 +1,23 @@
 """Functions that fetches data from files and returns it as an xarray.DataArray."""
 
+import warnings
 from abc import ABC, abstractmethod, abstractproperty
 from collections.abc import Callable, Iterable
 from functools import cached_property
 from typing import Any, Literal, Self
 
 import cftime
+import cosmoplots
 import fppanalysis
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy
+import scipy.signal as ssi
 import volcano_base
 import xarray as xr
 from pydantic import BaseModel, Field
+from rich import print as rprint
 
 import vdd.utils
 
@@ -1193,3 +1199,237 @@ class CutOff:
                 arrays,
                 coords={"tau": self.dec.tau, "time": self.output.time, "iters": iters},
             )
+
+
+class TSComparison:
+    """Easily compare the statistics of two time series."""
+
+    def __init__(
+        self,
+        original: xr.DataArray,
+        reconstructed: np.ndarray,
+        peaks: np.ndarray,
+    ) -> None:
+        self.orig = original
+        self.rec = reconstructed
+        assert original.data.shape == reconstructed.shape
+        self.peaks = peaks
+
+    def _find_peaks(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute the peaks of the time series."""
+        _idx = np.argwhere(self.peaks.data > 0)
+        peak_times = self.orig.time.data[_idx].flatten()
+        peaks_ts1 = self.orig.data[_idx].flatten()
+        peaks_ts2 = self.rec[_idx].flatten()
+        return peak_times, peaks_ts1, peaks_ts2
+
+    @cached_property
+    def _peaks_tup(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute the peaks of the residual of the SO2."""
+        return self._find_peaks()
+
+    @property
+    def peaks_orig(self) -> np.ndarray:
+        """Peaks of the temperature from SO2.
+
+        Returns
+        -------
+        np.ndarray
+            Peaks of the temperature from SO2.
+        """
+        return self._peaks_tup[1]
+
+    @property
+    def peaks_rec(self) -> np.ndarray:
+        """Peaks of the temperature from radiative forcing.
+
+        Returns
+        -------
+        np.ndarray
+            Peaks of the temperature from radiative forcing.
+        """
+        return self._peaks_tup[2]
+
+    @cached_property
+    def residual(self) -> np.ndarray:
+        """Compute the residual of the SO2.
+
+        Returns
+        -------
+        np.ndarray
+            Residual of the SO2.
+        """
+        return self.orig.data - self.rec
+
+    def correlation(self) -> None:
+        """Compute the correlation between the residuals and temperature."""
+        corr_time, corr = fppanalysis.corr_fun(self.residual, self.orig.data, 1 / 12)
+        # corr_ts2_time, corr_ts2 = fppanalysis.corr_fun(
+        #     self.residual, self.rec, 1 / 12
+        # )
+        plt.figure()
+        plt.plot(corr_time, corr, label="Residual / TS1", alpha=0.7)
+        # plt.plot(corr_ts2_time, corr_ts2, label="Residual / TS2", alpha=0.7)
+        plt.xlabel("Time lag ($\\tau$) [yr]")
+        plt.ylabel("Correlation between residual \nand original temperature")
+        plt.legend()
+        # plt.savefig(
+        #     _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.png"
+        # )
+
+    @staticmethod
+    def _spectrum_1d(signal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Calculate the one sided spectrum of the signal.
+
+        Parameters
+        ----------
+        signal : np.ndarray
+            Signal to calculate the spectrum of.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Frequency and power of the signal.
+        """
+        signal = (signal - signal.mean()) / signal.std()
+        sample_frequency = 12
+        frequency, power = ssi.welch(
+            signal, sample_frequency, nperseg=2**11, return_onesided=False
+        )
+        frequency_plus = frequency[frequency > 0]
+        power_plus = power[frequency > 0]
+        return np.asarray(frequency_plus[1:]), np.asarray(power_plus[1:])
+
+    def spectrum(self) -> None:
+        """Compare the spectrum of the residuals and the control temperature."""
+        f_res, p_res = self._spectrum_1d(self.residual)
+        f_orig, p_orig = self._spectrum_1d(self.orig.data)
+        f_rec, p_rec = self._spectrum_1d(self.rec)
+        plt.figure()
+        plt.plot(f_res, p_res, label="Residual", alpha=0.5)
+        plt.plot(f_orig, p_orig, label="Original", alpha=0.5)
+        plt.plot(f_rec, p_rec, label="Reconstructed", alpha=0.5)
+        # Suppress the warning
+        warnings.filterwarnings("ignore")
+        cosmoplots.change_log_axis_base(plt.gca(), "both")
+        warnings.resetwarnings()
+        plt.xlabel("Frequency")
+        plt.ylabel("Power spectral density")
+        plt.legend()
+        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.png")
+
+    @staticmethod
+    def _peak_difference_ttest(basis: np.ndarray) -> str:
+        # Specify the value to test for symmetry
+        test_value = 0
+        # Perform a one-sample t-test to check for symmetry around the test value
+        result = scipy.stats.ttest_1samp(basis, popmean=test_value)
+        t_statistic, p_value = result.statistic, result.pvalue
+
+        def info(name, p_value) -> None:
+            rprint(
+                f"[blue][bold]{name}[/bold]: I can with [/blue][red]"
+                f"{(1 - p_value) * 100:.4f}% confidence[/red][blue] say that the "
+                f"distribution does not have a mean of {test_value}[/blue]"
+            )
+
+        # Check if the p-value is less than a significance level (e.g., 0.05) to
+        # determine symmetry (meaning a confidence level of 95%)
+        sl = 0.01
+        reject = f"The distribution does not have a mean of {test_value} (confidence of {int((1 - sl) * 100)}%)"
+        reject_no = f"I cannot with at least {int((1 - sl) * 100)}% confidence say that the distribution does not have a mean of {test_value}"
+        if p_value < sl:
+            print(reject)
+        else:
+            print(reject_no)
+        print(t_statistic, p_value)
+        info("Reconstructed", p_value)
+        return p_value
+
+    def peak_difference_analysis(self) -> None:  # noqa:PLR0914
+        """Plot the difference between the reconstructed and the original peaks."""
+        basis = self.peaks_orig.data - self.peaks_rec
+        ttest_res = self._peak_difference_ttest(basis)
+        pdf, cdf, bin_centers = fppanalysis.distribution(basis, 30, ccdf=False)
+        stats = scipy.stats.describe(basis)
+        fit = scipy.stats.norm.fit(basis)
+        dist = scipy.stats.skewnorm(
+            a=stats.skewness, loc=stats.mean, scale=np.sqrt(stats.variance)
+        )
+        self._peak_difference_plot(
+            (bin_centers, pdf),
+            (fit, dist),
+            "pdf",
+            txt=ttest_res,
+        )
+        self._peak_difference_plot(
+            (bin_centers, cdf),
+            (fit, dist),
+            "cdf",
+            txt=ttest_res,
+        )
+
+    @staticmethod
+    def _peak_difference_plot(
+        dist_data: tuple[np.ndarray, np.ndarray],
+        fits: tuple[np.ndarray, np.ndarray],
+        dist: Literal["pdf", "cdf"],
+        txt: str,
+    ) -> None:
+        norm_fit, skewnorm_fit = fits
+        prop_cycle = plt.rcParams["axes.prop_cycle"]
+        colors = prop_cycle.by_key()["color"]
+        norm_so2 = getattr(scipy.stats.norm, dist)(dist_data[0], *norm_fit)
+        skewnorm_so2 = getattr(skewnorm_fit, dist)(dist_data[0])
+        plt.figure()
+        ax = plt.gca()
+        ax.bar(
+            dist_data[0],
+            dist_data[1],
+            width=0.01,
+            label=f"SO2 (p-value: {txt:.4f})",
+            alpha=0.5,
+        )
+        bar_hand, bar_lab = ax.get_legend_handles_labels()
+        # Norm
+        (norm,) = ax.plot(
+            dist_data[0], norm_so2, c=colors[0], label="_Norm SO2", alpha=0.5
+        )
+        # Skewnorm
+        (skewnorm,) = plt.plot(
+            dist_data[0],
+            skewnorm_so2,
+            "--",
+            c=colors[0],
+            label="_Skewnorm SO2",
+            alpha=0.5,
+        )
+        bar_legend = ax.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
+        norm_loc = "center left" if dist == "cdf" else "upper right"
+        norm_legend = ax.legend(
+            [norm, skewnorm], ["Norm", "Skewnorm"], loc=norm_loc, framealpha=0.5
+        )
+        norm_legend.legend_handles[0].set_color("black")  # type: ignore
+        norm_legend.legend_handles[1].set_color("black")  # type: ignore
+        ax.add_artist(bar_legend)
+        ax.add_artist(norm_legend)
+        # Make the plot symmetric around 0
+        xlim = np.abs(plt.gca().get_xlim()).max()
+        plt.xlim((-xlim, xlim))
+        plt.ylabel(dist.upper())
+        plt.xlabel("Difference between the peaks")
+        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.png")
+
+    def plot_reconstructions(self, fig: mpl.figure.Figure | None = None) -> None:
+        """Plot the reconstruction of the data."""
+        if fig is None:
+            fig = plt.figure()
+        ax = fig.gca()
+        ax.set_xlabel("Time [yr]")
+        ax.set_ylabel("Absolute")
+        time_ = self.orig.time
+        ax.plot(time_, self.orig.data, label="Original")
+        ax.plot(time_, self.rec, label="Reconstriction")
+        # ax.set_xlim((-790 * 365, -650 * 365))
+        ax.legend(framealpha=0.5)
+        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.png")
