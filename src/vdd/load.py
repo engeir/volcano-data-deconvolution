@@ -993,15 +993,11 @@ class DeconvolveOB16(Deconvolve):
                 self.data = data
             case _:
                 raise ValueError(f"Invalid data: {data}")
+        self._start_pt = 0
         if length:
-            start_pt = 0
-            length = length if length - start_pt % 2 else length + 1
-            self.so2 = self.so2[start_pt:length]
-            self.so2_decay = self.so2_decay[start_pt:length]
-            self.rf = self.rf[start_pt:length]
-            self.rf_control = self.rf_control[start_pt:length]
-            self.temp = self.temp[start_pt:length]
-            self.temp_control = self.temp_control[start_pt:length]
+            self._end_pt = length if length - self._start_pt % 2 else length + 1
+        else:
+            self._end_pt = -1
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
@@ -1021,12 +1017,15 @@ class DeconvolveOB16(Deconvolve):
     @cached_property
     def so2(self) -> xr.DataArray:
         """SO2 time series data."""
-        return self.data.aligned_arrays["so2-start"]
+        return self.data.aligned_arrays["so2-start"][self._start_pt : self._end_pt]
 
     @cached_property
     def so2_decay(self) -> xr.DataArray:
         """SO2 time series data."""
-        return self.data.aligned_arrays["so2-decay-start"] / 510e3
+        return (
+            self.data.aligned_arrays["so2-decay-start"][self._start_pt : self._end_pt]
+            / 510e3
+        )
 
     @cached_property
     def tau(self) -> np.ndarray:
@@ -1040,22 +1039,24 @@ class DeconvolveOB16(Deconvolve):
     @cached_property
     def rf(self) -> xr.DataArray:
         """Radiative forcing time series data."""
-        return self.data.aligned_arrays["rf"]
+        return self.data.aligned_arrays["rf"][self._start_pt : self._end_pt]
 
     @cached_property
     def rf_control(self) -> xr.DataArray:
         """RF time series data."""
-        return xr.align(self.data.rf_control, self.rf)[0]
+        return xr.align(self.data.rf_control, self.rf)[0][self._start_pt : self._end_pt]
 
     @cached_property
     def temp(self) -> xr.DataArray:
         """Temperature time series data."""
-        return self.data.aligned_arrays["temperature"]
+        return self.data.aligned_arrays["temperature"][self._start_pt : self._end_pt]
 
     @cached_property
     def temp_control(self) -> xr.DataArray:
         """Temperature time series data."""
-        return xr.align(self.data.temperature_control, self.temp)[0]
+        return xr.align(self.data.temperature_control, self.temp)[0][
+            self._start_pt : self._end_pt
+        ]
 
 
 class CutOff:
