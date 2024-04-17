@@ -30,7 +30,7 @@ dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
 dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 # Original
 dec_ob16 = vdd.load.DeconvolveOB16(data="h1")
-dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
+dec_ob16_month = vdd.load.DeconvolveOB16(data="h0", length=int(12 * 1000) + 1)
 # Experimental (needs vdd.deconvolve_methods.alternative_deconv)
 # ob16_day = volcano_base.load.OttoBliesner(freq="h1", progress=True)
 # dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_day)
@@ -89,6 +89,29 @@ class PlotResponseFunctions:
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
 
+    def plot_rf_so2_decay(
+        self, fig: mpl.figure.Figure | None = None
+    ) -> mpl.figure.Figure:
+        """Plot the radiative forcing to SO2 decay response functions."""
+        match fig:
+            case None:
+                return plt.figure()
+            case mpl.figure.Figure():
+                ax = fig.gca()
+                rf_xlim = (-2, 10)
+                ax.set_xlim(rf_xlim)
+                ax.set_xlabel("Time lag ($\\tau$) [yr]")
+                ax.set_ylabel(
+                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 burden response [1]"
+                )
+                ax.legend()
+                fig.savefig(
+                    _SAVE_DIR / f"rf-so2_decay-{"norm" if self.norm else "abs"}.png"
+                )
+                return fig
+            case _:
+                raise ValueError("rf must be a mpl.figure.Figure or None")
+
     def plot_temp_so2(self, fig: mpl.figure.Figure | None = None) -> mpl.figure.Figure:
         """Plot the temperature to SO2 response functions."""
         match fig:
@@ -132,9 +155,11 @@ class PlotResponseFunctions:
     def run(self) -> None:
         """Run the class."""
         rf_so2 = self.plot_rf_so2()
+        rf_so2_decay = self.plot_rf_so2_decay()
         temp_so2 = self.plot_temp_so2()
         temp_rf = self.plot_temp_rf()
         rf_so2_a = rf_so2.gca()
+        rf_so2_decay_a = rf_so2_decay.gca()
         temp_so2_a = temp_so2.gca()
         temp_rf_a = temp_rf.gca()
         # so2s = {
@@ -155,6 +180,14 @@ class PlotResponseFunctions:
                 if self.norm
                 else dec.response_rf_so2
             )
+            rf_so2_decay_resp = (
+                vdd.utils.normalise(dec.response_rf_so2_decay)
+                # dec.response_rf_so2 / np.log(1+(400 / so2s[dec.name]))
+                # dec.response_rf_so2 / (400 / so2s[dec.name])**(1/1.5)
+                # dec.response_rf_so2 / (400 / so2s[dec.name])**(1/2)
+                if self.norm
+                else dec.response_rf_so2_decay
+            )
             temp_so2_resp = (
                 vdd.utils.normalise(dec.response_temp_so2)
                 # dec.response_rf_so2 / np.log(1+(400 / so2s[dec.name]))
@@ -169,18 +202,21 @@ class PlotResponseFunctions:
                 else dec.response_temp_rf
             )
             rf_so2_a.plot(dec.tau, rf_so2_resp, label=ns(dec.name))
+            rf_so2_decay_a.plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))
             temp_so2_a.plot(dec.tau, temp_so2_resp, label=ns(dec.name))
             temp_rf_a.plot(dec.tau, temp_rf_resp, label=ns(dec.name))
         self.plot_rf_so2(rf_so2)
+        self.plot_rf_so2_decay(rf_so2_decay)
         self.plot_temp_so2(temp_so2)
         self.plot_temp_rf(temp_rf)
 
 
-if __name__ == "__main__":
+def _main() -> None:
     PlotResponseFunctions(*all_decs, norm=True).run()
     PlotResponseFunctions(*all_decs, norm=False).run()
     files = (
         [_SAVE_DIR / f"rf-so2-{k}.png" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"rf-so2_decay-{k}.png" for k in ["abs", "norm"]],
         [_SAVE_DIR / f"temp-so2-{k}.png" for k in ["abs", "norm"]],
         [_SAVE_DIR / f"temp-rf-{k}.png" for k in ["abs", "norm"]],
     )
@@ -191,3 +227,7 @@ if __name__ == "__main__":
         for f in file:
             f.unlink()
     plt.show()
+
+
+if __name__ == "__main__":
+    _main()
