@@ -7,15 +7,17 @@ import volcano_base
 
 import vdd.load
 import vdd.utils
+from vdd.utils import name_swap as ns
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "deconv_ob16_cesm2"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
-plt.style.use(
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
-)
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.extra",
+    {"text.latex.preamble": r"\usepackage{amsmath}"},
+])
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
@@ -166,9 +168,9 @@ class PlotResponseFunctions:
                 if self.norm
                 else dec.response_temp_rf
             )
-            rf_so2_a.plot(dec.tau, rf_so2_resp, label=dec.name)
-            temp_so2_a.plot(dec.tau, temp_so2_resp, label=dec.name)
-            temp_rf_a.plot(dec.tau, temp_rf_resp, label=dec.name)
+            rf_so2_a.plot(dec.tau, rf_so2_resp, label=ns(dec.name))
+            temp_so2_a.plot(dec.tau, temp_so2_resp, label=ns(dec.name))
+            temp_rf_a.plot(dec.tau, temp_rf_resp, label=ns(dec.name))
         self.plot_rf_so2(rf_so2)
         self.plot_temp_so2(temp_so2)
         self.plot_temp_rf(temp_rf)
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     )
     for file in files:
         cosmoplots.combine(*file).in_grid(2, 1).using(fontsize=50).save(
-            _SAVE_DIR / file[0].name.replace("-abs", "")
+            _SAVE_DIR / ns(file[0].name.replace("-abs", ""))
         )
         for f in file:
             f.unlink()

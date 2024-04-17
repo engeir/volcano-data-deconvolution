@@ -9,6 +9,53 @@ import volcano_base
 import xarray as xr
 
 
+def name_translator(name: re.Match) -> str:
+    """Translate the first match group from the old naming convention to the new one."""
+    match name.group(0):
+        case "strong":
+            return "strong"
+        case "medium":
+            return "small"
+        case "medium-plus":
+            return "intermediate"
+        case "size5000":
+            return "extreme"
+        case "tt-2sep":
+            return "tt-2sep"
+        case "double-overlap":
+            return "tt-4sep"
+        case _:
+            raise ValueError(f"Unknown name: {name}")
+
+
+@overload
+def name_swap(name: pathlib.Path) -> pathlib.Path: ...
+
+
+@overload
+def name_swap(name: str) -> str: ...
+
+
+def name_swap(name: str | pathlib.Path) -> str | pathlib.Path:
+    """Replace any occurrence of the old name with the new name."""
+    regex = r"strong|medium-plus|medium|size5000|tt-2sep|double-overlap"
+    match name:
+        case str():
+            return re.sub(
+                regex,
+                name_translator,
+                name,
+            )
+        case pathlib.Path():
+            return pathlib.Path(
+                re.sub(
+                    regex,
+                    name_translator,
+                    str(name),
+                )
+            )
+
+
 def never_called(value: Never) -> NoReturn:
     """Raise an error if a value is passed to a function that should never be called."""
     # The function is useful when running mypy. If, in a series of if/elif or

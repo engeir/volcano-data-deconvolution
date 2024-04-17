@@ -14,6 +14,7 @@ import xarray as xr
 from scipy.optimize import curve_fit
 
 import vdd.load
+from vdd.utils import name_swap as nsw
 
 # TODO:
 # - Create a plot where all simulations uses the parameters of a given simulation. It
@@ -125,10 +126,10 @@ class NumericalSolver:
         self.delta_pulses = dec.so2.dropna("time").data
         match dec:
             case vdd.load.DeconvolveOB16():
-                self.type_ = vdd.utils.clean_filename(f"ob16 {dec.name}")
+                self.type_ = nsw(vdd.utils.clean_filename(f"ob16 {dec.name}"))
                 self._setup_ob16(dec)
             case vdd.load.DeconvolveCESM():
-                self.type_ = vdd.utils.clean_filename(f"cesm {dec.name}")
+                self.type_ = nsw(vdd.utils.clean_filename(f"cesm {dec.name}"))
                 self._setup_cesm(dec)
             case _:
                 raise ValueError("Invalid input.")
@@ -720,7 +721,7 @@ def _scatterplot_comparison() -> None:
         aod.append(dec.aod)
         rf.append(dec.rf)
         temp.append(dec.temp)
-        labels.append(dec.name)
+        labels.append(nsw(dec.name))
     PlotRelationship((aod, rf, labels), (aod, temp, labels), (rf, temp, labels)).plot()
 
 

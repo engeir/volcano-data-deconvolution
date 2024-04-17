@@ -23,11 +23,13 @@ from rich.console import Console
 from rich.table import Table
 
 import vdd.load
+from vdd.utils import name_swap as ns
 
-plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
-plt.style.use(
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
-)
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.extra",
+    {"text.latex.preamble": r"\usepackage{amsmath}"},
+])
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "parametrisation"
 if not _SAVE_DIR.exists():
@@ -111,7 +113,7 @@ class ReconstructOB16:
             d2n(datetime.datetime(1250, 1, 1, 0, 0)),
             d2n(datetime.datetime(1350, 1, 1, 0, 0)),
         )
-        fn = vdd.utils.clean_filename(dec.name)
+        fn = ns(vdd.utils.clean_filename(dec.name))
         inv_f = plt.figure()
         inv_a = inv_f.gca()
         inv_zoom_f = plt.figure()
@@ -121,8 +123,8 @@ class ReconstructOB16:
         response_scaled = response / response.max() * self.ob16.response_temp_rf.max()
         new_temp = np.convolve(self.ob16.rf, response, mode="same")
         new_temp_scaled = np.convolve(self.ob16.rf, response_scaled, mode="same")
-        axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=dec.name)
-        axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=dec.name)
+        axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
+        axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
         inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
         inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
         inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
@@ -138,7 +140,7 @@ class ReconstructOB16:
         ob16_temp = np.convolve(self.ob16.rf, rob16, mode="same")
         ob16_diff = np.abs(ob16_temp - new_temp).sum()
         ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
-        res.append((dec.name, f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
+        res.append((ns(dec.name), f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
         return res
 
 
@@ -217,7 +219,7 @@ class PlotParametrisation:
                 },
                 coords={"tau": dec.tau},
             )
-            self.results[dec.name] = dataset
+            self.results[ns(dec.name)] = dataset
 
     def plot_simulations(self) -> None:
         """Plot the responses and their means from each simulation."""
@@ -232,7 +234,7 @@ class PlotParametrisation:
                 ind_a.plot(v.tau, v, label=v.attrs["label"], ls=v.attrs["ls"])
             ind_a.legend()
             ind.savefig(
-                _SAVE_DIR / f"parametrisation_{vdd.utils.clean_filename(key)}.png"
+                _SAVE_DIR / ns(f"parametrisation_{vdd.utils.clean_filename(key)}.png")
             )
             # Ensemble plot
             mean = np.mean([v for v in value.data_vars.values()], axis=0)
@@ -287,7 +289,7 @@ def _plot_response_functions() -> None:
     plt.show()
     # Combine the response functions I'm interested in
     cosmoplots.combine(*[
-        _SAVE_DIR / f"parametrisation_{file}.png"
+        _SAVE_DIR / f"parametrisation_{ns(file)}.png"
         for file in [
             "ob16-month",
             "cesm2-medium-plus",

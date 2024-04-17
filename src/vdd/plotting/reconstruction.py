@@ -125,7 +125,9 @@ class PlotReconstruction:
         dec_ob16.name = "OB16 month"
         self.dec_ob16 = dec_ob16
         self.reconstruction = reconstruction
-        self.sim_name = vdd.utils.clean_filename(reconstruction.name)
+        self.sim_name = vdd.utils.name_swap(
+            vdd.utils.clean_filename(reconstruction.name)
+        )
 
     @cached_property
     def temp_control(self) -> xr.DataArray:

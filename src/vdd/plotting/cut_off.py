@@ -76,7 +76,7 @@ class PlotCutOff:
             f1: pathlib.Path = files[0]
             cosmoplots.combine(*files).in_grid(2, len(files) // 2).using(
                 fontsize=50
-            ).save(f1.parent / f"{f1.name[:-7]}combined.png")
+            ).save(f1.parent / f"{vdd.utils.name_swap(f1.name[:-7])}combined.png")
             if remove_grid_parts:
                 for f in files:
                     f.unlink()
@@ -117,8 +117,10 @@ class PlotCutOff:
                 case _:
                     pass
             num = "0" * (3 - len(k)) + k
-            name = vdd.utils.clean_filename(co.dec.name)
-            ts = vdd.utils.clean_filename("-".join(co.ts_specifier))
+            name = vdd.utils.name_swap(vdd.utils.clean_filename(co.dec.name))
+            ts = vdd.utils.name_swap(
+                vdd.utils.clean_filename("-".join(co.ts_specifier))
+            )
             resp_name = _SAVE_DIR / f"{name}_resp_{ts}_{num}.png"
             resp_f.savefig(resp_name)
             temp_name = _SAVE_DIR / f"{name}_temp_{ts}_{num}.png"
