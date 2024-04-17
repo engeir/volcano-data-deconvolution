@@ -363,6 +363,28 @@ class PlotReconstruction:
         plt.legend()
         plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.png")
 
+    def spectrum_parts(self) -> None:
+        """View the spectrum of the response functions and the input data."""
+        f_so2, p_so2 = self._spectrum_1d(self.reconstruction.response_temp_so2)
+        f_rf, p_rf = self._spectrum_1d(self.reconstruction.response_temp_rf)
+        f_control, p_control = self._spectrum_1d(self.temp_control.data)
+        f_orig_so2, p_orig_so2 = self._spectrum_1d(self.dec_ob16.so2.data)
+        f_orig_rf, p_orig_rf = self._spectrum_1d(self.dec_ob16.rf.data)
+        plt.figure()
+        plt.plot(f_so2, p_so2, label="$\\phi_{SO2}$", alpha=0.5)
+        plt.plot(f_rf, p_rf, label="$\\phi_{RF}$", alpha=0.5)
+        plt.plot(f_control, p_control, label="Control", alpha=0.5)
+        plt.plot(f_orig_so2, p_orig_so2, label="SO2", alpha=0.5)
+        plt.plot(f_orig_rf, p_orig_rf, label="RF", alpha=0.5)
+        # Suppress the warning
+        warnings.filterwarnings("ignore")
+        cosmoplots.change_log_axis_base(plt.gca(), "both")
+        warnings.resetwarnings()
+        plt.xlabel("Frequency")
+        plt.ylabel("Power spectral density")
+        plt.legend()
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.png")
+
     @staticmethod
     def _peak_difference_ttest(
         so2_basis: np.ndarray, rf_basis: np.ndarray
@@ -497,6 +519,7 @@ class PlotManyReconstructions:
             rec_class.peak_difference_analysis()
             rec_class.correlation()
             rec_class.spectrum()
+            rec_class.spectrum_parts()
             plt.close("all")
 
 
