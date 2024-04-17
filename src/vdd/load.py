@@ -18,6 +18,9 @@ import vdd.utils
 type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
 type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
 type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
+type T_Strengths = Literal[  # type: ignore
+    "strong", "medium", "medium-plus", "size5000", "tt-2sep", "double-overlap"
+]
 
 
 def _convert_time_start_zero(arr: xr.DataArray) -> xr.DataArray:
@@ -80,12 +83,7 @@ class CESMData(BaseModel):
         The strength of the eruption, by default "strong".
     """
 
-    strength: Literal[
-        "strong", "medium", "medium-plus", "size5000", "tt-2sep", "double-overlap"
-    ] = Field(
-        default="strong",
-        frozen=True,
-    )
+    strength: T_Strengths = Field(default="strong", frozen=True)
 
     class Config:
         """Configuration for the CESMData BaseModel object."""
@@ -206,6 +204,7 @@ class CESMData(BaseModel):
         """Initialise the data, ensuring that it is loaded and aligned."""
         _ = (
             self.so2,
+            self.tmso2,
             self.aod,
             self.rf,
             self.temp,
@@ -479,12 +478,14 @@ class Deconvolve(metaclass=_PostInitCaller):
     name: str = "Deconvolve"
 
     def __init__(self, normalise: bool = False) -> None:
-        kwargs = {"iteration_list": 200}
+        def _deconv(signal, forcing) -> tuple[np.ndarray, np.ndarray]:
+            guess = np.heaviside(np.arange(len(signal)) - len(signal) // 2, 1)
+            kwargs = {"initial_guess": guess, "iteration_list": 1000}
+            return fppanalysis.RL_gauss_deconvolve(signal, forcing, **kwargs)
+
         self._deconv_method: Callable[
             [np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]
-        ] = lambda signal, forcing: fppanalysis.RL_gauss_deconvolve(
-            signal, forcing, **kwargs
-        )
+        ] = _deconv
         self.normalise = normalise
 
     def __post_init__(self) -> None:
@@ -502,6 +503,11 @@ class Deconvolve(metaclass=_PostInitCaller):
 
     @abstractproperty
     def so2(self) -> xr.DataArray:
+        """SO2 time series data."""
+        raise NotImplementedError
+
+    @abstractproperty
+    def so2_decay(self) -> xr.DataArray:
         """SO2 time series data."""
         raise NotImplementedError
 
@@ -550,6 +556,23 @@ class Deconvolve(metaclass=_PostInitCaller):
             signal and forcing.
         **kwargs : Any
             The keyword arguments to pass to the method, if any.
+
+        Examples
+        --------
+        The default deconvolution method could be re-set as follows:
+        >>> def default_deconv(signal, forcing) -> tuple[np.ndarray, np.ndarray]:
+        ...     guess = np.heaviside(np.arange(len(signal)) - len(signal) // 2, 1)
+        ...     kwargs = {"initial_guess": guess, "iteration_list": 1000}
+        ...     return fppanalysis.RL_gauss_deconvolve(signal, forcing, **kwargs)
+        >>> dec = vdd.load.Deconvolve()
+        >>> dec.change_deconvolution_method(default_deconv)
+
+        Or if the heaviside function is not needed, one could use the following:
+        >>> kwargs = {"iteration_list": 1000}
+        >>> dec.change_deconvolution_method(fppanalysis.RL_gauss_deconvolve, **kwargs)
+
+        Or even
+        >>> dec.change_deconvolution_method(fppanalysis.RL_gauss_deconvolve, iteration_list=1000)
         """
 
         def method_(
@@ -570,7 +593,7 @@ class Deconvolve(metaclass=_PostInitCaller):
 
     @property
     def response_rf_so2(self) -> np.ndarray:
-        """Deconvolve the RF signal with the SO2 signal.
+        """Deconvolve the RF signal with the SO2 delta signal.
 
         Returns
         -------
@@ -580,7 +603,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_rf_so2_tup[0].flatten()
 
     @property
-    def response_rf_so2_err(self) -> np.ndarray:
+    def _response_rf_so2_err(self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 signal."""
         return self._response_rf_so2_tup[1]
 
@@ -605,9 +628,59 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_so2_tup[0].flatten()
 
     @property
-    def response_temp_so2_err(self) -> np.ndarray:
+    def _response_temp_so2_err(self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 signal."""
         return self._response_temp_so2_tup[1]
+
+    @cached_property
+    def _response_rf_so2_decay_tup(self) -> tuple[np.ndarray, np.ndarray]:
+        """Deconvolve the RF signal with the SO2 decay signal."""
+        signal, err = self._deconv_method(self.rf.data, self.so2_decay.data)
+        if self.normalise:
+            # signal = vdd.utils.normalise(signal)
+            signal = (signal - signal.mean()) / signal.std()
+        return signal, err
+
+    @property
+    def response_rf_so2_decay(self) -> np.ndarray:
+        """Deconvolve the RF signal with the SO2 decay signal.
+
+        Returns
+        -------
+        np.ndarray
+            The deconvolved RF to SO2 signal.
+        """
+        return self._response_rf_so2_decay_tup[0].flatten()
+
+    @property
+    def _response_rf_so2_decay_err(self) -> np.ndarray:
+        """Deconvolve the RF signal with the SO2 decay signal."""
+        return self._response_rf_so2_decay_tup[1]
+
+    @cached_property
+    def _response_temp_so2_decay_tup(self) -> tuple[np.ndarray, np.ndarray]:
+        """Deconvolve the temperature signal with the SO2 decay signal."""
+        signal, err = self._deconv_method(self.temp.data, self.so2_decay.data)
+        if self.normalise:
+            # signal = vdd.utils.normalise(signal)
+            signal = (signal - signal.mean()) / signal.std()
+        return signal, err
+
+    @property
+    def response_temp_so2_decay(self) -> np.ndarray:
+        """Deconvolve the temperature signal with the SO2 decay signal.
+
+        Returns
+        -------
+        np.ndarray
+            The deconvolved temperature to SO2 decay signal.
+        """
+        return self._response_temp_so2_decay_tup[0].flatten()
+
+    @property
+    def _response_temp_so2_decay_err(self) -> np.ndarray:
+        """Deconvolve the temperature signal with the SO2 decay signal."""
+        return self._response_temp_so2_decay_tup[1]
 
     @cached_property
     def _response_temp_rf_tup(self) -> tuple[np.ndarray, np.ndarray]:
@@ -630,7 +703,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_rf_tup[0].flatten()
 
     @property
-    def response_temp_rf_err(self) -> np.ndarray:
+    def _response_temp_rf_err(self) -> np.ndarray:
         """Deconvolve the temperature signal with the RF signal."""
         return self._response_temp_rf_tup[1]
 
@@ -643,7 +716,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.plot(self.tau, self.response_rf_so2)
         plt.figure()
-        plt.semilogy(self.response_rf_so2_err)
+        plt.semilogy(self._response_rf_so2_err)
 
     def plot_dec_temp_with_so2(self) -> None:
         """Deconvolve the temperature signal with the SO2 signal."""
@@ -654,7 +727,18 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.plot(self.tau, self.response_temp_so2)
         plt.figure()
-        plt.semilogy(self.response_temp_so2_err)
+        plt.semilogy(self._response_temp_so2_err)
+
+    def plot_dec_temp_with_rf(self) -> None:
+        """Deconvolve the temperature signal with the SO2 signal."""
+        # Quick comparison
+        plt.figure()
+        vdd.utils.normalise(self.temp).plot()
+        vdd.utils.normalise(self.rf).plot()
+        plt.figure()
+        plt.plot(self.tau, self.response_temp_rf)
+        plt.figure()
+        plt.semilogy(self._response_temp_rf_err)
 
 
 class DeconvolveCESM(Deconvolve):
@@ -707,6 +791,16 @@ class DeconvolveCESM(Deconvolve):
             vdd.utils.pad_before_convolution(self._data.so2)
             if self.pad_before
             else self._data.so2
+        )
+
+    @cached_property
+    def so2_decay(self) -> xr.DataArray:
+        """SO2 time series data."""
+        self._data.initialise_data()
+        return (
+            vdd.utils.pad_before_convolution(self._data.tmso2)
+            if self.pad_before
+            else self._data.tmso2
         )
 
     @cached_property
@@ -802,7 +896,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_aod_so2_tup[0].flatten()
 
     @property
-    def response_aod_so2_err(self) -> np.ndarray:
+    def _response_aod_so2_err(self) -> np.ndarray:
         """Deconvolve the AOD signal with the SO2 signal."""
         return self._response_aod_so2_tup[1]
 
@@ -827,7 +921,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_rf_aod_tup[0].flatten()
 
     @property
-    def response_rf_aod_err(self) -> np.ndarray:
+    def _response_rf_aod_err(self) -> np.ndarray:
         """Deconvolve the RF signal with the AOD signal."""
         return self._response_rf_aod_tup[1]
 
@@ -852,7 +946,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_temp_aod_tup[0].flatten()
 
     @property
-    def response_temp_aod_err(self) -> np.ndarray:
+    def _response_temp_aod_err(self) -> np.ndarray:
         """Deconvolve the temperature signal with the AOD signal."""
         return self._response_temp_aod_tup[1]
 
@@ -866,6 +960,10 @@ class DeconvolveOB16(Deconvolve):
         The OB16 data class to use. If not given, the h1 (daily) data will be loaded.
     normalise : bool, optional
         Whether to normalise the data, by default False.
+    length : int, optional
+        After 1850, the SO2 dataset mismatches with the simulation output. This
+        parameter specifies how many items should be included in all the arrays. Default
+        is 0, which means all the data will be included.
 
     Raises
     ------
@@ -877,6 +975,7 @@ class DeconvolveOB16(Deconvolve):
         self,
         data: volcano_base.load.OttoBliesner | Literal["h0", "h1"] = "h1",
         normalise: bool = False,
+        length: int = 0,
     ) -> None:
         super().__init__(normalise)
         match data:
@@ -888,10 +987,23 @@ class DeconvolveOB16(Deconvolve):
                 self.data = data
             case _:
                 raise ValueError(f"Invalid data: {data}")
+        if length:
+            start_pt = 0
+            length = length if length - start_pt % 2 else length + 1
+            self.so2 = self.so2[start_pt:length]
+            self.so2_decay = self.so2_decay[start_pt:length]
+            self.rf = self.rf[start_pt:length]
+            self.rf_control = self.rf_control[start_pt:length]
+            self.temp = self.temp[start_pt:length]
+            self.temp_control = self.temp_control[start_pt:length]
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
+        self.so2_decay = (self.so2_decay - self.so2_decay.mean()) / self.so2_decay.std()
         self.rf = (self.rf - self.rf.mean()) / self.rf.std()
+        self.rf_control = (
+            self.rf_control - self.rf_control.mean()
+        ) / self.rf_control.std()
         self.temp = (self.temp - self.temp.mean()) / self.temp.std()
         self.temp_control = (
             self.temp_control - self.temp_control.mean()
@@ -904,6 +1016,11 @@ class DeconvolveOB16(Deconvolve):
     def so2(self) -> xr.DataArray:
         """SO2 time series data."""
         return self.data.aligned_arrays["so2-start"]
+
+    @cached_property
+    def so2_decay(self) -> xr.DataArray:
+        """SO2 time series data."""
+        return self.data.aligned_arrays["so2-decay-start"] / 510e3
 
     @cached_property
     def tau(self) -> np.ndarray:
