@@ -87,9 +87,13 @@ class CESMData(BaseModel):
     ----------
     strength : Literal["strong", "medium", "medium-plus", "size5000", "tt-2sep", "double-overlap"], optional
         The strength of the eruption, by default "strong".
+    dims : list[str], optional
+        The dimensions of the data to average over, by default ["lat", "lon"]. An empty
+        list keeps all dimensions.
     """
 
     strength: T_Strengths = Field(default="strong", frozen=True)
+    dims: list[str] = Field(default=["lat", "lon"], frozen=True)
 
     class Config:
         """Configuration for the CESMData BaseModel object."""
@@ -240,7 +244,7 @@ class CESMData(BaseModel):
         )
         files = data.load()
         shift = 35 if self.strength == "double-overlap" else None
-        files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
+        files = volcano_base.manipulate.mean_flatten(files, dims=self.dims)
         files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
         files = volcano_base.manipulate.subtract_mean_of_tail(files)
@@ -269,7 +273,7 @@ class CESMData(BaseModel):
         )
         files = data.load()
         shift = 35 if self.strength == "double-overlap" else None
-        files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
+        files = volcano_base.manipulate.mean_flatten(files, dims=self.dims)
         files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
         files = volcano_base.manipulate.subtract_mean_of_tail(files)
@@ -324,10 +328,10 @@ class CESMData(BaseModel):
             case _:
                 raise ValueError("Data not found.")
         c_fsnt_xr, c_flnt_xr = volcano_base.manipulate.mean_flatten(
-            [c_fsnt_xr, c_flnt_xr], dims=["lat", "lon"]
+            [c_fsnt_xr, c_flnt_xr], dims=self.dims
         )
-        fsnt_xr = volcano_base.manipulate.mean_flatten(fsnt_xr, dims=["lat", "lon"])
-        flnt_xr = volcano_base.manipulate.mean_flatten(flnt_xr, dims=["lat", "lon"])
+        fsnt_xr = volcano_base.manipulate.mean_flatten(fsnt_xr, dims=self.dims)
+        flnt_xr = volcano_base.manipulate.mean_flatten(flnt_xr, dims=self.dims)
         return c_fsnt_xr, c_flnt_xr, fsnt_xr, flnt_xr
 
     def _get_rf_cesm(self, plot_example: bool = False) -> xr.DataArray:
@@ -407,7 +411,7 @@ class CESMData(BaseModel):
         if len(control_data) != 1:
             raise ValueError("Control data not found.")
         control_l = control_data.load()
-        control_l = volcano_base.manipulate.mean_flatten(control_l, dims=["lat", "lon"])
+        control_l = volcano_base.manipulate.mean_flatten(control_l, dims=self.dims)
         data = (
             volcano_base.load.FindFiles()
             .find("e_BWma1850", "TREFHT", "h0", self.strength)
@@ -417,7 +421,7 @@ class CESMData(BaseModel):
         files = data.load()
         orig_attrs = files[0].attrs
         shift = 35 if self.strength == "double-overlap" else None
-        files = volcano_base.manipulate.mean_flatten(files, dims=["lat", "lon"])
+        files = volcano_base.manipulate.mean_flatten(files, dims=self.dims)
         control = control_l[0]
         files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
