@@ -482,6 +482,14 @@ class _PostInitCaller(ABC, type):
         return obj
 
 
+class EvenLengthError(Exception):
+    """Exception raised for even length arrays."""
+
+    def __init__(self, message: str = "The arrays must have an odd length.") -> None:
+        self.message = message
+        super().__init__(self.message)
+
+
 class Deconvolve(metaclass=_PostInitCaller):
     """Class for deconvolving data."""
 
@@ -489,6 +497,8 @@ class Deconvolve(metaclass=_PostInitCaller):
 
     def __init__(self, normalise: bool = False) -> None:
         def _deconv(signal, forcing) -> tuple[np.ndarray, np.ndarray]:
+            if not len(signal) % 2 or not len(forcing) % 2:
+                raise EvenLengthError
             guess = np.heaviside(np.arange(len(signal)) - len(signal) // 2, 1)
             kwargs = {"initial_guess": guess, "iteration_list": 1000}
             return fppanalysis.RL_gauss_deconvolve(signal, forcing, **kwargs)
@@ -1191,9 +1201,7 @@ class CutOff:
                 temp_rec = v.temp_rec.copy()
                 temp_random = fppanalysis.signal_rand_phase(self.control.data)
                 temp_rec += temp_random
-                res_rec, err = fppanalysis.RL_gauss_deconvolve(
-                    temp_rec, self.forcing, len(iters) - 1
-                )
+                res_rec, err = self.dec._deconv_method(temp_rec, self.forcing.data)
                 r_cut_rec = res_rec.flatten()
                 r_cut_rec[self.dec.tau <= 0] = 0
                 arrays[f"response_{i}"] = ("tau", r_cut_rec, {"label": f"response {i}"})
@@ -1221,7 +1229,7 @@ class TSComparison:
 
     def _find_peaks(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute the peaks of the time series."""
-        _idx = np.argwhere(self.peaks.data > 0)
+        _idx = np.argwhere(self.peaks > 0)
         peak_times = self.orig.time.data[_idx].flatten()
         peaks_ts1 = self.orig.data[_idx].flatten()
         peaks_ts2 = self.rec[_idx].flatten()

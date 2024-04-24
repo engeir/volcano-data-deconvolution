@@ -1,3 +1,4 @@
 legend.framealpha : 0.5
 # Set keymap Q to close all plots
 keymap.quit_all : Q
+text.latex.preamble: \usepackage{amsmath}
