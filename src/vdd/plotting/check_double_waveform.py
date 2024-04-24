@@ -15,10 +15,10 @@ from matplotlib import patheffects
 
 import vdd.load
 
-plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
-plt.style.use(
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
-)
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.extra",
+])
 _COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "waveform"
@@ -88,7 +88,7 @@ class CheckRecreatedWaveforms:
         self.scale_by_aod = scale_by_aod
         self.figs = {"aod": plt.figure(), "rf": plt.figure(), "temp": plt.figure()}
         self.axs = {k: v.gca() for k, v in self.figs.items()}
-        self.response_rf = dec_cesm_s.response_rf_so2
+        # self.response_rf = dec_cesm_s.response_rf_so2
 
     def run_loop(self) -> None:
         """Run the main loop."""
@@ -148,7 +148,7 @@ class CheckRecreatedWaveforms:
     ) -> None:
         name = "2sep" if "2sep" in dec.name else "4sep"
         so2 = dec.so2
-        diff_len = len(self.response_rf) - len(so2)
+        diff_len = len(dec_cesm_s.response_rf_so2) - len(so2)
         pe = [
             patheffects.Stroke(linewidth=1, foreground=_COLORS[i]),
             patheffects.Normal(),
@@ -160,13 +160,23 @@ class CheckRecreatedWaveforms:
         ]
         # Scale r_arr
         scale_arr = np.max(dec_resp) / np.max(resp_arr)
-        resp_arr = resp_arr * scale_arr
+        resp_arr *= scale_arr
         # Scale so2 for new array
         rec_same = np.convolve(dec_resp, so2, "same")
         rec_new = np.convolve(resp_arr, so2_new, "same")
         plot = self.axs[attr].plot
+        # self._plot_aod(dec, attr)
+        plot(dec.tau, arr, c="k", lw=0.5, label=f"{name} original")
+        kwargs = {"ls": "--", "c": "k", "lw": 0.5, "path_effects": pe}
+        plot(dec.tau, rec_same, label=f"{name} reconstruct self", **kwargs)  # type: ignore
+        plot(dec.tau, rec_new, c=_COLORS[i], label=f"{name} reconstruc other")
+
+    def _plot_aod(self, dec: vdd.load.DeconvolveCESM, attr: str) -> None:
+        name = "2sep" if "2sep" in dec.name else "4sep"
+        plot = self.axs[attr].plot
         if attr == "aod":
-            # Area of the Earth is 5.1e14 m2
+            # Area of the Earth is 5.1e14 m2. Tg to kg is 1e9. AOD is 100x smaller than
+            # SO2
             plot(dec.tau, dec.tmso2 * 5.1e3, label="TMSO2")
         elif attr == "rf":
             # params, _ = curve_fit(curve_fit_aod, dec.aod, dec.rf)
@@ -196,19 +206,15 @@ class CheckRecreatedWaveforms:
                 resp_temp_rf, curve_fit_aod(dec.aod, *params), mode="same"
             )
             plot(dec.tau, temp, c="r", lw=0.5, label=f"{name} AOD")
-        plot(dec.tau, arr, c="k", lw=0.5, label=f"{name} original")
-        kwargs = {"ls": "--", "c": "k", "lw": 0.5, "path_effects": pe}
-        plot(dec.tau, rec_same, label=f"{name} reconstruct self", **kwargs)  # type: ignore
-        plot(dec.tau, rec_new, c=_COLORS[i], label=f"{name} reconstruc other")
 
 
 def main() -> None:
     """Run the main script."""
-    # check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
+    check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
     CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log").run_loop()
-    CheckRecreatedWaveforms(
-        dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside"
-    ).run_loop()
+    # CheckRecreatedWaveforms(
+    #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside"
+    # ).run_loop()
     CheckRecreatedWaveforms(
         dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root"
     ).run_loop()
