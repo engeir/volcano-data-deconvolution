@@ -998,10 +998,9 @@ class DeconvolveOB16(Deconvolve):
             case _:
                 raise ValueError(f"Invalid data: {data}")
         self._start_pt = 0
+        self._end_pt: int | None = None
         if length:
-            self._end_pt = length if length - self._start_pt % 2 else length + 1
-        else:
-            self._end_pt = -1
+            self._end_pt = length if (length - self._start_pt) % 2 else length + 1
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
