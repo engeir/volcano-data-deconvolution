@@ -12,16 +12,14 @@ import xarray as xr
 def name_translator(name: re.Match) -> str:
     """Translate the first match group from the old naming convention to the new one."""
     match name.group(0):
-        case "strong":
-            return "strong"
         case "medium":
             return "small"
         case "medium-plus":
             return "intermediate"
         case "size5000":
             return "extreme"
-        case "tt-2sep":
-            return "tt-2sep"
+        case "tt-2sep" | "tt-4sep" | "strong":
+            return name.group(0)
         case "double-overlap":
             return "tt-4sep"
         case _:
@@ -38,7 +36,7 @@ def name_swap(name: str) -> str: ...
 
 def name_swap(name: str | pathlib.Path) -> str | pathlib.Path:
     """Replace any occurrence of the old name with the new name."""
-    regex = r"strong|medium-plus|medium|size5000|tt-2sep|double-overlap"
+    regex = r"strong|medium-plus|medium|size5000|tt-2sep|tt-4sep|double-overlap"
     match name:
         case str():
             return re.sub(

@@ -28,38 +28,37 @@ click==8.1.7
     # via dask
 cloudpickle==3.0.0
     # via dask
-cmcrameri==1.8
+cmcrameri==1.9
     # via plastik
     # via volcano-data-deconvolution
-contourpy==1.2.0
+contourpy==1.2.1
     # via matplotlib
 cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@ec369be63f0bcdc86ff12f44fe295b8df407ba03
     # via volcano-data-deconvolution
 cycler==0.12.1
     # via matplotlib
-dask==2024.2.0
+dask==2024.4.2
     # via volcano-base
     # via volcano-data-deconvolution
-datetime==5.4
+datetime==5.5
     # via volcano-base
 fontawesomefree==6.5.1
     # via pywaffle
-fonttools==4.49.0
+fonttools==4.51.0
     # via matplotlib
 fppanalysis==0.1.4
     # via volcano-data-deconvolution
-fsspec==2024.2.0
+fsspec==2024.3.1
     # via dask
 h5netcdf==1.3.0
     # via volcano-base
     # via volcano-data-deconvolution
-h5py==3.10.0
+h5py==3.11.0
     # via h5netcdf
-idna==3.6
+idna==3.7
     # via requests
 importlib-metadata==6.11.0
     # via cosmoplots
-    # via dask
 kiwisolver==1.4.5
     # via matplotlib
 llvmlite==0.42.0
@@ -68,7 +67,7 @@ locket==1.0.0
     # via partd
 markdown-it-py==3.0.0
     # via rich
-matplotlib==3.8.3
+matplotlib==3.8.4
     # via cartopy
     # via cmcrameri
     # via cosmoplots
@@ -106,7 +105,7 @@ numpy==1.26.4
     # via volcano-base
     # via volcano-data-deconvolution
     # via xarray
-packaging==23.2
+packaging==24.0
     # via cartopy
     # via cmcrameri
     # via dask
@@ -115,22 +114,22 @@ packaging==23.2
     # via xarray
 palettable==3.3.3
     # via plastik
-pandas==2.2.0
+pandas==2.2.2
     # via xarray
 partd==1.4.1
     # via dask
-pillow==10.2.0
+pillow==10.3.0
     # via matplotlib
 plastik==0.6.2
     # via volcano-data-deconvolution
-pydantic==2.6.4
+pydantic==2.7.1
     # via volcano-base
     # via volcano-data-deconvolution
-pydantic-core==2.16.3
+pydantic-core==2.18.2
     # via pydantic
 pygments==2.17.2
     # via rich
-pyparsing==3.1.1
+pyparsing==3.1.2
     # via matplotlib
 pyproj==3.6.1
     # via cartopy
@@ -142,7 +141,7 @@ pyqt5-sip==12.13.0
     # via pyqt5
 pyshp==2.3.1
     # via cartopy
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via matplotlib
     # via pandas
 pytz==2024.1
@@ -150,7 +149,7 @@ pytz==2024.1
     # via pandas
 pywaffle==1.1.0
     # via plastik
-pywavelets==1.5.0
+pywavelets==1.6.0
     # via fppanalysis
 pyyaml==6.0.1
     # via dask
@@ -158,12 +157,12 @@ requests==2.31.0
     # via volcano-base
 returns==0.22.0
     # via volcano-base
-rich==13.7.0
+rich==13.7.1
     # via volcano-base
-scipy==1.12.0
+scipy==1.13.0
     # via fppanalysis
     # via volcano-base
-setuptools==69.1.0
+setuptools==69.5.1
     # via zope-interface
 shapely==2.0.4
     # via cartopy
@@ -178,7 +177,7 @@ toolz==0.12.1
     # via partd
 tqdm==4.66.2
     # via fppanalysis
-typing-extensions==4.9.0
+typing-extensions==4.11.0
     # via pydantic
     # via pydantic-core
     # via returns
@@ -186,12 +185,12 @@ tzdata==2024.1
     # via pandas
 urllib3==2.2.1
     # via requests
-volcano-base==2.0.2
+volcano-base==2.0.3
     # via volcano-data-deconvolution
-xarray==2024.2.0
+xarray==2024.3.0
     # via volcano-base
     # via volcano-data-deconvolution
-zipp==3.17.0
+zipp==3.18.1
     # via importlib-metadata
-zope-interface==6.2
+zope-interface==6.3
     # via datetime

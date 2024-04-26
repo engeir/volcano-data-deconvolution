@@ -25,7 +25,7 @@ type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
 type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
 type RF_SO2 = tuple[Literal["rf"], Literal["so2"]]  # type: ignore
 type T_Strengths = Literal[  # type: ignore
-    "strong", "medium", "medium-plus", "size5000", "tt-2sep", "double-overlap"
+    "strong", "medium", "medium-plus", "size5000", "tt-2sep", "tt-4sep"
 ]
 
 
@@ -85,7 +85,7 @@ class CESMData(BaseModel):
 
     Parameters
     ----------
-    strength : Literal["strong", "medium", "medium-plus", "size5000", "tt-2sep", "double-overlap"], optional
+    strength : Literal["strong", "medium", "medium-plus", "size5000", "tt-2sep", "tt-4sep"], optional
         The strength of the eruption, by default "strong".
     dims : list[str], optional
         The dimensions of the data to average over, by default ["lat", "lon"]. An empty
@@ -126,7 +126,7 @@ class CESMData(BaseModel):
             case "tt-2sep":
                 y[0] = 400
                 y[24] = 400
-            case "double-overlap":
+            case "tt-4sep":
                 y[0] = 400
                 y[48] = 400
             case _:
@@ -239,13 +239,12 @@ class CESMData(BaseModel):
         data = (
             volcano_base.load.FindFiles()
             .find("e_fSST1850", "TMSO2", "h0", self.strength)
-            .remove("ens1" if self.strength != "tt-2sep" else "ens0")
+            .remove("ens1" if self.strength not in {"tt-2sep", "tt-4sep"} else "ens0")
             .keep_most_recent()
         )
         files = data.load()
-        shift = 35 if self.strength == "double-overlap" else None
         files = volcano_base.manipulate.mean_flatten(files, dims=self.dims)
-        files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
+        files = volcano_base.manipulate.shift_arrays(files, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
         files = volcano_base.manipulate.subtract_mean_of_tail(files)
         files = volcano_base.manipulate.data_array_operation(
@@ -268,13 +267,12 @@ class CESMData(BaseModel):
         data = (
             volcano_base.load.FindFiles()
             .find("e_fSST1850", "AODVISstdn", "h0", self.strength)
-            .remove("ens1" if self.strength != "tt-2sep" else "ens0")
+            .remove("ens1" if self.strength not in {"tt-2sep", "tt-4sep"} else "ens0")
             .keep_most_recent()
         )
         files = data.load()
-        shift = 35 if self.strength == "double-overlap" else None
         files = volcano_base.manipulate.mean_flatten(files, dims=self.dims)
-        files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
+        files = volcano_base.manipulate.shift_arrays(files, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
         files = volcano_base.manipulate.subtract_mean_of_tail(files)
         files = volcano_base.manipulate.data_array_operation(
@@ -303,7 +301,7 @@ class CESMData(BaseModel):
         data: volcano_base.load.FindFiles = (
             volcano_base.load.FindFiles()
             .find("e_fSST1850", {"FLNT", "FSNT"}, "h0", self.strength)
-            .remove("ens1" if self.strength != "tt-2sep" else "ens0")
+            .remove("ens1" if self.strength not in {"tt-2sep", "tt-4sep"} else "ens0")
             .keep_most_recent()
             .sort("ensemble", "attr")
         )
@@ -315,10 +313,8 @@ class CESMData(BaseModel):
             case _:
                 raise ValueError("Control data not found.")
         match self.strength:
-            case "size5000" | "tt-2sep":
+            case "size5000" | "tt-2sep" | "tt-4sep":
                 d_size = 2
-            case "double-overlap":
-                d_size = 1
             case _:
                 d_size = 4
         match (data.copy().keep("FLNT"), data.copy().keep("FSNT")):
@@ -326,7 +322,7 @@ class CESMData(BaseModel):
                 flnt_xr = flnt.load()
                 fsnt_xr = fsnt.load()
             case _:
-                raise ValueError("Data not found.")
+                raise ValueError(f"Data for {self.strength} not found.")
         c_fsnt_xr, c_flnt_xr = volcano_base.manipulate.mean_flatten(
             [c_fsnt_xr, c_flnt_xr], dims=self.dims
         )
@@ -340,7 +336,7 @@ class CESMData(BaseModel):
 
         def remove_control(rf: xr.DataArray) -> xr.DataArray:
             rf, c_s, c_l = xr.align(rf, c_fsnt_xr, c_flnt_xr)
-            rf.data = rf.data - (c_s.data - c_l.data)
+            rf.data -= c_s.data - c_l.data
             # Combine attributes, overwrite if needed
             original_attrs = rf.attrs
             new_attrs = {
@@ -362,8 +358,7 @@ class CESMData(BaseModel):
             return volcano_base.manipulate.data_array_operation(rf_, remove_control)
 
         rf = difference(fsnt_xr, flnt_xr)
-        shift = 35 if self.strength == "double-overlap" else None
-        rf = volcano_base.manipulate.shift_arrays(rf, custom=shift, daily=False)
+        rf = volcano_base.manipulate.shift_arrays(rf, daily=False)
         rf = volcano_base.manipulate.shift_arrays(rf, custom=1)
         rf = volcano_base.manipulate.subtract_mean_of_tail(rf)
         rf = volcano_base.manipulate.data_array_operation(rf, _convert_time_start_zero)
@@ -415,20 +410,19 @@ class CESMData(BaseModel):
         data = (
             volcano_base.load.FindFiles()
             .find("e_BWma1850", "TREFHT", "h0", self.strength)
-            .remove("ens1" if self.strength != "tt-2sep" else "ens0")
+            .remove("ens1" if self.strength not in {"tt-2sep", "tt-4sep"} else "ens0")
             .keep_most_recent()
         )
         files = data.load()
         orig_attrs = files[0].attrs
-        shift = 35 if self.strength == "double-overlap" else None
         files = volcano_base.manipulate.mean_flatten(files, dims=self.dims)
         control = control_l[0]
-        files = volcano_base.manipulate.shift_arrays(files, custom=shift, daily=False)
+        files = volcano_base.manipulate.shift_arrays(files, daily=False)
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
 
         def subtract_control_array(arr: xr.DataArray) -> xr.DataArray:
             arr, c = xr.align(arr, control)
-            arr.data = arr.data - c.data
+            arr.data -= c.data
             return arr
 
         def subtract_control_mean(arr: xr.DataArray) -> xr.DataArray:
