@@ -16,13 +16,12 @@ if not _SAVE_DIR.exists():
 plt.style.use([
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
     "vdd.extra",
-    {"text.latex.preamble": r"\usepackage{amsmath}"},
 ])
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="double-overlap"))
+dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
 dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
 dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
@@ -43,7 +42,7 @@ dec_ob16_month.name = "OB16 month"
 all_decs = (
     # dec_ob16,
     dec_ob16_month,
-    dec_cesm_m,
+    # dec_cesm_m,
     dec_cesm_p,
     dec_cesm_s,
     dec_cesm_e,
@@ -140,7 +139,7 @@ class PlotResponseFunctions:
                 return plt.figure()
             case mpl.figure.Figure():
                 ax = fig.gca()
-                temp_xlim = (-2, 20)
+                temp_xlim = (-1, 10)
                 ax.set_xlim(temp_xlim)
                 ax.set_xlabel("Time lag ($\\tau$) [yr]")
                 ax.set_ylabel(
@@ -166,7 +165,7 @@ class PlotResponseFunctions:
         #     "CESM2 strong": 1629,
         #     "CESM2 medium": 26,
         #     "CESM2 medium-plus": 400,
-        #     "CESM2 double-overlap": 400,
+        #     "CESM2 tt-4sep": 400,
         #     "CESM2 tt-2sep": 400,
         #     "CESM2 size5000": 3000,
         #     "OB16 month": 200,
@@ -196,10 +195,11 @@ class PlotResponseFunctions:
                 if self.norm
                 else dec.response_temp_so2
             )
+            _temp_rf_resp = dec._deconv_method(
+                dec.response_temp_so2, dec.response_rf_so2
+            )[0].flatten()
             temp_rf_resp = (
-                vdd.utils.normalise(dec.response_temp_rf)
-                if self.norm
-                else dec.response_temp_rf
+                vdd.utils.normalise(_temp_rf_resp) if self.norm else _temp_rf_resp
             )
             rf_so2_a.plot(dec.tau, rf_so2_resp, label=ns(dec.name))
             rf_so2_decay_a.plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))

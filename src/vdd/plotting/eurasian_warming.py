@@ -7,6 +7,8 @@ Samalas 1258 has no pattern, while composites of three large but comparatively s
 eruptions do show such a winter warming pattern.
 """
 
+import warnings
+
 import cartopy.crs as ccrs
 import cmcrameri.cm as cmc
 import matplotlib.pyplot as plt
@@ -14,6 +16,12 @@ import numpy as np
 import volcano_base
 
 import vdd.load
+
+warnings.warn(
+    "This script is deprecated and may be removed in the future.",
+    category=DeprecationWarning,
+    stacklevel=1,
+)
 
 
 def _main() -> None:

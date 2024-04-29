@@ -21,10 +21,10 @@ import volcano_base
 import vdd.load
 import vdd.utils
 
-plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
-plt.style.use(
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
-)
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.extra",
+])
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "cut_off"
 
 if not _SAVE_DIR.exists():
@@ -33,7 +33,7 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="double-overlap"))
+dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
 dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
 dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")

@@ -39,10 +39,10 @@ _SAVE_DIR = volcano_base.config.SAVE_PATH / "reconstruction"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
-plt.style.use(
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
-)
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.extra",
+])
 
 
 def _setup() -> (
@@ -50,11 +50,11 @@ def _setup() -> (
 ):
     # Used as a reference for the reconstruction.
     ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
-    dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_month)
+    dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_month, length=12001)
     dec_ob16.name = "OB16 month"
     recs: tuple[vdd.load.Reconstructor, ...] = ()
     # OB16 month -----------------------------------------------------------------------
-    rec_ob16 = vdd.load.DeconvolveOB16(normalise=False, data=ob16_month)
+    rec_ob16 = vdd.load.DeconvolveOB16(normalise=False, data=ob16_month, length=12001)
     rec_ob16.name = "OB16 month"
     recs += (rec_ob16.dump_reconstructor(),)
     # OB16 cut offs --------------------------------------------------------------------
@@ -78,7 +78,7 @@ def _setup() -> (
         "medium",
         "medium-plus",
         "size5000",
-        "double-overlap",
+        "tt-4sep",
         "strong",
     ):
         cesm = vdd.load.CESMData(strength=cesm_)  # type: ignore
@@ -121,10 +121,13 @@ class PlotReconstruction:
     ):
         self.ob16 = ob16
         self.normalise = reconstruction.normalise
-        dec_ob16 = vdd.load.DeconvolveOB16(normalise=self.normalise, data=ob16)
+        dec_ob16 = vdd.load.DeconvolveOB16(
+            normalise=self.normalise, data=ob16, length=12001
+        )
         dec_ob16.name = "OB16 month"
         self.dec_ob16 = dec_ob16
         self.reconstruction = reconstruction
+        self.reconstruction.name = vdd.utils.name_swap(self.reconstruction.name)
         self.sim_name = vdd.utils.name_swap(
             vdd.utils.clean_filename(reconstruction.name)
         )
@@ -142,6 +145,7 @@ class PlotReconstruction:
         """Reconstructed temperature from SO2."""
         response = self.reconstruction.response_temp_so2
         response[: len(response) // 2] = 0
+        # response[len(response) // 2 + int(30 * 12) :] = 0
         if not self.normalise:
             # response = response / np.sum(response) * np.sum(self.dec_ob16.response_temp_so2)
             response = response / response.max() * self.dec_ob16.response_temp_so2.max()
@@ -156,6 +160,7 @@ class PlotReconstruction:
         """Reconstructed temperature from radiative forcing."""
         response = self.reconstruction.response_temp_rf
         response[: len(response) // 2] = 0
+        # response[len(response) // 2 + int(30 * 12) :] = 0
         if not self.normalise:
             # response = response / np.sum(response) * np.sum(self.dec_ob16.response_temp_rf)
             response = response / response.max() * self.dec_ob16.response_temp_rf.max()
@@ -241,14 +246,15 @@ class PlotReconstruction:
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Compute the peaks of the OB16 temperature."""
         aligned_arrays = self.ob16.aligned_arrays
-        so2_temp = aligned_arrays["so2-temperature"]
+        s, e = self.dec_ob16._start_pt, self.dec_ob16._end_pt
+        so2_temp = aligned_arrays["so2-temperature"][s:e]
         _idx_temp = np.argwhere(so2_temp.data > 0)
         peaks_original = self.dec_ob16.temp.data[_idx_temp].flatten()
         peaks_time = self.dec_ob16.temp.time.data[_idx_temp].flatten()
         peaks_so2 = self.rec_temp_so2[_idx_temp].flatten()
         peaks_rf = self.rec_temp_rf[_idx_temp].flatten()
         if view:
-            aligned_arrays["so2-start"].plot()
+            aligned_arrays["so2-start"][s:e].plot()
             so2_temp.plot()
             self.dec_ob16.temp.plot()
             plt.plot(self.dec_ob16.temp.time, self.rec_temp_so2)
@@ -350,8 +356,8 @@ class PlotReconstruction:
         f_control, p_control = self._spectrum_1d(self.temp_control.data)
         f_orig, p_orig = self._spectrum_1d(self.dec_ob16.temp.data)
         plt.figure()
-        plt.plot(f_so2, p_so2, label="SO2", alpha=0.5)
-        plt.plot(f_rf, p_rf, label="RF", alpha=0.5)
+        plt.plot(f_so2, p_so2, label="Resi SO2", alpha=0.5)
+        plt.plot(f_rf, p_rf, label="Resi RF", alpha=0.5)
         plt.plot(f_control, p_control, label="Control", alpha=0.5)
         plt.plot(f_orig, p_orig, label="OB16", alpha=0.5)
         # Suppress the warning
@@ -371,11 +377,11 @@ class PlotReconstruction:
         f_orig_so2, p_orig_so2 = self._spectrum_1d(self.dec_ob16.so2.data)
         f_orig_rf, p_orig_rf = self._spectrum_1d(self.dec_ob16.rf.data)
         plt.figure()
-        plt.plot(f_so2, p_so2, label="$\\phi_{SO2}$", alpha=0.5)
-        plt.plot(f_rf, p_rf, label="$\\phi_{RF}$", alpha=0.5)
+        plt.plot(f_so2, p_so2, label="$\\phi_{\\mathrm{T-SO2}}$", alpha=0.5)
+        plt.plot(f_rf, p_rf, label="$\\phi_{\\mathrm{T-RF}}$", alpha=0.5)
         plt.plot(f_control, p_control, label="Control", alpha=0.5)
-        plt.plot(f_orig_so2, p_orig_so2, label="SO2", alpha=0.5)
-        plt.plot(f_orig_rf, p_orig_rf, label="RF", alpha=0.5)
+        plt.plot(f_orig_so2, p_orig_so2, label="SO2 TS", alpha=0.5)
+        plt.plot(f_orig_rf, p_orig_rf, label="RF TS", alpha=0.5)
         # Suppress the warning
         warnings.filterwarnings("ignore")
         cosmoplots.change_log_axis_base(plt.gca(), "both")
@@ -385,9 +391,8 @@ class PlotReconstruction:
         plt.legend()
         plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.png")
 
-    @staticmethod
     def _peak_difference_ttest(
-        so2_basis: np.ndarray, rf_basis: np.ndarray
+        self, so2_basis: np.ndarray, rf_basis: np.ndarray
     ) -> tuple[str, str]:
         # Specify the value to test for symmetry
         test_value = 0
@@ -397,16 +402,18 @@ class PlotReconstruction:
         result_rf = scipy.stats.ttest_1samp(rf_basis, popmean=test_value)
         t_statistic_rf, p_value_rf = result_rf.statistic, result_rf.pvalue
 
+        sl = 0.05  # Significance level
+
         def info(name, p_value) -> None:
+            color = "red" if p_value < sl else "green"
             rprint(
-                f"[blue][bold]{name}[/bold]: I can with [/blue][red]"
-                f"{(1 - p_value) * 100:.4f}% confidence[/red][blue] say that the "
+                f"[blue][bold]{self.sim_name}/{name}[/bold]: I can with [/blue][{color}]"
+                f"{(1 - p_value) * 100:.4f}% confidence[/{color}][blue] say that the "
                 f"distribution does not have a mean of {test_value}[/blue]"
             )
 
         # Check if the p-value is less than a significance level (e.g., 0.05) to
         # determine symmetry (meaning a confidence level of 95%)
-        sl = 0.01
         reject = f"The distribution does not have a mean of {test_value} (confidence of {int((1 - sl) * 100)}%)"
         reject_no = f"I cannot with at least {int((1 - sl) * 100)}% confidence say that the distribution does not have a mean of {test_value}"
         if p_value_so2 < sl:
@@ -520,6 +527,7 @@ class PlotManyReconstructions:
             rec_class.correlation()
             rec_class.spectrum()
             rec_class.spectrum_parts()
+            plt.show()
             plt.close("all")
 
 

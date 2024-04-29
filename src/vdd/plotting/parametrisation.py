@@ -28,7 +28,6 @@ from vdd.utils import name_swap as ns
 plt.style.use([
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
     "vdd.extra",
-    {"text.latex.preamble": r"\usepackage{amsmath}"},
 ])
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "parametrisation"
@@ -38,7 +37,7 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="double-overlap"))
+dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
 dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
 dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
@@ -156,7 +155,7 @@ class PlotParametrisation:
         """Obtain the response function from deconvolving `res_t_so2` with `res_rf_so2`."""
         signal = dec.response_temp_so2
         kern = dec.response_rf_so2
-        return fppanalysis.RL_gauss_deconvolve(signal, kern, 200)[0].flatten()
+        return dec._deconv_method(signal, kern)[0].flatten()
 
     @staticmethod
     def _strategy3(dec: vdd.load.Deconvolve) -> np.ndarray:
@@ -165,7 +164,7 @@ class PlotParametrisation:
         kern = dec.response_rf_so2
         signal[: len(signal) // 2] = 0
         kern[: len(kern) // 2] = 0
-        return fppanalysis.RL_gauss_deconvolve(signal, kern, 200)[0].flatten()
+        return dec._deconv_method(signal, kern)[0].flatten()
 
     @staticmethod
     def _strategy4(dec: vdd.load.Deconvolve) -> np.ndarray:
@@ -177,14 +176,14 @@ class PlotParametrisation:
         kern = np.pad(kern, pad)
         kern = fppanalysis.run_mean(kern, pad)
         kern[: len(kern) // 2] = 0
-        return fppanalysis.RL_gauss_deconvolve(signal, kern, 200)[0].flatten()
+        return dec._deconv_method(signal, kern)[0].flatten()
 
     def strategy(self) -> None:
         """Obtain the temperature response function to RF."""
         for dec in self.decs:
             orig = dec.response_temp_rf
             s2 = self._strategy2(dec)
-            s3 = self._strategy3(dec)
+            # s3 = self._strategy3(dec)
             # s4 = self._strategy4(dec)
             dataset = xr.Dataset(
                 {
@@ -206,15 +205,15 @@ class PlotParametrisation:
                             "ls": "--",
                         },
                     ),
-                    "s3": (
-                        "tau",
-                        s3,
-                        {
-                            "long_name": "Response function",
-                            "label": "dec(dec(T, SO2), dec(RF, SO2)) corrected",
-                            "ls": ":",
-                        },
-                    ),
+                    # "s3": (
+                    #     "tau",
+                    #     s3,
+                    #     {
+                    #         "long_name": "Response function",
+                    #         "label": "dec(dec(T, SO2), dec(RF, SO2)) corrected",
+                    #         "ls": ":",
+                    #     },
+                    # ),
                     # "s4": ("tau", s4),
                 },
                 coords={"tau": dec.tau},
@@ -296,7 +295,7 @@ def _plot_response_functions() -> None:
             "cesm2-strong",
             "cesm2-size5000",
             "cesm2-tt-2sep",
-            "cesm2-double-overlap",
+            "cesm2-tt-4sep",
         ]
     ]).in_grid(2, 3).using(fontsize=50).save(_SAVE_DIR / "parametrisation_combined.png")
     pp.plot_method_comparisons()
@@ -305,7 +304,7 @@ def _plot_response_functions() -> None:
 
 def main():
     """Run the main script."""
-    _plot_reconstructed_temperature()
+    # _plot_reconstructed_temperature()
     _plot_response_functions()
 
 
