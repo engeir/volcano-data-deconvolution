@@ -16,6 +16,7 @@ beautifulsoup4==4.12.3
     # via volcano-base
 cartopy==0.23.0
     # via volcano-data-deconvolution
+    # via xmovie
 certifi==2024.2.2
     # via pyproj
     # via requests
@@ -33,13 +34,14 @@ cmcrameri==1.9
     # via volcano-data-deconvolution
 contourpy==1.2.1
     # via matplotlib
-cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@ec369be63f0bcdc86ff12f44fe295b8df407ba03
+cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@118d41ba8f5bee18a753b4f7a40d9d9f2d247030
     # via volcano-data-deconvolution
 cycler==0.12.1
     # via matplotlib
 dask==2024.4.2
     # via volcano-base
     # via volcano-data-deconvolution
+    # via xmovie
 datetime==5.5
     # via volcano-base
 fontawesomefree==6.5.1
@@ -105,6 +107,7 @@ numpy==1.26.4
     # via volcano-base
     # via volcano-data-deconvolution
     # via xarray
+    # via xmovie
 packaging==24.0
     # via cartopy
     # via cmcrameri
@@ -189,6 +192,9 @@ volcano-base==2.0.3
     # via volcano-data-deconvolution
 xarray==2024.3.0
     # via volcano-base
+    # via volcano-data-deconvolution
+    # via xmovie
+xmovie==0.3.1
     # via volcano-data-deconvolution
 zipp==3.18.1
     # via importlib-metadata

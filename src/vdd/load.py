@@ -1,5 +1,6 @@
 """Functions that fetches data from files and returns it as an xarray.DataArray."""
 
+import datetime
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
 from collections.abc import Callable, Iterable
@@ -18,8 +19,11 @@ import volcano_base
 import xarray as xr
 from pydantic import BaseModel, Field
 from rich import print as rprint
+from rich.console import Console
+from rich.table import Table
 
 import vdd.utils
+from vdd.utils import name_swap as ns
 
 type T_RF = tuple[Literal["temp"], Literal["rf"]]  # type: ignore
 type T_SO2 = tuple[Literal["temp"], Literal["so2"]]  # type: ignore
@@ -989,7 +993,7 @@ class DeconvolveOB16(Deconvolve):
         self,
         data: volcano_base.load.OttoBliesner | Literal["h0", "h1"] = "h1",
         normalise: bool = False,
-        length: int = 0,
+        length: int = 12001,
     ) -> None:
         super().__init__(normalise)
         match data:
@@ -1005,6 +1009,42 @@ class DeconvolveOB16(Deconvolve):
         self._end_pt: int | None = None
         if length:
             self._end_pt = length if (length - self._start_pt) % 2 else length + 1
+            # self.so2 = self._find_good_endpoints(self.so2)
+            # self.so2_decay = self._find_good_endpoints(self.so2_decay)
+            # self.rf = self._find_good_endpoints(self.rf)
+            # self.rf_control = self._find_good_endpoints(self.rf_control)
+            # self.temp = self._find_good_endpoints(self.temp)
+            # self.temp_control = self._find_good_endpoints(self.temp_control)
+            # print(len(self.so2))
+            # min_ = min(
+            #     len(self.so2.data),
+            #     len(self.so2_decay.data),
+            #     len(self.rf.data),
+            #     len(self.rf_control.data),
+            #     len(self.temp.data),
+            #     len(self.temp_control.data),
+            # )
+            # min_ = min_ if min_ % 2 else min_ + 1
+            # print(min_)
+            # self.so2 = self.so2[:min_]
+            # self.so2_decay = self.so2_decay[:min_]
+            # self.rf = self.rf[:min_]
+            # self.rf_control = self.rf_control[:min_]
+            # self.temp = self.temp[:min_]
+            # self.temp_control = self.temp_control[:min_]
+
+    @staticmethod
+    def _find_good_endpoints(arr: xr.DataArray) -> xr.DataArray:
+        range_ = arr.data.max() - arr.data.min()
+        # Make the start and end be equal to within 10% of the range, and make the next
+        # elements have equals difference to the previous within 10%.
+        start = arr.data[0]
+        i_ = 0
+        for i, val in enumerate(arr.data[::-1]):
+            i_ = i
+            if abs(val - start) < range_ * 0.1:
+                break
+        return arr[: len(arr) - i_]
 
     def _update_if_normalise(self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
@@ -1186,7 +1226,6 @@ class CutOff:
         """Generate an ensemble of response function estimates."""
         if not self.cuts:
             raise ValueError("No cuts have been made.")
-        iters = np.arange(200)
         for k, v in self.cuts.items():
             if k in self.ensembles:
                 continue
@@ -1203,8 +1242,101 @@ class CutOff:
                 # arrays[f"temp_{i}"] = rec
             self.ensembles[k] = xr.Dataset(
                 arrays,
-                coords={"tau": self.dec.tau, "time": self.output.time, "iters": iters},
+                coords={
+                    "tau": self.dec.tau,
+                    "time": self.output.time,
+                    "iters": np.arange(len(err)),
+                },
             )
+
+
+class ReconstructOB16:
+    """Class that reconstructs the temperature of OB16 from CESM2 simulations."""
+
+    def __init__(self, *decs: Deconvolve, base_forcing: Literal["so2", "rf"]) -> None:
+        self.ob16 = DeconvolveOB16(data="h0")
+        self.ob16.name = "OB16 month"
+        self.decs = decs
+        self.base = base_forcing
+
+    def plot_temperature(self) -> tuple[mpl.figure.Figure, mpl.figure.Figure]:
+        """Plot the reconstructed temperatures.
+
+        Returns
+        -------
+        tuple[mpl.figure.Figure, mpl.figure.Figure]
+            The full and zoomed in figures.
+        """
+        xlim = (
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+        )
+        all_f = plt.figure()
+        all_a = all_f.gca()
+        all_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
+        all_zoom_f = plt.figure()
+        all_zoom_a = all_zoom_f.gca()
+        all_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
+        all_zoom_a.set_xlim(xlim)
+        res: list[tuple[str, str, str]] = []
+        for dec in self.decs:
+            res = self._plot_temperature_single(dec, res, (all_a, all_zoom_a))
+        table = Table(
+            title="Difference between reconstructed temperature from OB16 and other simulations"
+        )
+        table.add_column("Simulation name", justify="left", style="cyan", no_wrap=True)
+        table.add_column("Raw response", justify="center", style="magenta")
+        table.add_column("Scaled response", justify="center", style="magenta")
+        for r_ in res:
+            table.add_row(*r_)
+        console = Console()
+        console.print(table)
+        all_a.legend()
+        # all_f.savefig(_SAVE_DIR / "reconstruct_from_all.jpg")
+        all_zoom_a.legend()
+        # all_zoom_f.savefig(_SAVE_DIR / "reconstruct_from_all_zoom.jpg")
+        return all_f, all_zoom_f
+
+    def _plot_temperature_single(
+        self,
+        dec: Deconvolve,
+        res: list[tuple[str, str, str]],
+        axs: tuple[mpl.axes.Axes, mpl.axes.Axes],
+    ) -> list[tuple[str, str, str]]:
+        """Plot the reconstructed temperature for a single simulation."""
+        xlim = (
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+        )
+        # fn = ns(vdd.utils.clean_filename(dec.name))
+        inv_f = plt.figure()
+        inv_a = inv_f.gca()
+        inv_zoom_f = plt.figure()
+        inv_zoom_a = inv_zoom_f.gca()
+        inv_zoom_a.set_xlim(xlim)
+        response = dec.response_temp_so2
+        response_scaled = response / response.max() * self.ob16.response_temp_so2.max()
+        new_temp = np.convolve(self.ob16.so2, response, mode="same")
+        new_temp_scaled = np.convolve(self.ob16.so2, response_scaled, mode="same")
+        axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
+        axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
+        inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
+        inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
+        inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
+        inv_a.legend()
+        # inv_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}.jpg")
+        inv_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
+        inv_zoom_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
+        inv_zoom_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
+        inv_zoom_a.legend()
+        # inv_zoom_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}_zoom.jpg")
+        # Print the distance away from the reconstructed
+        rob16 = self.ob16.response_temp_so2
+        ob16_temp = np.convolve(self.ob16.so2, rob16, mode="same")
+        ob16_diff = np.abs(ob16_temp - new_temp).sum()
+        ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
+        res.append((ns(dec.name), f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
+        return res
 
 
 class TSComparison:

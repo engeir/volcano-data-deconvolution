@@ -1,6 +1,7 @@
 """Plot the relationships between AOD, RF, T and more."""
 
 import json
+import warnings
 from collections.abc import Callable
 from typing import Literal
 
@@ -8,6 +9,7 @@ import cosmoplots
 import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
+import rich.prompt
 import sympy as sp
 import volcano_base
 import xarray as xr
@@ -22,6 +24,12 @@ from vdd.utils import name_swap as nsw
 #   do not have any AOD data from OB16, we cannot recreate all plots from OB16.
 # - Another alternative to using all parameters from the single simulation is to allow
 #   the scaling to be optimised, but keep the time units as is.
+
+warnings.warn(
+    "This script is deprecated and may be removed in the future.",
+    category=DeprecationWarning,
+    stacklevel=1,
+)
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "relationships"
 if not _SAVE_DIR.exists():
@@ -39,19 +47,18 @@ T_Params = Literal["SO2", "AOD", "AOD-AOD", "AOD-RF", "RF-as-AOD", "RF"]
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="double-overlap"))
+dec_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
 dec_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
 dec_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
 dec_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
 dec_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
 dec_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 # OB16
-dec_ob16 = vdd.load.DeconvolveOB16(data="h0")
-dec_ob16.name = "OB16 month"
+dec_ob16 = vdd.load.DeconvolveOB16(data="h0", length=12000)
 
-decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
-# decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m)
-# decs = (dec_m,)
+# decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
+decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m)
+# decs = (dec_ob16,)
 
 
 def s2n(num: float, decimal: int = 2) -> str:
@@ -355,11 +362,22 @@ class NumericalSolver:
         self,
         custom_params: dict[T_Params, dict[str, float]] | None = None,
         from_: str = "self",
+        from_json: bool = True,
+        save_json: bool = False,
     ) -> None:
         """Reset all parameters."""
         self.reset_all_switch = from_
         if custom_params is not None:
             self._reset_all_custom(custom_params)
+            return
+        true_so2 = not self.estimate_so2
+        filename = (
+            f"numerical_params_{self.type_}_{"real" if true_so2 else "fake"}-so2.json"
+        )
+        if from_json and not save_json:
+            with open(_SAVE_DIR / filename, encoding="locale") as f:
+                params = json.load(f)
+            self._reset_all_custom(params)
             return
         print("")
         print(f"Resetting all parameters for {self.type_}")
@@ -376,6 +394,10 @@ class NumericalSolver:
         self.reset_params_rf_as_aod()
         print("Resetting RF parameters")
         self.reset_params_rf()
+        if save_json:
+            params = self._get_params()
+            with open(_SAVE_DIR / filename, "w", encoding="locale") as f:
+                json.dump(params, f, indent=2)
 
     def _reset_all_custom(
         self, custom_params: dict[T_Params, dict[str, float]]
@@ -398,9 +420,7 @@ class NumericalSolver:
                 case _:
                     raise ValueError("Invalid input.")
 
-    def print_params(self) -> dict[T_Params, dict[str, float]]:
-        """Print the parameters."""
-        print(f"{self.type_} parameters")
+    def _get_params(self) -> dict[T_Params, dict[str, float]]:
         d: dict[T_Params, dict[str, float]] = {
             "SO2": self.params_so2,
             "AOD": self.params_aod,
@@ -409,6 +429,12 @@ class NumericalSolver:
             "RF-as-AOD": self.params_rf_as_aod,
             "RF": self.params_rf,
         }
+        return d
+
+    def print_params(self) -> dict[T_Params, dict[str, float]]:
+        """Print the parameters."""
+        print(f"{self.type_} parameters")
+        d = self._get_params()
         print(d)
         return d
 
@@ -548,6 +574,12 @@ class NumericalSolver:
         plt.figure()
         plt.plot(self.time_axis, self.so2_true, label="Simulation output")
         plt.plot(self.time_axis, self.so2_fake, label="Numerical solution")
+        _so2_str = (
+            f"$\\tau_S$: {s2n(self.params_so2["tau_s"])}"
+            # f", $\\tau_{{A2}}$: {s2n(self.params_so2["scale_s"])}"
+        )
+        t = plt.gca().transAxes
+        plt.text(0.98, 0.6, _so2_str, transform=t, size=6, ha="right")
         plt.legend()
         plt.xlabel("Time [yr]")
         plt.ylabel("SO$_2$ [kg/m$^2$]")
@@ -733,9 +765,12 @@ def _analytic() -> None:
 class PlotNumerical:
     """Plot the numerical solutions for different parameters."""
 
-    def __init__(self, ns: NumericalSolver) -> None:
+    def __init__(
+        self, ns: NumericalSolver, so2_timeseries: Literal["real", "fake"] = "fake"
+    ) -> None:
         self.ns = ns
         self.from_json = True
+        self.so2_ts: Literal["real", "fake"] = so2_timeseries
 
     def plot_with_params(
         self,
@@ -757,65 +792,93 @@ class PlotNumerical:
             params_ = json.load(f)
         for key, value in params_.items():
             value.update(params[key])
+        self.ns.use_true_so2(self.so2_ts == "real")
         self.ns.reset_all(params_, from_)
         self.ns.plot_available()
         plt.show()
 
 
-def _new() -> None:
-    with open(
-        _SAVE_DIR / "numerical_params_ob16-ob16-month_fake-so2.json", encoding="locale"
-    ) as f:
-        ob16_params = json.load(f)
-    ob16_parts = ob16_params.copy()
-    for key, value in ob16_params.items():
-        old = value.copy()
-        for k, _ in value.items():
-            if "scale" in k:
-                del old[k]
-        ob16_parts[key] = old
-    empty: dict[T_Params, dict] = {key: {} for key in ob16_params.keys()}
-    for dec in decs:
-        ns = NumericalSolver(dec)
-        pns = PlotNumerical(ns)
-        for param in (
-            (empty, "self"),
-            (ob16_params, "ob16"),
-            (ob16_parts, "ob16-parts"),
-        ):
-            pns.plot_with_params(param[0], param[1])
+def _create_single_plot_from_param_files() -> None:
+    so2: Literal["fake", "real"] = "real"
+    for base_str in ("cesm-cesm2-strong", "ob16-ob16-month"):
+        with open(
+            _SAVE_DIR / f"numerical_params_{base_str}_{so2}-so2.json",
+            encoding="locale",
+        ) as f:
+            base_params = json.load(f)
+        base_params_parts = base_params.copy()
+        for key, value in base_params.items():
+            old = value.copy()
+            for k, _ in value.items():
+                if "scale" in k:
+                    del old[k]
+            base_params_parts[key] = old
+        empty: dict[T_Params, dict] = {key: {} for key in base_params.keys()}
+        name = "cesm2-strong" if "cesm" in base_str else "ob16"
+        for dec in decs:
+            ns = NumericalSolver(dec)
+            pns = PlotNumerical(ns, so2)
+            for param in (
+                (empty, "self"),
+                (base_params, name),
+                (base_params_parts, f"{name}-parts"),
+            ):
+                pns.plot_with_params(param[0], param[1])
 
 
-def _numerical_solver() -> None:
-    from_json = True
+def _reset_parameter_files() -> None:
+    if not rich.prompt.Confirm.ask(
+        "Are you sure you want to re-set the JSON parameter files?"
+        " Rememember that this task takes several hours to complete to the OB16 dataset."
+    ):
+        return
     for dec in decs:
         ns = NumericalSolver(dec)
         for true_so2 in (True, False):
             ns.use_true_so2(true_so2)
-            filename = (
-                f"numerical_params_{ns.type_}_{"true" if true_so2 else "fake"}-so2.json"
-            )
-            if from_json:
-                with open(_SAVE_DIR / filename, encoding="locale") as f:
-                    params = json.load(f)
-                ns.reset_all(params)
-            else:
-                ns.reset_all()
-                params = ns.print_params()
-                with open(_SAVE_DIR / filename, "w", encoding="locale") as f:
-                    json.dump(params, f, indent=2)
+            ns.reset_all(save_json=True)
             ns.plot_available()
+            plt.show()
+
+
+def _reconstruct_ob16_analysis() -> None:
+    ns = NumericalSolver(dec_ob16)
+    for so2 in ("fake", "real"):
+        ns.use_true_so2(so2 == "real")
+        ns.reset_all()
+        compare = vdd.load.TSComparison(
+            # dec_ob16.rf, ns.rf_true, dec_ob16.data.aligned_arrays["so2-rf"]
+            # dec_ob16.rf, ns.rf_as_aod_fake, dec_ob16.data.aligned_arrays["so2-rf"]
+            dec_ob16.rf,
+            ns.aod_rf_fake,
+            dec_ob16.data.aligned_arrays["so2-rf"][: len(ns.time_axis)],
+        )
+        compare.plot_reconstructions()
+        compare.peak_difference_analysis()
+        compare.correlation()
+        compare.spectrum()
+        plt.show()
+        plt.close("all")
+
+
+def _plot_combiner() -> None:
+    for dec in decs:
+        ns = NumericalSolver(dec)
         files = {}
         for plot in ("so2", "aod", "rf"):
             files[plot] = [
-                _SAVE_DIR / "single" / f"numerical_{plot}_{ns.type_}_fake-so2.png",
                 _SAVE_DIR
                 / "single"
-                / f"numerical_{plot}_{ns.type_}_optimised_fake-so2.png",
+                / f"numerical_{plot}_{ns.type_}_from_self_fake-so2.png",
                 _SAVE_DIR
                 / "single"
-                / f"numerical_{plot}_{ns.type_}_optimised_true-so2.png",
-                _SAVE_DIR / "single" / f"numerical_{plot}_{ns.type_}_true-so2.png",
+                / f"numerical_{plot}_{ns.type_}_optimised_from_self_fake-so2.png",
+                _SAVE_DIR
+                / "single"
+                / f"numerical_{plot}_{ns.type_}_optimised_from_self_true-so2.png",
+                _SAVE_DIR
+                / "single"
+                / f"numerical_{plot}_{ns.type_}_from_self_true-so2.png",
             ]
             try:
                 cosmoplots.combine(files[plot][0], files[plot][1]).in_grid(2, 1).using(
@@ -824,17 +887,21 @@ def _numerical_solver() -> None:
                     _SAVE_DIR / "combined" / f"numerical_{plot}_{ns.type_}_combined.png"
                 )
             except FileNotFoundError:
-                pass
+                if not (f1 := files[plot][0]).exists():
+                    print(f"Cannot find file {f1}")
+                if not (f2 := files[plot][1]).exists():
+                    print(f"Cannot find file {f2}")
             try:
-                cosmoplots.combine(files[plot][1], files[plot][2]).in_grid(2, 1).using(
-                    fontsize=50
-                ).save(
+                vdd.utils.combine(files[plot][1], files[plot][2]).in_grid(2, 1).save(
                     _SAVE_DIR
                     / "combined"
                     / f"numerical_{plot}_{ns.type_}_combined_so2.png"
                 )
             except FileNotFoundError:
-                pass
+                if not (f1 := files[plot][1]).exists():
+                    print(f"Cannot find file {f1}")
+                if not (f2 := files[plot][2]).exists():
+                    print(f"Cannot find file {f2}")
         try:
             cosmoplots.combine(files["aod"][1], files["rf"][1]).in_grid(2, 1).using(
                 fontsize=50
@@ -842,11 +909,10 @@ def _numerical_solver() -> None:
                 _SAVE_DIR / "combined" / f"numerical_aod_rf_{ns.type_}_combined_so2.png"
             )
         except FileNotFoundError:
-            pass
-        # Try to reduce the number of files
-        # [f.unlink(missing_ok=True) for files_ in files.values() for f in files_]
-        # not from_json or plt.show()  # type: ignore
-        plt.close("all")
+            if not (f1 := files["aod"][1]).exists():
+                print(f"Cannot find file {f1}")
+            if not (f2 := files["rf"][1]).exists():
+                print(f"Cannot find file {f2}")
         # response = dec.response_temp_rf
         # plt.plot(ns.time_axis, np.convolve(ns.rf_fake, response, mode="same"))
         # plt.plot(ns.time_axis, dec.temp)
@@ -854,13 +920,8 @@ def _numerical_solver() -> None:
 
 
 if __name__ == "__main__":
-    # for dec in decs:
-    #     ns = NumericalSolver(dec)
-    #     ns.plot_available()
-    #     # ns.use_true_so2(True)
-    #     # ns.reset_all()
-    #     # ns.plot_available()
-    #     plt.show()
-    # _numerical_solver()
-    _new()
+    # _reset_parameter_files()
+    _create_single_plot_from_param_files()
+    # _reconstruct_ob16_analysis()
+    # _plot_combiner()
     # _scatterplot_comparison()

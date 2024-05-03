@@ -16,6 +16,7 @@
 #        OB16 response sum (layman's integral) be the true sum, or to normalise every
 #        array we come across. Try all. (Amplitude seems to work best.)
 
+import datetime
 import pathlib
 import warnings
 from functools import cached_property
@@ -31,9 +32,12 @@ import scipy.stats
 import volcano_base
 import xarray as xr
 from rich import print as rprint
+from rich.console import Console
+from rich.table import Table
 
 import vdd.load
 import vdd.utils
+from vdd.utils import name_swap as ns
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "reconstruction"
 if not _SAVE_DIR.exists():
@@ -43,6 +47,28 @@ plt.style.use([
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
     "vdd.extra",
 ])
+
+DataCESM = vdd.load.CESMData
+DecCESM = vdd.load.DeconvolveCESM
+# CESM2
+dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
+dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
+dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
+dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
+# OB16
+dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
+dec_ob16_month.name = "OB16 month"
+all_decs = (
+    dec_cesm_4sep,
+    dec_cesm_2sep,
+    dec_cesm_e,
+    dec_cesm_s,
+    dec_cesm_p,
+    dec_cesm_m,
+    dec_ob16_month,
+)
 
 
 def _setup() -> (
@@ -74,17 +100,98 @@ def _setup() -> (
         recs += (rec_co,)
     # CESM2 ----------------------------------------------------------------------------
     for cesm_ in (
-        "tt-2sep",
         "medium",
         "medium-plus",
-        "size5000",
-        "tt-4sep",
         "strong",
+        "size5000",
+        "tt-2sep",
+        "tt-4sep",
     ):
         cesm = vdd.load.CESMData(strength=cesm_)  # type: ignore
         rec_cesm = vdd.load.DeconvolveCESM(normalise=False, pad_before=True, cesm=cesm)
         recs += (rec_cesm.dump_reconstructor(),)
     return ob16_month, recs
+
+
+class ReconstructOB16:
+    """Class that reconstructs the temperature of OB16 from CESM2 simulations."""
+
+    def __init__(self, *decs: vdd.load.Deconvolve) -> None:
+        self.ob16 = vdd.load.DeconvolveOB16(data="h0")
+        self.ob16.name = "OB16 month"
+        self.decs = decs
+
+    def plot_temperature(self) -> None:
+        """Plot the reconstructed temperatures."""
+        xlim = (
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+        )
+        all_f = plt.figure()
+        all_a = all_f.gca()
+        all_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
+        all_zoom_f = plt.figure()
+        all_zoom_a = all_zoom_f.gca()
+        all_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
+        all_zoom_a.set_xlim(xlim)
+        res: list[tuple[str, str, str]] = []
+        for dec in self.decs:
+            res = self._plot_temperature_single(dec, res, (all_a, all_zoom_a))
+        table = Table(
+            title="Difference between reconstructed temperature from OB16 and other simulations"
+        )
+        table.add_column("Simulation name", justify="left", style="cyan", no_wrap=True)
+        table.add_column("Raw response", justify="center", style="magenta")
+        table.add_column("Scaled response", justify="center", style="magenta")
+        for r_ in res:
+            table.add_row(*r_)
+        console = Console()
+        console.print(table)
+        all_a.legend()
+        all_f.savefig(_SAVE_DIR / "reconstruct_from_all.jpg")
+        all_zoom_a.legend()
+        all_zoom_f.savefig(_SAVE_DIR / "reconstruct_from_all_zoom.jpg")
+
+    def _plot_temperature_single(
+        self,
+        dec: vdd.load.Deconvolve,
+        res: list[tuple[str, str, str]],
+        axs: tuple[mpl.axes.Axes, mpl.axes.Axes],
+    ) -> list[tuple[str, str, str]]:
+        """Plot the reconstructed temperature for a single simulation."""
+        xlim = (
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+        )
+        fn = ns(vdd.utils.clean_filename(dec.name))
+        inv_f = plt.figure()
+        inv_a = inv_f.gca()
+        inv_zoom_f = plt.figure()
+        inv_zoom_a = inv_zoom_f.gca()
+        inv_zoom_a.set_xlim(xlim)
+        response = dec.response_temp_so2
+        response_scaled = response / response.max() * self.ob16.response_temp_so2.max()
+        new_temp = np.convolve(self.ob16.so2, response, mode="same")
+        new_temp_scaled = np.convolve(self.ob16.so2, response_scaled, mode="same")
+        axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
+        axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
+        inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
+        # inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
+        inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
+        inv_a.legend()
+        inv_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}.jpg")
+        inv_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
+        # inv_zoom_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
+        inv_zoom_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
+        inv_zoom_a.legend()
+        inv_zoom_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}_zoom.jpg")
+        # Print the distance away from the reconstructed
+        ob16_temp = np.convolve(self.ob16.so2, self.ob16.response_temp_so2, mode="same")
+        # ob16_temp = self.ob16.temp
+        ob16_diff = np.abs(ob16_temp - new_temp).sum()
+        ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
+        res.append((ns(dec.name), f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
+        return res
 
 
 class PlotReconstruction:
@@ -295,9 +402,9 @@ class PlotReconstruction:
         #     rf.data, rec.response_temp_rf / rec.response_temp_rf.max() * rtr, "same"
         # )
         lso2 = f"SO2 ({rec.name})"
-        lrf = f"RF ({rec.name})"
+        # lrf = f"RF ({rec.name})"
         abso_a.plot(time_, self.rec_temp_so2, label=lso2)
-        abso_a.plot(time_, self.rec_temp_rf, label=lrf)
+        # abso_a.plot(time_, self.rec_temp_rf, label=lrf)
         # norm_a.plot(time_, vdd.utils.normalise(self.rec_temp_so2), label=lso2)
         # norm_a.plot(time_, vdd.utils.normalise(self.rec_temp_rf), label=lrf)
         # nor2_a.plot(time_, conv_norm_temp_so2, label=lso2)
@@ -306,7 +413,7 @@ class PlotReconstruction:
         abso_a.legend(framealpha=0.5)
         # norm_a.legend()
         # nor2_a.legend()
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.jpg")
 
     def correlation(self) -> None:
         """Compute the correlation between the residuals and temperature."""
@@ -323,7 +430,7 @@ class PlotReconstruction:
         plt.ylabel("Correlation between residual \nand original temperature")
         plt.legend()
         plt.savefig(
-            _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.png"
+            _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.jpg"
         )
 
     @staticmethod
@@ -367,7 +474,7 @@ class PlotReconstruction:
         plt.xlabel("Frequency")
         plt.ylabel("Power spectral density")
         plt.legend()
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.jpg")
 
     def spectrum_parts(self) -> None:
         """View the spectrum of the response functions and the input data."""
@@ -389,7 +496,7 @@ class PlotReconstruction:
         plt.xlabel("Frequency")
         plt.ylabel("Power spectral density")
         plt.legend()
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.jpg")
 
     def _peak_difference_ttest(
         self, so2_basis: np.ndarray, rf_basis: np.ndarray
@@ -506,7 +613,7 @@ class PlotReconstruction:
         plt.xlim((-xlim, xlim))
         plt.ylabel(dist.upper())
         plt.xlabel("Difference between the peaks")
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.png")
+        plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.jpg")
 
 
 class PlotManyReconstructions:
@@ -522,19 +629,41 @@ class PlotManyReconstructions:
         """Run the reconstructions."""
         for rec in self.recs:
             rec_class = PlotReconstruction(self.ob16, rec)
-            rec_class.plot_reconstruction_temp()
             rec_class.peak_difference_analysis()
             rec_class.correlation()
             rec_class.spectrum()
             rec_class.spectrum_parts()
+            rec_class.plot_reconstruction_temp()
             plt.show()
             plt.close("all")
 
 
-if __name__ == "__main__":
+def _plot_reconstructed_temperature() -> None:
+    rec = ReconstructOB16(*all_decs)
+    rec.plot_temperature()
+    plt.show()
+
+
+def _plot_many_reconstructions() -> None:
     ob16, recs = _setup()
     plot_recs = PlotManyReconstructions(ob16, *recs)
     plot_recs.run()
+    # Combine OB16 and CESM2 small/weak
+    for plot_ in (
+        "temp-reconstructed",
+        "peak-difference-pdf",
+        "peak-difference-cdf",
+        "spectrum-residual-control_temp",
+        "spectrum-response-input",
+        "correlation-residual-reconstructed",
+    ):
+        o, c = (
+            _SAVE_DIR / f"ob16-month-{plot_}.jpg",
+            _SAVE_DIR / f"cesm2-small-{plot_}.jpg",
+        )
+        vdd.utils.combine(o, c).in_grid(2, 1).save(
+            _SAVE_DIR / f"compare-historical-size-{plot_}.jpg"
+        )
     # We take extra care of the cut-off data.
     files = pathlib.Path(_SAVE_DIR).glob("cut-off*")
     temp = []
@@ -566,8 +695,17 @@ if __name__ == "__main__":
         ("temp", "pdf", "cdf", "power", "correlation"),
         strict=True,
     ):
-        cosmoplots.combine(*list_).in_grid(2, len(list_) // 2).using(fontsize=50).save(
-            _SAVE_DIR / f"cut-off-{name}-combined.png"
+        vdd.utils.combine(*list_).in_grid(2, len(list_) // 2).save(
+            _SAVE_DIR / f"cut-off-{name}-combined.jpg"
         )
         for f in list_:
             f.unlink()
+
+
+def _main() -> None:
+    # _plot_reconstructed_temperature()
+    _plot_many_reconstructions()
+
+
+if __name__ == "__main__":
+    _main()

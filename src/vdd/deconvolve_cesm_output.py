@@ -1,5 +1,7 @@
 """Deconvolve CESM2 output data."""
 
+import warnings
+
 import fppanalysis
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,6 +9,12 @@ import xarray as xr
 
 import vdd.load
 import vdd.utils
+
+warnings.warn(
+    "This script is deprecated and may be removed in the future.",
+    category=DeprecationWarning,
+    stacklevel=1,
+)
 
 
 def check_cesm_output() -> None:
@@ -80,7 +88,7 @@ def extend_temp_shape() -> xr.DataArray:
         count += 1
         x = np.append(x, x_base + 20 * count)
     decay = 1.5 * np.exp(-x / 30)
-    decay = decay + np.random.default_rng().normal(0, 0.05, len(x))
+    decay += np.random.default_rng().normal(0, 0.05, len(x))
     signal = np.concatenate((cesm.temp, decay))
     t_new = xr.DataArray(
         -1 * signal,
@@ -104,15 +112,15 @@ def main():
     # cesm.rf = pad_before_convolution(cesm.rf)
     # cesm.aod = pad_before_convolution(cesm.aod)
     # Make all arrays positive
-    cesm.rf *= -1
-    cesm.temp *= -1
+    rf = cesm.rf * -1
+    temp = cesm.temp * -1
     cesm.aod.plot()
-    cesm.rf.plot()
-    cesm.temp.plot()
+    rf.plot()
+    temp.plot()
     plt.show()
-    t_rl_rf, _err = fppanalysis.RL_gauss_deconvolve(cesm.temp, cesm.rf, 200)
+    t_rl_rf, _err = fppanalysis.RL_gauss_deconvolve(temp, rf, 200)
     t_rl_rf = t_rl_rf.flatten()
-    t_rl_aod, _err = fppanalysis.RL_gauss_deconvolve(cesm.temp, cesm.aod, 200)
+    t_rl_aod, _err = fppanalysis.RL_gauss_deconvolve(temp, cesm.aod, 200)
     t_rl_aod = t_rl_aod.flatten()
     # TODO: convolve the found t_rl_rf with RF from OB16, and compare with T from OB16
     plt.figure()
@@ -122,10 +130,10 @@ def main():
     plt.plot(cesm.aod.time, t_rl_aod, label="RLD(T, AOD)")
     plt.legend()
     plt.figure()
-    plt.plot(cesm.aod.time, cesm.temp)
+    plt.plot(cesm.aod.time, temp)
     plt.plot(cesm.aod.time, np.convolve(t_rl_aod, cesm.aod, mode="same"))
-    plt.plot(cesm.aod.time, np.convolve(t_rl_rf, cesm.rf, mode="same"))
-    plt.plot(cesm.aod.time, cesm.temp)
+    plt.plot(cesm.aod.time, np.convolve(t_rl_rf, rf, mode="same"))
+    plt.plot(cesm.aod.time, temp)
 
     plt.show()
 

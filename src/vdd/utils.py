@@ -1,12 +1,57 @@
 """Utility functions for the volcano-data-deconvolution package."""
 
+import datetime
 import pathlib
 import re
 from typing import Never, NoReturn, overload
 
+import cftime
+import cosmoplots
+import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
 import xarray as xr
+
+plt.style.use([
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+    "vdd.jgr",
+    "vdd.extra",
+])
+
+
+def combine(*files: str | pathlib.Path) -> cosmoplots.Combine:
+    """Give all files that should be combined.
+
+    Parameters
+    ----------
+    *files : str | pathlib.Path
+        A file path that can be read by pathlib.Path.
+
+    Returns
+    -------
+    cosmoplots.Combine
+        An instance of the Combine class.
+
+    Examples
+    --------
+    Load the files and subsequently call the methods that updates the properties.
+
+    >>> combine(
+    ...     "file1.png", "file2.png", "file3.png", "file4.png", "file5.png", "file6.png"
+    ... ).using(fontsize=120).in_grid(w=2, h=3).with_labels(
+    ...     "(a)", "(b)", "(c)", "(d)", "(e)", "(f)"
+    ... ).save()
+
+    All (global) methods except from `save` and `help` return the object itself, and can
+    be chained together.
+    """
+    return cosmoplots.combine(*files).using(fontsize=8)
+
+
+def d2n(date: datetime.datetime) -> float:
+    """Convert a datetime to a number, using 2000-01-01 as the reference date."""
+    unit = "days since 2000-01-01"
+    return cftime.date2num(date, units=unit, calendar="noleap", has_year_zero=True)
 
 
 def name_translator(name: re.Match) -> str:

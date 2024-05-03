@@ -1,2 +1,2 @@
-[tools]
-python = { version = "latest", virtualenv = ".venv" }
+[env]
+_.python.venv = ".venv" # relative to this file's directory

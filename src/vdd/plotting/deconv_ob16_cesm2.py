@@ -1,6 +1,5 @@
 """Plot the deconvolution comparison between OB16 and CESM2."""
 
-import cosmoplots
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import volcano_base
@@ -28,21 +27,15 @@ dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
 dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
 dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
 # Original
-dec_ob16 = vdd.load.DeconvolveOB16(data="h1")
-dec_ob16_month = vdd.load.DeconvolveOB16(data="h0", length=int(12 * 1000) + 1)
+dec_ob16 = vdd.load.DeconvolveOB16(data="h0", length=int(12 * 1000) + 1)
 # Experimental (needs vdd.deconvolve_methods.alternative_deconv)
-# ob16_day = volcano_base.load.OttoBliesner(freq="h1", progress=True)
-# dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_day)
+# ob16 = volcano_base.load.OttoBliesner(freq="h0", progress=True)
+# dec_ob16 = vdd.load.DeconvolveOB16(data=ob16)
 # dec_ob16.change_deconvolution_method(alternative_deconv)
-# ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
-# dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
-# dec_ob16_month.change_deconvolution_method(alternative_deconv)
 dec_ob16.name = "OB16"
-dec_ob16_month.name = "OB16 month"
 all_decs = (
-    # dec_ob16,
-    dec_ob16_month,
-    # dec_cesm_m,
+    dec_ob16,
+    dec_cesm_m,
     dec_cesm_p,
     dec_cesm_s,
     dec_cesm_e,
@@ -69,7 +62,9 @@ class PlotResponseFunctions:
         self.decs = decs
         self.norm = norm
 
-    def plot_rf_so2(self, fig: mpl.figure.Figure | None = None) -> mpl.figure.Figure:
+    def plot_rf_so2(
+        self, fig: mpl.figure.Figure | None = None, save_as: str = "rf-so2"
+    ) -> mpl.figure.Figure:
         """Plot the radiative forcing to SO2 response functions."""
         match fig:
             case None:
@@ -83,13 +78,15 @@ class PlotResponseFunctions:
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"rf-so2-{"norm" if self.norm else "abs"}.png")
+                fig.savefig(
+                    _SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}.jpg"
+                )
                 return fig
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
 
     def plot_rf_so2_decay(
-        self, fig: mpl.figure.Figure | None = None
+        self, fig: mpl.figure.Figure | None = None, save_as: str = "rf-so2_decay"
     ) -> mpl.figure.Figure:
         """Plot the radiative forcing to SO2 decay response functions."""
         match fig:
@@ -105,13 +102,15 @@ class PlotResponseFunctions:
                 )
                 ax.legend()
                 fig.savefig(
-                    _SAVE_DIR / f"rf-so2_decay-{"norm" if self.norm else "abs"}.png"
+                    _SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}.jpg"
                 )
                 return fig
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
 
-    def plot_temp_so2(self, fig: mpl.figure.Figure | None = None) -> mpl.figure.Figure:
+    def plot_temp_so2(
+        self, fig: mpl.figure.Figure | None = None, save_as: str = "temp-so2"
+    ) -> mpl.figure.Figure:
         """Plot the temperature to SO2 response functions."""
         match fig:
             case None:
@@ -126,13 +125,15 @@ class PlotResponseFunctions:
                 )
                 ax.legend()
                 fig.savefig(
-                    _SAVE_DIR / f"temp-so2-{"norm" if self.norm else "abs"}.png"
+                    _SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}.jpg"
                 )
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
 
-    def plot_temp_rf(self, fig: mpl.figure.Figure | None = None) -> mpl.figure.Figure:
+    def plot_temp_rf(
+        self, fig: mpl.figure.Figure | None = None, save_as: str = "temp-rf"
+    ) -> mpl.figure.Figure:
         """Plot the temperature to radiative forcing response functions."""
         match fig:
             case None:
@@ -146,12 +147,14 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"temp-rf-{"norm" if self.norm else "abs"}.png")
+                fig.savefig(
+                    _SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}.jpg"
+                )
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
 
-    def run(self) -> None:
+    def run(self, save_as: list[str] | None = None) -> None:
         """Run the class."""
         rf_so2 = self.plot_rf_so2()
         rf_so2_decay = self.plot_rf_so2_decay()
@@ -205,23 +208,32 @@ class PlotResponseFunctions:
             rf_so2_decay_a.plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))
             temp_so2_a.plot(dec.tau, temp_so2_resp, label=ns(dec.name))
             temp_rf_a.plot(dec.tau, temp_rf_resp, label=ns(dec.name))
-        self.plot_rf_so2(rf_so2)
-        self.plot_rf_so2_decay(rf_so2_decay)
-        self.plot_temp_so2(temp_so2)
-        self.plot_temp_rf(temp_rf)
+        save_as = save_as or ["rf-so2", "rf-so2_decay", "temp-so2", "temp-rf"]
+        self.plot_rf_so2(rf_so2, save_as[0])
+        self.plot_rf_so2_decay(rf_so2_decay, save_as[1])
+        self.plot_temp_so2(temp_so2, save_as[2])
+        self.plot_temp_rf(temp_rf, save_as[3])
 
 
 def _main() -> None:
+    save_as = ["rf-so2", "rf-so2_decay", "temp-so2", "temp-rf"]
+    for dec in all_decs[1:]:
+        save_as_ = [
+            val + "-" + vdd.utils.clean_filename(ns(dec.name)).name for val in save_as
+        ]
+        PlotResponseFunctions(dec_ob16, dec, norm=True).run(save_as_)
+        PlotResponseFunctions(dec_ob16, dec, norm=False).run(save_as_)
+        plt.close("all")
     PlotResponseFunctions(*all_decs, norm=True).run()
     PlotResponseFunctions(*all_decs, norm=False).run()
     files = (
-        [_SAVE_DIR / f"rf-so2-{k}.png" for k in ["abs", "norm"]],
-        [_SAVE_DIR / f"rf-so2_decay-{k}.png" for k in ["abs", "norm"]],
-        [_SAVE_DIR / f"temp-so2-{k}.png" for k in ["abs", "norm"]],
-        [_SAVE_DIR / f"temp-rf-{k}.png" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"rf-so2-{k}.jpg" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"rf-so2_decay-{k}.jpg" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"temp-so2-{k}.jpg" for k in ["abs", "norm"]],
+        [_SAVE_DIR / f"temp-rf-{k}.jpg" for k in ["abs", "norm"]],
     )
     for file in files:
-        cosmoplots.combine(*file).in_grid(2, 1).using(fontsize=50).save(
+        vdd.utils.combine(*file).in_grid(2, 1).save(
             _SAVE_DIR / ns(file[0].name.replace("-abs", ""))
         )
         for f in file:

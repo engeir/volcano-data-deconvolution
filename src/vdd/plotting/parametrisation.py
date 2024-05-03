@@ -9,18 +9,11 @@
 #       time lags.
 # - [ ] Try smoothing the response functions to obtain a more stable result.
 
-import datetime
-
-import cftime
-import cosmoplots
 import fppanalysis
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
 import xarray as xr
-from rich.console import Console
-from rich.table import Table
 
 import vdd.load
 from vdd.utils import name_swap as ns
@@ -52,95 +45,9 @@ all_decs = (
     dec_cesm_e,
     dec_cesm_s,
     dec_cesm_p,
+    dec_cesm_m,
     dec_ob16_month,
 )
-
-
-def d2n(date: datetime.datetime) -> float:
-    """Convert a datetime to a number, using 2000-01-01 as the reference date."""
-    unit = "days since 2000-01-01"
-    return cftime.date2num(date, units=unit, calendar="noleap", has_year_zero=True)
-
-
-class ReconstructOB16:
-    """Class that reconstructs the temperature of OB16 from CESM2 simulations."""
-
-    def __init__(self, *decs: vdd.load.Deconvolve) -> None:
-        self.ob16 = vdd.load.DeconvolveOB16(data="h0")
-        self.ob16.name = "OB16 month"
-        self.decs = decs
-
-    def plot_temperature(self) -> None:
-        """Plot the reconstructed temperatures."""
-        xlim = (
-            d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            d2n(datetime.datetime(1350, 1, 1, 0, 0)),
-        )
-        all_f = plt.figure()
-        all_a = all_f.gca()
-        all_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
-        all_zoom_f = plt.figure()
-        all_zoom_a = all_zoom_f.gca()
-        all_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label=self.ob16.name)
-        all_zoom_a.set_xlim(xlim)
-        res: list[tuple[str, str, str]] = []
-        for dec in self.decs:
-            res = self._plot_temperature_single(dec, res, (all_a, all_zoom_a))
-        table = Table(
-            title="Difference between reconstructed temperature from OB16 and other simulations"
-        )
-        table.add_column("Simulation name", justify="left", style="cyan", no_wrap=True)
-        table.add_column("Raw response", justify="center", style="magenta")
-        table.add_column("Scaled response", justify="center", style="magenta")
-        for r_ in res:
-            table.add_row(*r_)
-        console = Console()
-        console.print(table)
-        all_a.legend()
-        all_f.savefig(_SAVE_DIR / "reconstruct_from_all.png")
-        all_zoom_a.legend()
-        all_zoom_f.savefig(_SAVE_DIR / "reconstruct_from_all_zoom.png")
-
-    def _plot_temperature_single(
-        self,
-        dec: vdd.load.Deconvolve,
-        res: list[tuple[str, str, str]],
-        axs: tuple[mpl.axes.Axes, mpl.axes.Axes],
-    ) -> list[tuple[str, str, str]]:
-        """Plot the reconstructed temperature for a single simulation."""
-        xlim = (
-            d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            d2n(datetime.datetime(1350, 1, 1, 0, 0)),
-        )
-        fn = ns(vdd.utils.clean_filename(dec.name))
-        inv_f = plt.figure()
-        inv_a = inv_f.gca()
-        inv_zoom_f = plt.figure()
-        inv_zoom_a = inv_zoom_f.gca()
-        inv_zoom_a.set_xlim(xlim)
-        response = dec.response_temp_rf
-        response_scaled = response / response.max() * self.ob16.response_temp_rf.max()
-        new_temp = np.convolve(self.ob16.rf, response, mode="same")
-        new_temp_scaled = np.convolve(self.ob16.rf, response_scaled, mode="same")
-        axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
-        axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
-        inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
-        inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
-        inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
-        inv_a.legend()
-        inv_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}.png")
-        inv_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
-        inv_zoom_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
-        inv_zoom_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
-        inv_zoom_a.legend()
-        inv_zoom_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}_zoom.png")
-        # Print the distance away from the reconstructed
-        rob16 = self.ob16.response_temp_rf
-        ob16_temp = np.convolve(self.ob16.rf, rob16, mode="same")
-        ob16_diff = np.abs(ob16_temp - new_temp).sum()
-        ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
-        res.append((ns(dec.name), f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
-        return res
 
 
 class PlotParametrisation:
@@ -233,14 +140,14 @@ class PlotParametrisation:
                 ind_a.plot(v.tau, v, label=v.attrs["label"], ls=v.attrs["ls"])
             ind_a.legend()
             ind.savefig(
-                _SAVE_DIR / ns(f"parametrisation_{vdd.utils.clean_filename(key)}.png")
+                _SAVE_DIR / ns(f"parametrisation_{vdd.utils.clean_filename(key)}.jpg")
             )
             # Ensemble plot
             mean = np.mean([v for v in value.data_vars.values()], axis=0)
             ens_a.plot(value.tau, mean, label=f"{key} mean")
         ens_a.set_xlim((-2, 21))
         ens_a.legend()
-        ens.savefig(_SAVE_DIR / "parametrisation_ensemble.png")
+        ens.savefig(_SAVE_DIR / "parametrisation_ensemble.jpg")
 
     def plot_method_comparisons(self) -> None:
         """Plot the mean for each response strategy and the full mean."""
@@ -269,16 +176,10 @@ class PlotParametrisation:
         final_a.plot(final_xr[0][0].tau, final_plot, label="Full mean")
         final_a.set_xlim((-2, 21))
         final_a.legend()
-        final.savefig(_SAVE_DIR / "parametrisation_final.png")
+        final.savefig(_SAVE_DIR / "parametrisation_final.jpg")
         method_a.set_xlim((-2, 21))
         method_a.legend()
-        method.savefig(_SAVE_DIR / "parametrisation_method.png")
-
-
-def _plot_reconstructed_temperature() -> None:
-    rec = ReconstructOB16(*all_decs)
-    rec.plot_temperature()
-    plt.show()
+        method.savefig(_SAVE_DIR / "parametrisation_method.jpg")
 
 
 def _plot_response_functions() -> None:
@@ -287,8 +188,8 @@ def _plot_response_functions() -> None:
     pp.plot_simulations()
     plt.show()
     # Combine the response functions I'm interested in
-    cosmoplots.combine(*[
-        _SAVE_DIR / f"parametrisation_{ns(file)}.png"
+    vdd.utils.combine(*[
+        _SAVE_DIR / f"parametrisation_{ns(file)}.jpg"
         for file in [
             "ob16-month",
             "cesm2-medium-plus",
@@ -297,14 +198,13 @@ def _plot_response_functions() -> None:
             "cesm2-tt-2sep",
             "cesm2-tt-4sep",
         ]
-    ]).in_grid(2, 3).using(fontsize=50).save(_SAVE_DIR / "parametrisation_combined.png")
+    ]).in_grid(2, 3).save(_SAVE_DIR / "parametrisation_combined.jpg")
     pp.plot_method_comparisons()
     plt.show()
 
 
 def main():
     """Run the main script."""
-    # _plot_reconstructed_temperature()
     _plot_response_functions()
 
 

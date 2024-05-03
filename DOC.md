@@ -51,7 +51,7 @@ well as the writing remains.
 - The deconvolution works well with SO~2~ delta pulses as forcing, both for daily and
   monthly resolved dataset (section \ref{response-functions})
 - Deconvolution of temperature to RF is worse due to the noise in the forcing signal,
-  but most likely sufficient from the strongest CESM2 simulations as well as the OB16
+  but most likely good enough from the strongest CESM2 simulations as well as the OB16
   data (may attempt with the alternative method, but probably too computationally
   expensive, at least with OB16) (section \ref{parametrisation})
 - The development of the temperature response to SO~2~ delta forcing is consistent
@@ -77,6 +77,9 @@ well as the writing remains.
   response to volcanic eruptions combine linearly, and so does the radiative forcing
   (section \ref{double-waveform}, double waveform analysis, Fig.
   \ref{waveform-comparison})
+- We find that RF can largely be described as a function of SO~2~ (output signal with
+  decay, that is) through a logarithmic and exponential decay model, while the
+  temperature is constructed from RF using a linear model. _Is this new or surprising?_
 
 ### To do {-}
 
@@ -237,7 +240,7 @@ much more flat, but with spuriously strong correlations at all time lags.
 ### Spectrum
 
 Below is a plot showing the power spectral density of the two residual time series, and
-the control temperature time series.
+the control temperature time series, along with the original temperature time series.
 
 ![Spectrum OB16](./generated_files/reconstruction/ob16-month-spectrum-residual-control_temp.png){width=49%}
 ![Spectrum CESM2](./generated_files/reconstruction/cesm2-strong-spectrum-residual-control_temp.png){width=49%}
@@ -535,10 +538,16 @@ on the CESM2 strong simulation, the CESM2 2-year double waveform simulation, ~~a
 OB16 dataset~~.
 
 ![AOD and RF estimates with time constants, CESM2
-strong](./generated_files/relationships/numerical_aod_rf_cesm-cesm2-strong_combined_so2.png)
+strong](./generated_files/relationships/combined/numerical_aod_rf_cesm-cesm2-strong_combined_so2.png)
 
 ![AOD and RF estimates with time constants, CESM2
-2-year double](./generated_files/relationships/numerical_aod_rf_cesm-cesm2-tt-2sep_combined_so2.png)
+2-year double](./generated_files/relationships/combined/numerical_aod_rf_cesm-cesm2-tt-2sep_combined_so2.png)
+
+To conclude, we find that RF is very well represented by the $R(t)=R(A(S(t)))$ model
+across all datasets, but with the caveat that we optimise the parameters for each
+dataset. Re-using any of the parameters with other datasets yields mostly incorrect
+amplitudes within the CESM2 simulations, and both incorrect amplitudes and time
+constants when comparing across both CESM2 and OB16 (CESM1).
 
 ## Cut off response function
 
@@ -605,9 +614,9 @@ As the $4$ year separated double waveform response function contain only a singl
 ensemble member, the noise is substantial. However, we can recreate both the RF and
 temperature time series using the raw SO~2~ time series, and the response functions from
 CESM2 strong of the RF and temperature to SO~2~. Therefore, we expect the shape of the
-response of temperature to RF to be similar to what obtained from CESM2 strong.
+response of temperature to RF to be similar to what we get from CESM2 strong.
 
-![Cut off response function CESM2 4-sep, $T$ against $R$](./generated_files/cut_off/cesm2-double-overlap_resp_temp-rf_combined.png)
+![Cut off response function CESM2 4-sep, $T$ against $R$](./generated_files/cut_off/cesm2-tt-4sep_resp_temp-rf_combined.png)
 
 ### Cut-off reconstructions
 

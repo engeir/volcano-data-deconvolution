@@ -6,7 +6,6 @@ response functions of other simulations.
 
 from typing import Literal
 
-import cosmoplots
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -14,6 +13,7 @@ import xarray as xr
 from matplotlib import patheffects
 
 import vdd.load
+import vdd.utils
 
 plt.style.use([
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
@@ -28,7 +28,7 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="double-overlap"))
+dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
 dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
 dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
@@ -58,13 +58,13 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
     rf_a.set_ylabel("Radiative forcing response to SO2")
     temp_a.set_xlabel("Time lag ($\\tau$) [yr]")
     temp_a.set_ylabel("Temperature response to SO2")
-    aod_a.set_xlim((-2, 15))
-    rf_a.set_xlim((-2, 15))
-    temp_a.set_xlim((-2, 15))
+    aod_a.set_xlim((-2, 21))
+    rf_a.set_xlim((-2, 21))
+    temp_a.set_xlim((-2, 21))
     aod_a.legend()
     rf_a.legend()
     temp_a.legend()
-    files = [_SAVE_DIR / f"responses_{k}.png" for k in ["aod", "rf", "temp"]]
+    files = [_SAVE_DIR / f"responses_{k}.jpg" for k in ["aod", "rf", "temp"]]
     aod_f.savefig(files[0])
     rf_f.savefig(files[1])
     temp_f.savefig(files[2])
@@ -82,13 +82,14 @@ class CheckRecreatedWaveforms:
     def __init__(
         self,
         *decs: vdd.load.DeconvolveCESM,
+        single_waveform: vdd.load.DeconvolveCESM = dec_cesm_p,
         scale_by_aod: Literal["log", "log-inside", "root"] | bool = False,
     ):
+        self.single_waveform = single_waveform
         self.decs = decs
         self.scale_by_aod = scale_by_aod
         self.figs = {"aod": plt.figure(), "rf": plt.figure(), "temp": plt.figure()}
         self.axs = {k: v.gca() for k, v in self.figs.items()}
-        # self.response_rf = dec_cesm_s.response_rf_so2
 
     def run_loop(self) -> None:
         """Run the main loop."""
@@ -104,14 +105,14 @@ class CheckRecreatedWaveforms:
         self.axs["temp"].set_ylabel("Temperature [K]")
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
         files = [
-            _SAVE_DIR / f"recreated_waveforms_{k}{corrected}.png"
+            _SAVE_DIR / f"recreated_waveforms_{k}{corrected}.jpg"
             for k in ["aod", "rf", "temp"]
         ]
         self.figs["aod"].savefig(files[0])
         self.figs["rf"].savefig(files[1])
         self.figs["temp"].savefig(files[2])
-        cosmoplots.combine(*files).in_grid(1, 3).using(fontsize=50).save(
-            _SAVE_DIR / f"responses_combined{corrected}.png"
+        vdd.utils.combine(*files).in_grid(1, 3).save(
+            _SAVE_DIR / f"responses_combined{corrected}.jpg"
         )
         for f in files:
             f.unlink()
@@ -148,19 +149,29 @@ class CheckRecreatedWaveforms:
     ) -> None:
         name = "2sep" if "2sep" in dec.name else "4sep"
         so2 = dec.so2
-        diff_len = len(dec_cesm_s.response_rf_so2) - len(so2)
+        diff_len = len(self.single_waveform.response_rf_so2) - len(so2)
         pe = [
             patheffects.Stroke(linewidth=1, foreground=_COLORS[i]),
             patheffects.Normal(),
         ]
         arr = getattr(dec, attr)
-        dec_resp = getattr(dec, f"response_{attr}_so2")
-        resp_arr = getattr(dec_cesm_s, f"response_{attr}_so2")[
-            diff_len // 2 : -diff_len // 2
-        ]
+        if diff_len < 0:
+            diff_len = abs(diff_len)
+            dec_resp = getattr(dec, f"response_{attr}_so2")[
+                diff_len // 2 : -diff_len // 2
+            ]
+            resp_arr = getattr(self.single_waveform, f"response_{attr}_so2")
+        elif diff_len > 0:
+            dec_resp = getattr(dec, f"response_{attr}_so2")
+            resp_arr = getattr(self.single_waveform, f"response_{attr}_so2")[
+                diff_len // 2 : -diff_len // 2
+            ]
+        else:
+            dec_resp = getattr(dec, f"response_{attr}_so2")
+            resp_arr = getattr(self.single_waveform, f"response_{attr}_so2")
         # Scale r_arr
-        scale_arr = np.max(dec_resp) / np.max(resp_arr)
-        resp_arr *= scale_arr
+        # scale_arr = np.max(dec_resp) / np.max(resp_arr)
+        # resp_arr *= scale_arr
         # Scale so2 for new array
         rec_same = np.convolve(dec_resp, so2, "same")
         rec_new = np.convolve(resp_arr, so2_new, "same")
@@ -198,7 +209,7 @@ class CheckRecreatedWaveforms:
             # [ 1.03776542 65.61337388]  # 4sep
             # params = [3.02039794, 1.19424641]  # Single peaks
             params = [22.34317318, 0.97876114]  # Single peaks, RF/AOD
-            # resp_temp_rf = dec_cesm_s.response_temp_rf[
+            # resp_temp_rf = self.single_waveform.response_temp_rf[
             #     diff_len // 2 : -diff_len // 2
             # ]
             resp_temp_rf = dec.response_temp_rf
@@ -211,13 +222,13 @@ class CheckRecreatedWaveforms:
 def main() -> None:
     """Run the main script."""
     check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
-    CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log").run_loop()
+    # CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log").run_loop()
     # CheckRecreatedWaveforms(
     #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside"
     # ).run_loop()
-    CheckRecreatedWaveforms(
-        dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root"
-    ).run_loop()
+    # CheckRecreatedWaveforms(
+    #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root"
+    # ).run_loop()
     CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep).run_loop()
 
 
