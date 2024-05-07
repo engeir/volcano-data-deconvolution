@@ -72,10 +72,12 @@ class PlotCutOff:
                     "No cuts have been made. Run `call_cut_offs('cut_off', ...)`."
                 )
             files = self._plot_single(co)
+            f_l = list(files)
+            f_l.sort(key=lambda x: x.name[-7:-4])
             f1: pathlib.Path = files[0]
-            vdd.utils.combine(*files).in_grid(2, len(files) // 2).using(
-                fontsize=50
-            ).save(f1.parent / f"{vdd.utils.name_swap(f1.name[:-7])}combined.jpg")
+            vdd.utils.combine(*f_l).in_grid(2, len(files) // 2).save(
+                f1.parent / f"{vdd.utils.name_swap(f1.name[:-7])}combined.jpg"
+            )
             if remove_grid_parts:
                 for f in files:
                     f.unlink()
@@ -90,10 +92,11 @@ class PlotCutOff:
             temp_f = plt.figure()
             temp_a = temp_f.gca()
             resp_a.axvline(int(k) / 12, c="k", ls="--")
-            resp_a.plot(co.dec.tau, co.response, label="Response")
-            resp_a.plot(v.tau, v.response, label=v.response.attrs["label"])
-            temp_a.plot(co.output.time, co.output, label="Temp")
-            temp_a.plot(v.time, v.temp_rec, label=v.temp_rec.attrs["label"])
+            resp_a.plot(co.dec.tau, co.response, label="Original")
+            resp_a.plot(v.tau, v.response, label=f"Cut {int(k) // 12}")
+            temp_a.plot(co.output.time, co.dec.temp_control, label="Control")
+            temp_a.plot(co.output.time, co.output, label="Original")
+            temp_a.plot(v.time, v.temp_rec, label=f"Cut {int(k) // 12}")
             percentiles = []
             for i, j in co.ensembles[k].items():
                 if "response" in str(i):
@@ -110,6 +113,9 @@ class PlotCutOff:
             ymax = co.response.max()
             resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
             resp_a.legend(loc="upper right", framealpha=0.9)
+            temp_a.set_xlabel("Time lag ($\\tau$) [yr]")
+            temp_a.set_ylabel("Temperature anomaly [K]")
+            temp_a.legend(loc="upper right", framealpha=0.9)
             match v.time.data[0]:
                 case cftime._cftime.DatetimeNoLeap():
                     temp_a.set_xlim((-790 * 365, -650 * 365))
@@ -160,7 +166,7 @@ def _use_cut_off() -> None:
         co_4sep_temp_so2,
         co_4sep_temp_rf,
     )
-    pco.call_cut_offs("cut_off", {12 * i for i in [2, 4, 8, 16]})
+    pco.call_cut_offs("cut_off", {12 * i for i in [6, 7, 8, 10]})
     pco.call_cut_offs("generate_ensembles", 50)
     pco.plot()
 
