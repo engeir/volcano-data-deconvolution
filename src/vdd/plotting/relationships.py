@@ -17,6 +17,7 @@ from scipy.optimize import curve_fit
 
 import vdd.load
 from vdd.utils import name_swap as nsw
+from vdd.utils import s2n
 
 # TODO:
 # - Create a plot where all simulations uses the parameters of a given simulation. It
@@ -59,11 +60,6 @@ dec_ob16 = vdd.load.DeconvolveOB16(data="h0", length=12000)
 # decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m, dec_ob16)
 decs = (dec_4sep, dec_2sep, dec_e, dec_s, dec_p, dec_m)
 # decs = (dec_ob16,)
-
-
-def s2n(num: float, decimal: int = 2) -> str:
-    """Convert a number to scientific notation."""
-    return f"\\num{{{num:.{decimal}e}}}"
 
 
 class AnalyticSolution:

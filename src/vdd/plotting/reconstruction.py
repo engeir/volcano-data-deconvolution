@@ -17,7 +17,6 @@
 #        array we come across. Try all. (Amplitude seems to work best.)
 
 import datetime
-import pathlib
 import warnings
 from functools import cached_property
 from typing import Literal
@@ -48,6 +47,8 @@ plt.style.use([
     "vdd.extra",
 ])
 
+COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
@@ -69,48 +70,6 @@ all_decs = (
     dec_cesm_m,
     dec_ob16_month,
 )
-
-
-def _setup() -> (
-    tuple[volcano_base.load.OttoBliesner, tuple[vdd.load.Reconstructor, ...]]
-):
-    # Used as a reference for the reconstruction.
-    ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
-    dec_ob16 = vdd.load.DeconvolveOB16(data=ob16_month, length=12001)
-    dec_ob16.name = "OB16 month"
-    recs: tuple[vdd.load.Reconstructor, ...] = ()
-    # OB16 month -----------------------------------------------------------------------
-    rec_ob16 = vdd.load.DeconvolveOB16(normalise=False, data=ob16_month, length=12001)
-    rec_ob16.name = "OB16 month"
-    recs += (rec_ob16.dump_reconstructor(),)
-    # OB16 cut offs --------------------------------------------------------------------
-    co_ob16_temp_so2 = vdd.load.CutOff(dec_ob16, ("temp", "so2"))
-    co_ob16_temp_rf = vdd.load.CutOff(dec_ob16, ("temp", "rf"))
-    meta_years = {12 * i for i in [2, 4, 8, 16]}
-    for co in (co_ob16_temp_so2, co_ob16_temp_rf):
-        co.cut_off(meta_years)
-    for meta_year_ in meta_years:
-        meta_year = int(meta_year_)
-        rec_co = co_ob16_temp_so2.dump_reconstructor(
-            cut=meta_year, temp_rf=co_ob16_temp_rf.cuts[str(meta_year)].response.data
-        )
-        num = str(meta_year // 12)
-        num = "0" * (2 - len(num)) + num
-        rec_co.name = f"cut off {num} years"
-        recs += (rec_co,)
-    # CESM2 ----------------------------------------------------------------------------
-    for cesm_ in (
-        "medium",
-        "medium-plus",
-        "strong",
-        "size5000",
-        "tt-2sep",
-        "tt-4sep",
-    ):
-        cesm = vdd.load.CESMData(strength=cesm_)  # type: ignore
-        rec_cesm = vdd.load.DeconvolveCESM(normalise=False, pad_before=True, cesm=cesm)
-        recs += (rec_cesm.dump_reconstructor(),)
-    return ob16_month, recs
 
 
 class ReconstructOB16:
@@ -372,66 +331,43 @@ class PlotReconstruction:
             plt.show()
         return peaks_time, peaks_original, peaks_so2, peaks_rf
 
-    def plot_reconstruction_temp(self, fig: mpl.figure.Figure | None = None) -> None:
+    def plot_reconstruction_temp(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Plot the reconstruction of the data."""
-        abso = plt.figure()
-        abso_a = abso.gca()
-        abso_a.set_xlabel("Time [yr]")
-        abso_a.set_ylabel("Absolute")
-        # norm = plt.figure()
-        # norm_a = norm.gca()
-        # norm_a.set_ylabel("Normalised")
-        # nor2 = plt.figure()
-        # nor2_a = nor2.gca()
-        # nor2_a.set_ylabel("Normalised to OB16 response amplitude")
+        ax.set_xlabel("Time [yr]")
+        ax.set_ylabel("Temperature anomaly [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
-        # rt2 = self.dec_ob16.response_temp_so2.max()
-        # rtr = self.dec_ob16.response_temp_rf.max()
-        abso_a.plot(time_, self.temp_control, label="OB16 control")
-        abso_a.plot(time_, temp.data, label="OB16 month")
-        # norm_a.plot(time_, vdd.utils.normalise(temp.data), label="OB16 month")
-        # nor2_a.plot(time_, temp.data, label="OB16 month")
-        rec = self.reconstruction
-        # conv_norm_temp_so2 = np.convolve(
-        #     so2.data,
-        #     rec.response_temp_so2 / rec.response_temp_so2.max() * rt2,
-        #     "same",
-        # )
-        # conv_norm_temp_rf = np.convolve(
-        #     rf.data, rec.response_temp_rf / rec.response_temp_rf.max() * rtr, "same"
-        # )
-        lso2 = f"SO2 ({rec.name})"
-        # lrf = f"RF ({rec.name})"
-        abso_a.plot(time_, self.rec_temp_so2, label=lso2)
-        # abso_a.plot(time_, self.rec_temp_rf, label=lrf)
-        # norm_a.plot(time_, vdd.utils.normalise(self.rec_temp_so2), label=lso2)
-        # norm_a.plot(time_, vdd.utils.normalise(self.rec_temp_rf), label=lrf)
-        # nor2_a.plot(time_, conv_norm_temp_so2, label=lso2)
-        # nor2_a.plot(time_, conv_norm_temp_rf, label=lrf)
-        abso_a.set_xlim((-790 * 365, -650 * 365))
-        abso_a.legend(framealpha=0.5)
-        # norm_a.legend()
-        # nor2_a.legend()
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.jpg")
+        ax.plot(time_, self.temp_control, c=COLORS[1], label="OB16 control")
+        ax.plot(time_, temp.data, c=COLORS[0], label="OB16")
+        lso2 = "Reconstructed"
+        ax.plot(time_, self.rec_temp_so2, c=COLORS[2], label=lso2)
+        ax.set_xlim((-790 * 365, -650 * 365))
+        ax.legend(framealpha=0.5)
+        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.jpg")
+        return ax
 
-    def correlation(self) -> None:
+    def correlation(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compute the correlation between the residuals and temperature."""
+        corr_self_time, corr_self = fppanalysis.corr_fun(
+            self.dec_ob16.temp.data, self.dec_ob16.temp.data, 1 / 12
+        )
         corr_so2_time, corr_so2 = fppanalysis.corr_fun(
             self.residual_so2, self.dec_ob16.temp.data, 1 / 12
         )
-        corr_rf_time, corr_rf = fppanalysis.corr_fun(
-            self.residual_rf, self.dec_ob16.temp.data, 1 / 12
+        corr_ctrl_time, corr_ctrl = fppanalysis.corr_fun(
+            self.dec_ob16.temp_control, self.dec_ob16.temp.data, 1 / 12
         )
-        plt.figure()
-        plt.plot(corr_so2_time, corr_so2, label="SO2", alpha=0.7)
-        plt.plot(corr_rf_time, corr_rf, label="RF", alpha=0.7)
-        plt.xlabel("Time lag ($\\tau$) [yr]")
-        plt.ylabel("Correlation between residual \nand original temperature")
-        plt.legend()
-        plt.savefig(
-            _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.jpg"
-        )
+        ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="Control")
+        ax.plot(corr_self_time, corr_self, c=COLORS[0], label="OB16")
+        ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label="Reconstructed")
+        ax.set_xlim((-100, 100))
+        ax.set_xlabel("Time lag ($\\tau$) [yr]")
+        ax.set_ylabel("Correlation with OB16 temperature")
+        ax.legend()
+        # plt.savefig(
+        #     _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.jpg"
+        # )
+        return ax
 
     @staticmethod
     def _spectrum_1d(signal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -456,47 +392,41 @@ class PlotReconstruction:
         power_plus = power[frequency > 0]
         return np.asarray(frequency_plus[1:]), np.asarray(power_plus[1:])
 
-    def spectrum(self) -> None:
+    def spectrum(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compare the spectrum of the residuals and the control temperature."""
         f_so2, p_so2 = self._spectrum_1d(self.residual_so2)
-        f_rf, p_rf = self._spectrum_1d(self.residual_rf)
         f_control, p_control = self._spectrum_1d(self.temp_control.data)
         f_orig, p_orig = self._spectrum_1d(self.dec_ob16.temp.data)
-        plt.figure()
-        plt.plot(f_so2, p_so2, label="Resi SO2", alpha=0.5)
-        plt.plot(f_rf, p_rf, label="Resi RF", alpha=0.5)
-        plt.plot(f_control, p_control, label="Control", alpha=0.5)
-        plt.plot(f_orig, p_orig, label="OB16", alpha=0.5)
+        ax.plot(f_orig, p_orig, label="OB16", alpha=0.5)
+        ax.plot(f_control, p_control, label="Control", alpha=0.5)
+        ax.plot(f_so2, p_so2, label="Residual", alpha=0.5)
         # Suppress the warning
         warnings.filterwarnings("ignore")
-        cosmoplots.change_log_axis_base(plt.gca(), "both")
+        cosmoplots.change_log_axis_base(ax, "both")
         warnings.resetwarnings()
-        plt.xlabel("Frequency")
-        plt.ylabel("Power spectral density")
-        plt.legend()
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.jpg")
+        ax.set_xlabel("Frequency [yr$^{-1}$]")
+        ax.set_ylabel("Power spectral density")
+        ax.legend()
+        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.jpg")
+        return ax
 
-    def spectrum_parts(self) -> None:
+    def spectrum_parts(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """View the spectrum of the response functions and the input data."""
         f_so2, p_so2 = self._spectrum_1d(self.reconstruction.response_temp_so2)
-        f_rf, p_rf = self._spectrum_1d(self.reconstruction.response_temp_rf)
         f_control, p_control = self._spectrum_1d(self.temp_control.data)
         f_orig_so2, p_orig_so2 = self._spectrum_1d(self.dec_ob16.so2.data)
-        f_orig_rf, p_orig_rf = self._spectrum_1d(self.dec_ob16.rf.data)
-        plt.figure()
-        plt.plot(f_so2, p_so2, label="$\\phi_{\\mathrm{T-SO2}}$", alpha=0.5)
-        plt.plot(f_rf, p_rf, label="$\\phi_{\\mathrm{T-RF}}$", alpha=0.5)
-        plt.plot(f_control, p_control, label="Control", alpha=0.5)
-        plt.plot(f_orig_so2, p_orig_so2, label="SO2 TS", alpha=0.5)
-        plt.plot(f_orig_rf, p_orig_rf, label="RF TS", alpha=0.5)
+        ax.plot(f_so2, p_so2, label="$\\varphi_{\\mathrm{T-SO2}}$", alpha=0.5)
+        ax.plot(f_control, p_control, label="Control", alpha=0.5)
+        ax.plot(f_orig_so2, p_orig_so2, label="SO2 TS", alpha=0.5)
         # Suppress the warning
         warnings.filterwarnings("ignore")
-        cosmoplots.change_log_axis_base(plt.gca(), "both")
+        cosmoplots.change_log_axis_base(ax, "both")
         warnings.resetwarnings()
-        plt.xlabel("Frequency")
-        plt.ylabel("Power spectral density")
-        plt.legend()
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.jpg")
+        ax.set_xlabel("Frequency")
+        ax.set_ylabel("Power spectral density")
+        ax.legend()
+        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.jpg")
+        return ax
 
     def _peak_difference_ttest(
         self, so2_basis: np.ndarray, rf_basis: np.ndarray
@@ -534,86 +464,77 @@ class PlotReconstruction:
         else:
             print(reject_no)
         print(t_statistic_rf, p_value_rf)
-        info("RF", p_value_rf)
+        info("CTRL", p_value_rf)
         return p_value_so2, p_value_rf
 
-    def peak_difference_analysis(self) -> None:  # noqa:PLR0914
+    def peak_difference_analysis(  # noqa:PLR0914
+        self, ax1: mpl.axes.Axes, ax2: mpl.axes.Axes
+    ) -> [mpl.axes.Axes, mpl.axes.Axes]:
         """Plot the difference between the reconstructed and the original peaks."""
         so2_basis = self.peaks_so2 - self.peaks_original
-        rf_basis = self.peaks_rf - self.peaks_original
-        so2_conf, rf_conf = self._peak_difference_ttest(so2_basis, rf_basis)
+        ctrl_basis = self.temp_control
+        so2_conf, ctrl_conf = self._peak_difference_ttest(so2_basis, ctrl_basis)
         pdf_so2, cdf_so2, bin_centers_so2 = fppanalysis.distribution(
             so2_basis, 30, ccdf=False
         )
-        pdf_rf, cdf_rf, bin_centers_rf = fppanalysis.distribution(
-            rf_basis, 30, ccdf=False
+        pdf_ctrl, cdf_ctrl, bin_centers_ctrl = fppanalysis.distribution(
+            ctrl_basis, 30, ccdf=False
         )
         stats_so2 = scipy.stats.describe(so2_basis)
-        stats_rf = scipy.stats.describe(rf_basis)
+        stats_ctrl = scipy.stats.describe(ctrl_basis)
         fit_so2 = scipy.stats.norm.fit(so2_basis)
-        fit_rf = scipy.stats.norm.fit(rf_basis)
+        fit_ctrl = scipy.stats.norm.fit(ctrl_basis)
         dist_so2 = scipy.stats.skewnorm(
             a=stats_so2.skewness, loc=stats_so2.mean, scale=np.sqrt(stats_so2.variance)
         )
-        dist_rf = scipy.stats.skewnorm(
-            a=stats_rf.skewness, loc=stats_rf.mean, scale=np.sqrt(stats_rf.variance)
+        dist_ctrl = scipy.stats.skewnorm(
+            a=stats_ctrl.skewness,
+            loc=stats_ctrl.mean,
+            scale=np.sqrt(stats_ctrl.variance),
         )
-        self._peak_difference_plot(
-            (bin_centers_so2, bin_centers_rf, pdf_so2, pdf_rf),
-            ((fit_so2, fit_rf), (dist_so2, dist_rf)),
+        axpdf = self._peak_difference_plot(
+            ax1,
+            (bin_centers_so2, bin_centers_ctrl, pdf_so2, pdf_ctrl),
+            ((fit_so2, fit_ctrl), (dist_so2, dist_ctrl)),
             "pdf",
-            txt=(so2_conf, rf_conf),
+            txt=(so2_conf, ctrl_conf),
         )
-        self._peak_difference_plot(
-            (bin_centers_so2, bin_centers_rf, cdf_so2, cdf_rf),
-            ((fit_so2, fit_rf), (dist_so2, dist_rf)),
+        axcdf = self._peak_difference_plot(
+            ax2,
+            (bin_centers_so2, bin_centers_ctrl, cdf_so2, cdf_ctrl),
+            ((fit_so2, fit_ctrl), (dist_so2, dist_ctrl)),
             "cdf",
-            txt=(so2_conf, rf_conf),
+            txt=(so2_conf, ctrl_conf),
         )
+        return axpdf, axcdf
 
+    @staticmethod
     def _peak_difference_plot(  # noqa:PLR0914
-        self,
+        ax: mpl.axes.Axes,
         fpp_out: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
         fits: tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
         dist: Literal["pdf", "cdf"],
         txt: tuple[str, str],
-    ) -> None:
+    ) -> mpl.figure.Figure:
         b_so2, b_rf, f_s, f_r = fpp_out
-        norm_fit, skewnorm_fit = fits
+        norm_fit, _ = fits
         prop_cycle = plt.rcParams["axes.prop_cycle"]
         colors = prop_cycle.by_key()["color"]
         norm_so2 = getattr(scipy.stats.norm, dist)(b_so2, *norm_fit[0])
         norm_rf = getattr(scipy.stats.norm, dist)(b_rf, *norm_fit[1])
-        skewnorm_so2 = getattr(skewnorm_fit[0], dist)(b_so2)
-        skewnorm_rf = getattr(skewnorm_fit[1], dist)(b_rf)
-        plt.figure()
-        ax = plt.gca()
         ax.bar(b_so2, f_s, width=0.01, label=f"SO2 (p-value: {txt[0]:.4f})", alpha=0.5)
-        ax.bar(b_rf, f_r, width=0.01, label=f"RF (p-value: {txt[1]:.4f})", alpha=0.5)
+        ax.bar(b_rf, f_r, width=0.01, label=f"CTRL (p-value: {txt[1]:.4f})", alpha=0.5)
         bar_hand, bar_lab = ax.get_legend_handles_labels()
         # Norm
-        (norm,) = ax.plot(b_so2, norm_so2, c=colors[0], label="_Norm SO2", alpha=0.5)
-        ax.plot(b_rf, norm_rf, c=colors[1], label="_Norm RF", alpha=0.5)
-        # Skewnorm
-        (skewnorm,) = plt.plot(
-            b_so2, skewnorm_so2, "--", c=colors[0], label="_Skewnorm SO2", alpha=0.5
-        )
-        ax.plot(b_rf, skewnorm_rf, "--", c=colors[1], label="_Skewnorm RF", alpha=0.5)
-        bar_legend = ax.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
-        norm_loc = "center left" if dist == "cdf" else "upper right"
-        norm_legend = ax.legend(
-            [norm, skewnorm], ["Norm", "Skewnorm"], loc=norm_loc, framealpha=0.5
-        )
-        norm_legend.legend_handles[0].set_color("black")  # type: ignore
-        norm_legend.legend_handles[1].set_color("black")  # type: ignore
-        ax.add_artist(bar_legend)
-        ax.add_artist(norm_legend)
+        ax.plot(b_so2, norm_so2, c=colors[0], label="_Norm SO2", alpha=0.5)
+        ax.plot(b_rf, norm_rf, c=colors[1], label="_Norm CTRL", alpha=0.5)
+        ax.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
         # Make the plot symmetric around 0
-        xlim = np.abs(plt.gca().get_xlim()).max()
-        plt.xlim((-xlim, xlim))
-        plt.ylabel(dist.upper())
-        plt.xlabel("Difference between the peaks")
-        plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.jpg")
+        xlim = np.abs(ax.get_xlim()).max()
+        ax.set_xlim((-xlim, xlim))
+        ax.set_ylabel(dist.upper())
+        ax.set_xlabel("Difference between the peaks")
+        return ax
 
 
 class PlotManyReconstructions:
@@ -629,11 +550,11 @@ class PlotManyReconstructions:
         """Run the reconstructions."""
         for rec in self.recs:
             rec_class = PlotReconstruction(self.ob16, rec)
-            rec_class.peak_difference_analysis()
-            rec_class.correlation()
-            rec_class.spectrum()
-            rec_class.spectrum_parts()
-            rec_class.plot_reconstruction_temp()
+            rec_class.peak_difference_analysis(plt.figure().gca(), plt.figure().gca())
+            rec_class.correlation(plt.figure().gca())
+            rec_class.spectrum(plt.figure().gca())
+            rec_class.spectrum_parts(plt.figure().gca())
+            rec_class.plot_reconstruction_temp(plt.figure().gca())
             plt.show()
             plt.close("all")
 
@@ -645,61 +566,35 @@ def _plot_reconstructed_temperature() -> None:
 
 
 def _plot_many_reconstructions() -> None:
-    ob16, recs = _setup()
-    plot_recs = PlotManyReconstructions(ob16, *recs)
-    plot_recs.run()
-    # Combine OB16 and CESM2 small/weak
-    for plot_ in (
-        "temp-reconstructed",
-        "peak-difference-pdf",
-        "peak-difference-cdf",
-        "spectrum-residual-control_temp",
-        "spectrum-response-input",
-        "correlation-residual-reconstructed",
-    ):
-        o, c = (
-            _SAVE_DIR / f"ob16-month-{plot_}.jpg",
-            _SAVE_DIR / f"cesm2-small-{plot_}.jpg",
-        )
-        vdd.utils.combine(o, c).in_grid(2, 1).save(
-            _SAVE_DIR / f"compare-historical-size-{plot_}.jpg"
-        )
-    # We take extra care of the cut-off data.
-    files = pathlib.Path(_SAVE_DIR).glob("cut-off*")
-    temp = []
-    pdf = []
-    cdf = []
-    power = []
-    correlation = []
-    for f in files:
-        match f.name:
-            case _ if "temp-reconstructed" in f.name:
-                temp.append(f)
-            case _ if "peak-difference-pdf" in f.name:
-                pdf.append(f)
-            case _ if "peak-difference-cdf" in f.name:
-                cdf.append(f)
-            case _ if "spectrum-residual-control_temp" in f.name:
-                power.append(f)
-            case _ if "correlation-residual-reconstructed" in f.name:
-                correlation.append(f)
-            case _:
-                pass
-    temp.sort()
-    pdf.sort()
-    cdf.sort()
-    power.sort()
-    correlation.sort()
-    for list_, name in zip(
-        (temp, pdf, cdf, power, correlation),
-        ("temp", "pdf", "cdf", "power", "correlation"),
-        strict=True,
-    ):
-        vdd.utils.combine(*list_).in_grid(2, len(list_) // 2).save(
-            _SAVE_DIR / f"cut-off-{name}-combined.jpg"
-        )
-        for f in list_:
-            f.unlink()
+    ob16 = dec_ob16_month.data
+    recs = (dec_ob16_month.dump_reconstructor(), dec_cesm_m.dump_reconstructor())
+    rec_ob16 = PlotReconstruction(ob16, dec_ob16_month.dump_reconstructor())
+    rec_small = PlotReconstruction(ob16, dec_cesm_m.dump_reconstructor())
+    figpdf, axspdf = cosmoplots.figure_multiple_rows_columns(1, 2)
+    figcdf, axscdf = cosmoplots.figure_multiple_rows_columns(1, 2)
+    rec_ob16.peak_difference_analysis(*[axspdf[0], axscdf[0]])
+    rec_small.peak_difference_analysis(*[axspdf[1], axscdf[1]])
+    figpdf.savefig(_SAVE_DIR / "compare-historical-size-peak-difference-pdf")
+    figcdf.savefig(_SAVE_DIR / "compare-historical-size-peak-difference-cdf")
+    figcorr, axcorr = cosmoplots.figure_multiple_rows_columns(1, 2)
+    rec_ob16.correlation(axcorr[0])
+    rec_small.correlation(axcorr[1])
+    figcorr.savefig(
+        _SAVE_DIR / "compare-historical-size-correlation-residual-reconstructed"
+    )
+    figsp, axsp = cosmoplots.figure_multiple_rows_columns(1, 2)
+    rec_ob16.spectrum(axsp[0])
+    rec_small.spectrum(axsp[1])
+    figsp.savefig(_SAVE_DIR / "compare-historical-size-spectrum-residual-control_temp")
+    figsp_parts, axsp_parts = cosmoplots.figure_multiple_rows_columns(1, 2)
+    rec_ob16.spectrum_parts(axsp_parts[0])
+    rec_small.spectrum_parts(axsp_parts[1])
+    figsp_parts.savefig(_SAVE_DIR / "compare-historical-size-spectrum-response-input")
+    figrec, axrec = cosmoplots.figure_multiple_rows_columns(1, 2)
+    rec_ob16.plot_reconstruction_temp(axrec[0])
+    rec_small.plot_reconstruction_temp(axrec[1])
+    figrec.savefig(_SAVE_DIR / "compare-historical-size-temp-reconstructed")
+    plt.show()
 
 
 def _main() -> None:

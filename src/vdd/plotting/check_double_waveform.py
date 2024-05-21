@@ -6,6 +6,7 @@ response functions of other simulations.
 
 from typing import Literal
 
+import cosmoplots
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -88,8 +89,8 @@ class CheckRecreatedWaveforms:
         self.single_waveform = single_waveform
         self.decs = decs
         self.scale_by_aod = scale_by_aod
-        self.figs = {"aod": plt.figure(), "rf": plt.figure(), "temp": plt.figure()}
-        self.axs = {k: v.gca() for k, v in self.figs.items()}
+        self.figs, self.axs = cosmoplots.figure_multiple_rows_columns(3, 1)
+        self.keys = {"aod": 0, "rf": 1, "temp": 2}
 
     def run_loop(self) -> None:
         """Run the main loop."""
@@ -97,25 +98,14 @@ class CheckRecreatedWaveforms:
             so2_new = self._get_so2_new(dec)
             for attr in ["aod", "rf", "temp"]:
                 self._run_attr_loop(dec, attr, so2_new, i)
-        [self.axs[k].set_xlabel("Time [yr]") for k in self.axs]
-        [self.axs[k].set_xlim((-2, 25)) for k in self.axs]
-        [self.axs[k].legend(framealpha=0.5) for k in self.axs]
-        self.axs["aod"].set_ylabel("Aerosol optical depth [1]")
-        self.axs["rf"].set_ylabel("Radiative Forcing [W/m$^2$]")
-        self.axs["temp"].set_ylabel("Temperature [K]")
+        [ax.set_xlabel("Time [yr]") for ax in self.axs]
+        [ax.set_xlim((-2, 25)) for ax in self.axs]
+        [ax.legend(framealpha=0.5) for ax in self.axs]
+        self.axs[self.keys["aod"]].set_ylabel("Aerosol optical depth [1]")
+        self.axs[self.keys["rf"]].set_ylabel("Radiative forcing [W/m$^2$]")
+        self.axs[self.keys["temp"]].set_ylabel("Temperature [K]")
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
-        files = [
-            _SAVE_DIR / f"recreated_waveforms_{k}{corrected}.jpg"
-            for k in ["aod", "rf", "temp"]
-        ]
-        self.figs["aod"].savefig(files[0])
-        self.figs["rf"].savefig(files[1])
-        self.figs["temp"].savefig(files[2])
-        vdd.utils.combine(*files).in_grid(1, 3).save(
-            _SAVE_DIR / f"responses_combined{corrected}.jpg"
-        )
-        for f in files:
-            f.unlink()
+        self.figs.savefig(_SAVE_DIR / f"responses_combined{corrected}")
         plt.show()
 
     def _get_so2_new(self, dec: vdd.load.DeconvolveCESM) -> xr.DataArray:
@@ -175,16 +165,23 @@ class CheckRecreatedWaveforms:
         # Scale so2 for new array
         rec_same = np.convolve(dec_resp, so2, "same")
         rec_new = np.convolve(resp_arr, so2_new, "same")
-        plot = self.axs[attr].plot
+        plot = self.axs[self.keys[attr]].plot
         # self._plot_aod(dec, attr)
-        plot(dec.tau, arr, c="k", lw=0.5, label=f"{name} original")
+        plot(dec.tau, arr, c="k", lw=0.5, label=f"TT-{name.upper()}")
         kwargs = {"ls": "--", "c": "k", "lw": 0.5, "path_effects": pe}
-        plot(dec.tau, rec_same, label=f"{name} reconstruct self", **kwargs)  # type: ignore
-        plot(dec.tau, rec_new, c=_COLORS[i], label=f"{name} reconstruc other")
+        plot(
+            dec.tau,
+            rec_same,
+            label=f"$\\varphi_{{\\mathrm{{TT-{name.upper()}}}}}$",
+            **kwargs,
+        )  # type: ignore
+        plot(
+            dec.tau, rec_new, c=_COLORS[i], label="$\\varphi_{\\mathrm{INTERMEDIATE}}$"
+        )
 
     def _plot_aod(self, dec: vdd.load.DeconvolveCESM, attr: str) -> None:
         name = "2sep" if "2sep" in dec.name else "4sep"
-        plot = self.axs[attr].plot
+        plot = self.axs[self.keys[attr]].plot
         if attr == "aod":
             # Area of the Earth is 5.1e14 m2. Tg to kg is 1e9. AOD is 100x smaller than
             # SO2
@@ -221,7 +218,7 @@ class CheckRecreatedWaveforms:
 
 def main() -> None:
     """Run the main script."""
-    check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
+    # check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
     # CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log").run_loop()
     # CheckRecreatedWaveforms(
     #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside"

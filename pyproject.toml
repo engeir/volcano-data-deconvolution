@@ -24,7 +24,7 @@ dependencies = [
   "cartopy>=0.23.0",
   "cmcrameri>=1.8",
   "xmovie>=0.3.1",
-  "cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@combine-better-defaults",
+  "cosmoplots>=0.4.3",
 ]
 license = { file = "LICENSE" }
 readme = "README.md"

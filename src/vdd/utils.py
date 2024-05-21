@@ -48,6 +48,11 @@ def combine(*files: str | pathlib.Path) -> cosmoplots.Combine:
     return cosmoplots.combine(*files).using(fontsize=8)
 
 
+def s2n(num: float, decimal: int = 2) -> str:
+    """Convert a number to scientific notation."""
+    return f"\\num{{{num:.{decimal}e}}}"
+
+
 def d2n(date: datetime.datetime) -> float:
     """Convert a datetime to a number, using 2000-01-01 as the reference date."""
     unit = "days since 2000-01-01"

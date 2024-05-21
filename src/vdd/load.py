@@ -1195,7 +1195,8 @@ class CutOff:
             case int():
                 self._single_cut_off(cutoff)
             case Iterable():
-                for c in set(cutoff):
+                self._check_for_duplicates(cutoff)
+                for c in cutoff:
                     if not isinstance(c, int):
                         raise ValueError(
                             "cutoff must be an integer or a sequence of integers."
@@ -1204,6 +1205,14 @@ class CutOff:
             case _:
                 raise ValueError("cutoff must be an integer or a sequence of integers.")
         return self
+
+    @staticmethod
+    def _check_for_duplicates(cutoff: Iterable[int]) -> None:
+        try:
+            for _ in zip(cutoff, set(cutoff), strict=True):
+                continue
+        except ValueError:
+            warnings.warn("There are duplicates in the cut-off sequence.", stacklevel=1)
 
     def _single_cut_off(self, cutoff: int) -> None:
         if str(cutoff) in self.cuts:

@@ -9,9 +9,9 @@
 #    - [ ] Owns a Deconvolve object.
 #    - [ ] Uses only one response function and corresponding signal (RF or temperature).
 
-import pathlib
-
 import cftime
+import cosmoplots
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import plastik
@@ -67,53 +67,54 @@ class PlotCutOff:
             If no cuts have been made in the CutOff objects.
         """
         for co in self.cut_offs:
+            fig, _ = cosmoplots.figure_multiple_rows_columns(len(co.cuts), 2)
             if not co.cuts:
                 raise ValueError(
                     "No cuts have been made. Run `call_cut_offs('cut_off', ...)`."
                 )
-            files = self._plot_single(co)
-            f_l = list(files)
-            f_l.sort(key=lambda x: x.name[-7:-4])
-            f1: pathlib.Path = files[0]
-            vdd.utils.combine(*f_l).in_grid(2, len(files) // 2).save(
-                f1.parent / f"{vdd.utils.name_swap(f1.name[:-7])}combined.jpg"
+            self._plot_single(fig, co)
+            name = vdd.utils.name_swap(vdd.utils.clean_filename(co.dec.name))
+            ts = vdd.utils.name_swap(
+                vdd.utils.clean_filename("-".join(co.ts_specifier))
             )
-            if remove_grid_parts:
-                for f in files:
-                    f.unlink()
+            fig.savefig(_SAVE_DIR / f"{name}_resp_{ts}_combined")
 
     @staticmethod
-    def _plot_single(co: vdd.load.CutOff) -> tuple[pathlib.Path, ...]:
+    def _plot_single(fig: mpl.figure.Figure, co: vdd.load.CutOff) -> mpl.figure.Figure:
         """Plot the results of the CutOff class."""
-        files: tuple[pathlib.Path, ...] = ()
-        for k, v in co.cuts.items():
-            resp_f = plt.figure()
-            resp_a = resp_f.gca()
-            temp_f = plt.figure()
-            temp_a = temp_f.gca()
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        for i, (k, v) in enumerate(co.cuts.items()):
+            resp_a, temp_a = fig.axes[i * 2], fig.axes[i * 2 + 1]
             resp_a.axvline(int(k) / 12, c="k", ls="--")
-            resp_a.plot(co.dec.tau, co.response, label="Original")
-            resp_a.plot(v.tau, v.response, label=f"Cut {int(k) // 12}")
-            temp_a.plot(co.output.time, co.dec.temp_control, label="Control")
-            temp_a.plot(co.output.time, co.output, label="Original")
-            temp_a.plot(v.time, v.temp_rec, label=f"Cut {int(k) // 12}")
             percentiles = []
-            for i, j in co.ensembles[k].items():
-                if "response" in str(i):
+            for i_, j in co.ensembles[k].items():
+                if "response" in str(i_):
                     percentiles.append(j)
-                    # label = j.attrs["label"]
-                    # resp_a.plot(j.tau, j, label=f"_{label}", c="grey", alpha=0.3)
             percs_np = np.asarray(percentiles)
             resp_a = plastik.percentiles(
-                co.dec.tau, percs_np, plot_median=False, ax=resp_a
+                co.dec.tau,
+                percs_np,
+                plot_median=False,
+                ax=resp_a,
+                n=1,
+                alpha=0.6,
+                percentile_min=5,
+                percentile_max=95,
             )
+            resp_a.plot(co.dec.tau, co.response, c=colors[0], label="OB16")
+            resp_a.plot(v.tau, v.response, c=colors[2], label=f"Cut {int(k) // 12}")
+            temp_a.plot(
+                co.output.time, co.dec.temp_control, c=colors[1], label="OB16 control"
+            )
+            temp_a.plot(co.output.time, co.output, c=colors[0], label="OB16")
+            temp_a.plot(v.time, v.temp_rec, c=colors[2], label=f"Cut {int(k) // 12}")
             resp_a.set_xlabel("Time lag ($\\tau$) [yr]")
-            resp_a.set_ylabel("Response [1]")
+            resp_a.set_ylabel("$\\varphi_{\\mathrm{T,S}}$")
             resp_a.set_xlim((-2, 20))
             ymax = co.response.max()
             resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
             resp_a.legend(loc="upper right", framealpha=0.9)
-            temp_a.set_xlabel("Time lag ($\\tau$) [yr]")
+            temp_a.set_xlabel("Time [yr]")
             temp_a.set_ylabel("Temperature anomaly [K]")
             temp_a.legend(loc="upper right", framealpha=0.9)
             match v.time.data[0]:
@@ -121,18 +122,7 @@ class PlotCutOff:
                     temp_a.set_xlim((-790 * 365, -650 * 365))
                 case _:
                     pass
-            num = "0" * (3 - len(k)) + k
-            name = vdd.utils.name_swap(vdd.utils.clean_filename(co.dec.name))
-            ts = vdd.utils.name_swap(
-                vdd.utils.clean_filename("-".join(co.ts_specifier))
-            )
-            resp_name = _SAVE_DIR / f"{name}_resp_{ts}_{num}.jpg"
-            resp_f.savefig(resp_name)
-            temp_name = _SAVE_DIR / f"{name}_temp_{ts}_{num}.jpg"
-            temp_f.savefig(temp_name)
-            plt.close("all")
-            files += (resp_name, temp_name)
-        return files
+        return fig
 
 
 def _use_cut_off() -> None:
@@ -166,8 +156,8 @@ def _use_cut_off() -> None:
         co_4sep_temp_so2,
         co_4sep_temp_rf,
     )
-    pco.call_cut_offs("cut_off", {12 * i for i in [6, 7, 8, 10]})
-    pco.call_cut_offs("generate_ensembles", 50)
+    pco.call_cut_offs("cut_off", [12 * i for i in [5, 6, 7, 10]])
+    pco.call_cut_offs("generate_ensembles", 100)
     pco.plot()
 
 

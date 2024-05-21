@@ -45,7 +45,7 @@ def extend_temp_shape() -> xr.DataArray:
         count += 1
         x = np.append(x, x_base + 20 * count)
     decay = 1.5 * np.exp(-x / 30)
-    decay = decay + np.random.default_rng().normal(0, 0.1, len(x))
+    decay += np.random.default_rng().normal(0, 0.1, len(x))
     signal = np.concatenate((t, decay))
     t_new = xr.DataArray(
         -1 * signal, coords={"time": np.concatenate((t.time.data, x))}, dims=["time"]

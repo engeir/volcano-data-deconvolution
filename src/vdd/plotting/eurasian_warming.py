@@ -28,17 +28,31 @@ def _main() -> None:
     d_ = vdd.load.CESMData(strength="size5000", dims=["lat", "lon"])
     d_.temp.plot()
     plt.figure()
-    d = vdd.load.CESMData(strength="size5000", dims=[])
-    time_sel = np.array([11, 12, 13, 23, 24, 25]) + 12 * 5
-    p = volcano_base.manipulate.mean_flatten(
-        d.temp.isel(time=time_sel), dims=["time"]
-    ).plot(
+    d = vdd.load.CESMData(strength="medium", dims=[])
+    # time_sel = np.array([11, 12, 13, 23, 24, 25]) + 12 * 5
+    p1 = volcano_base.manipulate.mean_flatten(
+        d.temp.isel(time=np.array([11, 12, 13]) - 6), dims=["time"]
+    )
+    p2 = volcano_base.manipulate.mean_flatten(
+        d.temp.isel(time=np.array([23, 24, 25]) - 6), dims=["time"]
+    )
+    prat = p1 - p2
+    p = prat.plot(
         transform=ccrs.PlateCarree(),
-        vmin=-20,
-        vmax=15,
+        vmin=-5,
+        vmax=7,
         cmap=cmc.batlow,
         subplot_kws={"projection": ccrs.PlateCarree()},
     )
+    # p = volcano_base.manipulate.mean_flatten(
+    #     d.temp.isel(time=time_sel), dims=["time"]
+    # ).plot(
+    #     transform=ccrs.PlateCarree(),
+    #     vmin=-20,
+    #     vmax=15,
+    #     cmap=cmc.batlow,
+    #     subplot_kws={"projection": ccrs.PlateCarree()},
+    # )
     p.axes.coastlines()
     plt.show()
 

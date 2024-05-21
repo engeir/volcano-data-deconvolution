@@ -34,11 +34,11 @@ cmcrameri==1.9
     # via volcano-data-deconvolution
 contourpy==1.2.1
     # via matplotlib
-cosmoplots @ git+https://github.com/uit-cosmo/cosmoplots@118d41ba8f5bee18a753b4f7a40d9d9f2d247030
+cosmoplots==0.4.3
     # via volcano-data-deconvolution
 cycler==0.12.1
     # via matplotlib
-dask==2024.4.2
+dask==2024.5.0
     # via volcano-base
     # via volcano-data-deconvolution
     # via xmovie
@@ -119,7 +119,7 @@ palettable==3.3.3
     # via plastik
 pandas==2.2.2
     # via xarray
-partd==1.4.1
+partd==1.4.2
     # via dask
 pillow==10.3.0
     # via matplotlib
@@ -130,7 +130,7 @@ pydantic==2.7.1
     # via volcano-data-deconvolution
 pydantic-core==2.18.2
     # via pydantic
-pygments==2.17.2
+pygments==2.18.0
     # via rich
 pyparsing==3.1.2
     # via matplotlib
@@ -178,7 +178,7 @@ sympy==1.12
 toolz==0.12.1
     # via dask
     # via partd
-tqdm==4.66.2
+tqdm==4.66.4
     # via fppanalysis
 typing-extensions==4.11.0
     # via pydantic
@@ -190,7 +190,7 @@ urllib3==2.2.1
     # via requests
 volcano-base==2.0.3
     # via volcano-data-deconvolution
-xarray==2024.3.0
+xarray==2024.5.0
     # via volcano-base
     # via volcano-data-deconvolution
     # via xmovie
