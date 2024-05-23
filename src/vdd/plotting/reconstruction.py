@@ -57,7 +57,7 @@ dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
 dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
 dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
-dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
+dec_cesm_m = DecCESM(pad_before=False, cesm=DataCESM(strength="medium"))
 # OB16
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
@@ -135,18 +135,15 @@ class ReconstructOB16:
         axs[0].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
         axs[1].plot(self.ob16.temp.time, new_temp_scaled, label=ns(dec.name))
         inv_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
-        # inv_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
         inv_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
         inv_a.legend()
         inv_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}.jpg")
         inv_zoom_a.plot(self.ob16.temp.time, self.ob16.temp, label="OB16 temperature")
-        # inv_zoom_a.plot(self.ob16.temp.time, new_temp, label="Raw response")
         inv_zoom_a.plot(self.ob16.temp.time, new_temp_scaled, label="Scaled response")
         inv_zoom_a.legend()
         inv_zoom_f.savefig(_SAVE_DIR / f"reconstruct_from_{fn}_zoom.jpg")
         # Print the distance away from the reconstructed
         ob16_temp = np.convolve(self.ob16.so2, self.ob16.response_temp_so2, mode="same")
-        # ob16_temp = self.ob16.temp
         ob16_diff = np.abs(ob16_temp - new_temp).sum()
         ob16_diff_scaled = np.abs(ob16_temp - new_temp_scaled).sum()
         res.append((ns(dec.name), f"{ob16_diff:.2f}", f"{ob16_diff_scaled:.2f}"))
@@ -211,13 +208,10 @@ class PlotReconstruction:
         """Reconstructed temperature from SO2."""
         response = self.reconstruction.response_temp_so2
         response[: len(response) // 2] = 0
-        # response[len(response) // 2 + int(30 * 12) :] = 0
         if not self.normalise:
-            # response = response / np.sum(response) * np.sum(self.dec_ob16.response_temp_so2)
             response = response / response.max() * self.dec_ob16.response_temp_so2.max()
         convolved = np.convolve(self.dec_ob16.so2.data, response, "same")
         if self.normalise:
-            # convolved = vdd.utils.normalise(convolved)
             convolved = (convolved - convolved.mean()) / convolved.std()
         return convolved
 
@@ -226,13 +220,10 @@ class PlotReconstruction:
         """Reconstructed temperature from radiative forcing."""
         response = self.reconstruction.response_temp_rf
         response[: len(response) // 2] = 0
-        # response[len(response) // 2 + int(30 * 12) :] = 0
         if not self.normalise:
-            # response = response / np.sum(response) * np.sum(self.dec_ob16.response_temp_rf)
             response = response / response.max() * self.dec_ob16.response_temp_rf.max()
         convolved = np.convolve(self.dec_ob16.rf.data, response, "same")
         if self.normalise:
-            # convolved = vdd.utils.normalise(convolved)
             convolved = (convolved - convolved.mean()) / convolved.std()
         return convolved
 
@@ -331,19 +322,28 @@ class PlotReconstruction:
             plt.show()
         return peaks_time, peaks_original, peaks_so2, peaks_rf
 
+    def _get_name(self) -> str:
+        match self.reconstruction.name:
+            case name_ if "small" in name_.lower():
+                name = "SMALL"
+            case name_ if "ob16" in name_.lower():
+                name = "OB16"
+            case _:
+                name = "OTHER"
+        return name
+
     def plot_reconstruction_temp(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Plot the reconstruction of the data."""
         ax.set_xlabel("Time [yr]")
         ax.set_ylabel("Temperature anomaly [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
-        ax.plot(time_, self.temp_control, c=COLORS[1], label="OB16 control")
-        ax.plot(time_, temp.data, c=COLORS[0], label="OB16")
-        lso2 = "Reconstructed"
+        ax.plot(time_, self.temp_control, c=COLORS[1], label="$T_{\\mathrm{CONTROL}}$")
+        ax.plot(time_, temp.data, c=COLORS[0], label="$T_{\\mathrm{OB16}}$")
+        lso2 = f"$\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
         ax.plot(time_, self.rec_temp_so2, c=COLORS[2], label=lso2)
         ax.set_xlim((-790 * 365, -650 * 365))
         ax.legend(framealpha=0.5)
-        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-temp-reconstructed.jpg")
         return ax
 
     def correlation(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
@@ -357,16 +357,14 @@ class PlotReconstruction:
         corr_ctrl_time, corr_ctrl = fppanalysis.corr_fun(
             self.dec_ob16.temp_control, self.dec_ob16.temp.data, 1 / 12
         )
-        ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="Control")
-        ax.plot(corr_self_time, corr_self, c=COLORS[0], label="OB16")
-        ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label="Reconstructed")
+        ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="$T_{\\mathrm{CONTROL}}$")
+        ax.plot(corr_self_time, corr_self, c=COLORS[0], label="$T_{\\mathrm{OB16}}$")
+        lso2 = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=lso2)
         ax.set_xlim((-100, 100))
-        ax.set_xlabel("Time lag ($\\tau$) [yr]")
-        ax.set_ylabel("Correlation with OB16 temperature")
+        ax.set_xlabel("Time lag [yr]")
+        ax.set_ylabel("Correlation with \n$T_{\\mathrm{OB16}}$ [K]")
         ax.legend()
-        # plt.savefig(
-        #     _SAVE_DIR / f"{self.sim_name}-correlation-residual-reconstructed.jpg"
-        # )
         return ax
 
     @staticmethod
@@ -394,12 +392,27 @@ class PlotReconstruction:
 
     def spectrum(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compare the spectrum of the residuals and the control temperature."""
-        f_so2, p_so2 = self._spectrum_1d(self.residual_so2)
+        f_so2_res, p_so2_res = self._spectrum_1d(self.residual_so2)
         f_control, p_control = self._spectrum_1d(self.temp_control.data)
         f_orig, p_orig = self._spectrum_1d(self.dec_ob16.temp.data)
-        ax.plot(f_orig, p_orig, label="OB16", alpha=0.5)
-        ax.plot(f_control, p_control, label="Control", alpha=0.5)
-        ax.plot(f_so2, p_so2, label="Residual", alpha=0.5)
+        f_so2, p_so2 = self._spectrum_1d(self.reconstruction.response_temp_so2)
+        ax.plot(
+            f_control,
+            p_control,
+            c=COLORS[1],
+            label="$T_{\\mathrm{CONTROL}}$",
+            alpha=0.5,
+        )
+        ax.plot(f_orig, p_orig, c=COLORS[0], label="$T_{\\mathrm{OB16}}$", alpha=0.5)
+        lresidual = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        ax.plot(f_so2_res, p_so2_res, c=COLORS[2], label=lresidual, alpha=0.5)
+        ax.plot(
+            f_so2,
+            p_so2,
+            c=COLORS[3],
+            label=f"$\\varphi_{{T}}^{{\\mathrm{{{self._get_name()}}}}}$",
+            alpha=0.5,
+        )
         # Suppress the warning
         warnings.filterwarnings("ignore")
         cosmoplots.change_log_axis_base(ax, "both")
@@ -407,7 +420,6 @@ class PlotReconstruction:
         ax.set_xlabel("Frequency [yr$^{-1}$]")
         ax.set_ylabel("Power spectral density")
         ax.legend()
-        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-residual-control_temp.jpg")
         return ax
 
     def spectrum_parts(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
@@ -415,8 +427,13 @@ class PlotReconstruction:
         f_so2, p_so2 = self._spectrum_1d(self.reconstruction.response_temp_so2)
         f_control, p_control = self._spectrum_1d(self.temp_control.data)
         f_orig_so2, p_orig_so2 = self._spectrum_1d(self.dec_ob16.so2.data)
-        ax.plot(f_so2, p_so2, label="$\\varphi_{\\mathrm{T-SO2}}$", alpha=0.5)
-        ax.plot(f_control, p_control, label="Control", alpha=0.5)
+        ax.plot(
+            f_so2,
+            p_so2,
+            label=f"$\\varphi_{{T}}^{{\\mathrm{{{self._get_name()}}}}}$",
+            alpha=0.5,
+        )
+        ax.plot(f_control, p_control, label="$T_{\\mathrm{CONTROL}}$", alpha=0.5)
         ax.plot(f_orig_so2, p_orig_so2, label="SO2 TS", alpha=0.5)
         # Suppress the warning
         warnings.filterwarnings("ignore")
@@ -425,7 +442,6 @@ class PlotReconstruction:
         ax.set_xlabel("Frequency")
         ax.set_ylabel("Power spectral density")
         ax.legend()
-        # plt.savefig(_SAVE_DIR / f"{self.sim_name}-spectrum-response-input.jpg")
         return ax
 
     def _peak_difference_ttest(
@@ -467,7 +483,7 @@ class PlotReconstruction:
         info("CTRL", p_value_rf)
         return p_value_so2, p_value_rf
 
-    def peak_difference_analysis(  # noqa:PLR0914
+    def peak_difference_analysis(  # noqa: PLR0914
         self, ax1: mpl.axes.Axes, ax2: mpl.axes.Axes
     ) -> [mpl.axes.Axes, mpl.axes.Axes]:
         """Plot the difference between the reconstructed and the original peaks."""
@@ -508,8 +524,8 @@ class PlotReconstruction:
         )
         return axpdf, axcdf
 
-    @staticmethod
-    def _peak_difference_plot(  # noqa:PLR0914
+    def _peak_difference_plot(  # noqa: PLR0914, PLR0913
+        self,
         ax: mpl.axes.Axes,
         fpp_out: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
         fits: tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
@@ -518,22 +534,34 @@ class PlotReconstruction:
     ) -> mpl.figure.Figure:
         b_so2, b_rf, f_s, f_r = fpp_out
         norm_fit, _ = fits
-        prop_cycle = plt.rcParams["axes.prop_cycle"]
-        colors = prop_cycle.by_key()["color"]
         norm_so2 = getattr(scipy.stats.norm, dist)(b_so2, *norm_fit[0])
         norm_rf = getattr(scipy.stats.norm, dist)(b_rf, *norm_fit[1])
-        ax.bar(b_so2, f_s, width=0.01, label=f"SO2 (p-value: {txt[0]:.4f})", alpha=0.5)
-        ax.bar(b_rf, f_r, width=0.01, label=f"CTRL (p-value: {txt[1]:.4f})", alpha=0.5)
+        kw = {"width": 0.01, "alpha": 0.5}
+        ax.bar(
+            b_rf,
+            f_r,
+            color=COLORS[1],
+            label=f"$T_{{\\mathrm{{CONTROL}}}}$ (p-value: {txt[1]:.4f})",
+            **kw,
+        )
+        lresidual = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        ax.bar(
+            b_so2,
+            f_s,
+            color=COLORS[2],
+            label=f"{lresidual} (p-value: {txt[0]:.4f})",
+            **kw,
+        )
         bar_hand, bar_lab = ax.get_legend_handles_labels()
         # Norm
-        ax.plot(b_so2, norm_so2, c=colors[0], label="_Norm SO2", alpha=0.5)
-        ax.plot(b_rf, norm_rf, c=colors[1], label="_Norm CTRL", alpha=0.5)
+        ax.plot(b_rf, norm_rf, c=COLORS[1], label="_Norm CTRL")
+        ax.plot(b_so2, norm_so2, c=COLORS[2], label="_Norm SO2")
         ax.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
         # Make the plot symmetric around 0
         xlim = np.abs(ax.get_xlim()).max()
         ax.set_xlim((-xlim, xlim))
         ax.set_ylabel(dist.upper())
-        ax.set_xlabel("Difference between the peaks")
+        ax.set_xlabel("Temperature anomaly [K]")
         return ax
 
 
@@ -567,9 +595,24 @@ def _plot_reconstructed_temperature() -> None:
 
 def _plot_many_reconstructions() -> None:
     ob16 = dec_ob16_month.data
-    recs = (dec_ob16_month.dump_reconstructor(), dec_cesm_m.dump_reconstructor())
-    rec_ob16 = PlotReconstruction(ob16, dec_ob16_month.dump_reconstructor())
-    rec_small = PlotReconstruction(ob16, dec_cesm_m.dump_reconstructor())
+    rec_ob16_ = dec_ob16_month.dump_reconstructor()
+    rec_small_ = dec_cesm_m.dump_reconstructor()
+    zero_like = 1e-4
+    valid_until = 7
+    rec_ob16_.response_temp_so2[
+        np.intersect1d(
+            np.argwhere(rec_ob16_.response_temp_so2 < zero_like).flatten(),
+            np.argwhere(rec_ob16_.tau > valid_until).flatten(),
+        ).flatten()[0] :
+    ] = 0
+    rec_small_.response_temp_so2[
+        np.intersect1d(
+            np.argwhere(rec_small_.response_temp_so2 < zero_like).flatten(),
+            np.argwhere(rec_small_.tau > valid_until).flatten(),
+        ).flatten()[0] :
+    ] = 0
+    rec_ob16 = PlotReconstruction(ob16, rec_ob16_)
+    rec_small = PlotReconstruction(ob16, rec_small_)
     figpdf, axspdf = cosmoplots.figure_multiple_rows_columns(1, 2)
     figcdf, axscdf = cosmoplots.figure_multiple_rows_columns(1, 2)
     rec_ob16.peak_difference_analysis(*[axspdf[0], axscdf[0]])
@@ -586,14 +629,21 @@ def _plot_many_reconstructions() -> None:
     rec_ob16.spectrum(axsp[0])
     rec_small.spectrum(axsp[1])
     figsp.savefig(_SAVE_DIR / "compare-historical-size-spectrum-residual-control_temp")
-    figsp_parts, axsp_parts = cosmoplots.figure_multiple_rows_columns(1, 2)
-    rec_ob16.spectrum_parts(axsp_parts[0])
-    rec_small.spectrum_parts(axsp_parts[1])
-    figsp_parts.savefig(_SAVE_DIR / "compare-historical-size-spectrum-response-input")
     figrec, axrec = cosmoplots.figure_multiple_rows_columns(1, 2)
     rec_ob16.plot_reconstruction_temp(axrec[0])
     rec_small.plot_reconstruction_temp(axrec[1])
     figrec.savefig(_SAVE_DIR / "compare-historical-size-temp-reconstructed")
+    # All in one
+    figtot, axtot = cosmoplots.figure_multiple_rows_columns(4, 2)
+    rec_ob16.plot_reconstruction_temp(axtot[0])
+    rec_small.plot_reconstruction_temp(axtot[1])
+    rec_ob16.peak_difference_analysis(*[axtot[2], plt.figure().gca()])
+    rec_small.peak_difference_analysis(*[axtot[3], plt.figure().gca()])
+    rec_ob16.spectrum(axtot[4])
+    rec_small.spectrum(axtot[5])
+    rec_ob16.correlation(axtot[6])
+    rec_small.correlation(axtot[7])
+    figtot.savefig(_SAVE_DIR / "compare-historical-size-all-in-one")
     plt.show()
 
 
