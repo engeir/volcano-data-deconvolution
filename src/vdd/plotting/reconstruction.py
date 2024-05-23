@@ -401,17 +401,17 @@ class PlotReconstruction:
             p_control,
             c=COLORS[1],
             label="$T_{\\mathrm{CONTROL}}$",
-            alpha=0.5,
+            # alpha=0.5,
         )
-        ax.plot(f_orig, p_orig, c=COLORS[0], label="$T_{\\mathrm{OB16}}$", alpha=0.5)
+        ax.plot(f_orig, p_orig, c=COLORS[0], label="$T_{\\mathrm{OB16}}$")
         lresidual = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
-        ax.plot(f_so2_res, p_so2_res, c=COLORS[2], label=lresidual, alpha=0.5)
+        ax.plot(f_so2_res, p_so2_res, c=COLORS[2], label=lresidual)
         ax.plot(
             f_so2,
             p_so2,
             c=COLORS[3],
             label=f"$\\varphi_{{T}}^{{\\mathrm{{{self._get_name()}}}}}$",
-            alpha=0.5,
+            # alpha=0.5,
         )
         # Suppress the warning
         warnings.filterwarnings("ignore")
@@ -536,7 +536,7 @@ class PlotReconstruction:
         norm_fit, _ = fits
         norm_so2 = getattr(scipy.stats.norm, dist)(b_so2, *norm_fit[0])
         norm_rf = getattr(scipy.stats.norm, dist)(b_rf, *norm_fit[1])
-        kw = {"width": 0.01, "alpha": 0.5}
+        kw = {"width": 0.01, "alpha": 1.0}
         ax.bar(
             b_rf,
             f_r,
@@ -603,13 +603,13 @@ def _plot_many_reconstructions() -> None:
         np.intersect1d(
             np.argwhere(rec_ob16_.response_temp_so2 < zero_like).flatten(),
             np.argwhere(rec_ob16_.tau > valid_until).flatten(),
-        ).flatten()[0] :
+        ).flatten()[0]:
     ] = 0
     rec_small_.response_temp_so2[
         np.intersect1d(
             np.argwhere(rec_small_.response_temp_so2 < zero_like).flatten(),
             np.argwhere(rec_small_.tau > valid_until).flatten(),
-        ).flatten()[0] :
+        ).flatten()[0]:
     ] = 0
     rec_ob16 = PlotReconstruction(ob16, rec_ob16_)
     rec_small = PlotReconstruction(ob16, rec_small_)
