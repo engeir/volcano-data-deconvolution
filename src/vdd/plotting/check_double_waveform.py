@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
 import xarray as xr
-from matplotlib import patheffects
 
 import vdd.load
 import vdd.utils
@@ -89,8 +88,8 @@ class CheckRecreatedWaveforms:
         self.single_waveform = single_waveform
         self.decs = decs
         self.scale_by_aod = scale_by_aod
-        self.figs, self.axs = cosmoplots.figure_multiple_rows_columns(3, 1)
-        self.keys = {"aod": 0, "rf": 1, "temp": 2}
+        self.figs, self.axs = cosmoplots.figure_multiple_rows_columns(3, 2)
+        self.keys = {"aod": (0, 1), "rf": (2, 3), "temp": (4, 5)}
 
     def run_loop(self) -> None:
         """Run the main loop."""
@@ -101,9 +100,9 @@ class CheckRecreatedWaveforms:
         [ax.set_xlabel("Time [yr]") for ax in self.axs]
         [ax.set_xlim((-2, 25)) for ax in self.axs]
         [ax.legend(framealpha=0.5) for ax in self.axs]
-        self.axs[self.keys["aod"]].set_ylabel("Aerosol optical depth [1]")
-        self.axs[self.keys["rf"]].set_ylabel("Radiative forcing [W/m$^2$]")
-        self.axs[self.keys["temp"]].set_ylabel("Temperature [K]")
+        [self.axs[i].set_ylabel("Aerosol optical depth [1]") for i in self.keys["aod"]]
+        [self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]") for i in self.keys["rf"]]
+        [self.axs[i].set_ylabel("Temperature anomaly [K]") for i in self.keys["temp"]]
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
         self.figs.savefig(_SAVE_DIR / f"responses_combined{corrected}")
         plt.show()
@@ -138,12 +137,10 @@ class CheckRecreatedWaveforms:
         self, dec: vdd.load.DeconvolveCESM, attr: str, so2_new: xr.DataArray, i: int
     ) -> None:
         name = "2sep" if "2sep" in dec.name else "4sep"
+        idx = 0 if name == "2sep" else 1
+        c_idx = 4 if name == "2sep" else 5
         so2 = dec.so2
         diff_len = len(self.single_waveform.response_rf_so2) - len(so2)
-        pe = [
-            patheffects.Stroke(linewidth=1, foreground=_COLORS[i]),
-            patheffects.Normal(),
-        ]
         arr = getattr(dec, attr)
         if diff_len < 0:
             diff_len = abs(diff_len)
@@ -159,61 +156,33 @@ class CheckRecreatedWaveforms:
         else:
             dec_resp = getattr(dec, f"response_{attr}_so2")
             resp_arr = getattr(self.single_waveform, f"response_{attr}_so2")
-        # Scale r_arr
-        # scale_arr = np.max(dec_resp) / np.max(resp_arr)
-        # resp_arr *= scale_arr
-        # Scale so2 for new array
         rec_same = np.convolve(dec_resp, so2, "same")
         rec_new = np.convolve(resp_arr, so2_new, "same")
-        plot = self.axs[self.keys[attr]].plot
-        # self._plot_aod(dec, attr)
-        plot(dec.tau, arr, c="k", lw=0.5, label=f"TT-{name.upper()}")
-        kwargs = {"ls": "--", "c": "k", "lw": 0.5, "path_effects": pe}
+        plot = self.axs[self.keys[attr][idx]].plot
+        plot(
+            dec.tau,
+            arr,
+            c="k",
+            lw=0.5,
+            label=f"${attr[0].upper()}_{{\\mathrm{{TT-{name.upper()}}}}}$",
+        )
+        kwargs = {"ls": "--", "c": _COLORS[c_idx], "lw": 1.0}
+        varphi = f"\\varphi_{{{attr[0].upper()}}}"
+        conv_so2 = f"\\ast S_{{\\mathrm{{TT-{name.upper()}}}}}"
+        plot(
+            dec.tau,
+            rec_new,
+            "-.",
+            lw=1.0,
+            c=_COLORS[1],
+            label=f"${varphi}^{{\\mathrm{{INTERMEDIATE}}}}{conv_so2}$",
+        )
         plot(
             dec.tau,
             rec_same,
-            label=f"$\\varphi_{{\\mathrm{{TT-{name.upper()}}}}}$",
+            label=f"${varphi}^{{\\mathrm{{TT-{name.upper()}}}}}{conv_so2}$",
             **kwargs,
-        )  # type: ignore
-        plot(
-            dec.tau, rec_new, c=_COLORS[i], label="$\\varphi_{\\mathrm{INTERMEDIATE}}$"
         )
-
-    def _plot_aod(self, dec: vdd.load.DeconvolveCESM, attr: str) -> None:
-        name = "2sep" if "2sep" in dec.name else "4sep"
-        plot = self.axs[self.keys[attr]].plot
-        if attr == "aod":
-            # Area of the Earth is 5.1e14 m2. Tg to kg is 1e9. AOD is 100x smaller than
-            # SO2
-            plot(dec.tau, dec.tmso2 * 5.1e3, label="TMSO2")
-        elif attr == "rf":
-            # params, _ = curve_fit(curve_fit_aod, dec.aod, dec.rf)
-            # print(params)
-            # [53.04185578  0.24951242]  # 2sep
-            # [59.44007657  0.23123325]  # 4sep
-            params = [22.34317318, 0.97876114]  # Single peaks
-            plot(
-                dec.tau,
-                curve_fit_aod(dec.aod, *params),
-                c="r",
-                lw=0.5,
-                label=f"{name} AOD",
-            )
-        elif attr == "temp":
-            # params, _ = curve_fit(curve_fit_aod, dec.aod, dec.temp)
-            # print(params)
-            # [ 1.18746129 28.08689995]  # 2sep
-            # [ 1.03776542 65.61337388]  # 4sep
-            # params = [3.02039794, 1.19424641]  # Single peaks
-            params = [22.34317318, 0.97876114]  # Single peaks, RF/AOD
-            # resp_temp_rf = self.single_waveform.response_temp_rf[
-            #     diff_len // 2 : -diff_len // 2
-            # ]
-            resp_temp_rf = dec.response_temp_rf
-            temp = np.convolve(
-                resp_temp_rf, curve_fit_aod(dec.aod, *params), mode="same"
-            )
-            plot(dec.tau, temp, c="r", lw=0.5, label=f"{name} AOD")
 
 
 def main() -> None:
