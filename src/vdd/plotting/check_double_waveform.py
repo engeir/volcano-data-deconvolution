@@ -6,7 +6,6 @@ response functions of other simulations.
 
 from typing import Literal
 
-import cosmoplots
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -88,7 +87,9 @@ class CheckRecreatedWaveforms:
         self.single_waveform = single_waveform
         self.decs = decs
         self.scale_by_aod = scale_by_aod
-        self.figs, self.axs = cosmoplots.figure_multiple_rows_columns(3, 2)
+        self.figs, self.axs = vdd.utils.figure_multiple_rows_columns(
+            3, 2, share_axes="x"
+        )
         self.keys = {"aod": (0, 1), "rf": (2, 3), "temp": (4, 5)}
 
     def run_loop(self) -> None:
@@ -98,7 +99,7 @@ class CheckRecreatedWaveforms:
             for attr in ["aod", "rf", "temp"]:
                 self._run_attr_loop(dec, attr, so2_new, i)
         [ax.set_xlabel("Time [yr]") for ax in self.axs]
-        [ax.set_xlim((-2, 25)) for ax in self.axs]
+        [ax.set_xlim((-1, 21)) for ax in self.axs]
         [ax.legend(framealpha=0.5) for ax in self.axs]
         [self.axs[i].set_ylabel("Aerosol optical depth [1]") for i in self.keys["aod"]]
         [self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]") for i in self.keys["rf"]]

@@ -10,7 +10,6 @@
 #    - [ ] Uses only one response function and corresponding signal (RF or temperature).
 
 import cftime
-import cosmoplots
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,12 +31,9 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
-dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
+dec_cesm_m = DecCESM(pad_before=False, cesm=DataCESM(strength="medium"))
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
-all_decs = (dec_cesm_4sep, dec_cesm_2sep, dec_cesm_s, dec_ob16_month)
 
 
 class PlotCutOff:
@@ -67,7 +63,9 @@ class PlotCutOff:
             If no cuts have been made in the CutOff objects.
         """
         for co in self.cut_offs:
-            fig, _ = cosmoplots.figure_multiple_rows_columns(len(co.cuts), 2)
+            fig, _ = vdd.utils.figure_multiple_rows_columns(
+                len(co.cuts), 2, share_axes="x"
+            )
             if not co.cuts:
                 raise ValueError(
                     "No cuts have been made. Run `call_cut_offs('cut_off', ...)`."
@@ -83,6 +81,7 @@ class PlotCutOff:
     def _plot_single(fig: mpl.figure.Figure, co: vdd.load.CutOff) -> mpl.figure.Figure:
         """Plot the results of the CutOff class."""
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        name = "OB16" if "OB16" in co.dec.name else "SMALL"
         for i, (k, v) in enumerate(co.cuts.items()):
             resp_a, temp_a = fig.axes[i * 2], fig.axes[i * 2 + 1]
             resp_a.axvline(int(k) / 12, c="k", ls="--")
@@ -101,16 +100,38 @@ class PlotCutOff:
                 percentile_min=5,
                 percentile_max=95,
             )
-            resp_a.plot(co.dec.tau, co.response, c=colors[0], label="OB16")
-            resp_a.plot(v.tau, v.response, c=colors[2], label=f"Cut {int(k) // 12}")
-            temp_a.plot(
-                co.output.time, co.dec.temp_control, c=colors[1], label="OB16 control"
+            resp_a.plot(
+                co.dec.tau,
+                co.response,
+                c=colors[0],
+                label=f"$\\varphi_T^{{\\mathrm{{{name}}}}}$",
             )
-            temp_a.plot(co.output.time, co.output, c=colors[0], label="OB16")
-            temp_a.plot(v.time, v.temp_rec, c=colors[2], label=f"Cut {int(k) // 12}")
-            resp_a.set_xlabel("Time lag ($\\tau$) [yr]")
-            resp_a.set_ylabel("$\\varphi_{\\mathrm{T,S}}$")
-            resp_a.set_xlim((-2, 20))
+            resp_a.plot(
+                v.tau,
+                v.response,
+                c=colors[2],
+                label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\mathrm{{{name}}}}}$",
+            )
+            temp_a.plot(
+                co.output.time,
+                co.dec.temp_control,
+                c=colors[1],
+                label="$T_{\\mathrm{CONTROL}}$",
+            )
+            temp_a.plot(
+                co.output.time,
+                co.output,
+                c=colors[0],
+                label=f"$T_{{\\mathrm{{{name}}}}}$",
+            )
+            temp_a.plot(
+                v.time,
+                v.temp_rec,
+                c=colors[2],
+                label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\mathrm{{{name}}}}}\\ast S_{{\\mathrm{{{name}}}}}$",
+            )
+            resp_a.set_xlabel("Time lag [yr]")
+            resp_a.set_ylabel("$\\varphi_T$")
             ymax = co.response.max()
             resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
             resp_a.legend(loc="upper right", framealpha=0.9)
@@ -120,43 +141,28 @@ class PlotCutOff:
             match v.time.data[0]:
                 case cftime._cftime.DatetimeNoLeap():
                     temp_a.set_xlim((-790 * 365, -650 * 365))
+                    resp_a.set_xlim((-1, 20))
                 case _:
-                    pass
+                    resp_a.set_xlim((-1, 11))
         return fig
 
 
 def _use_cut_off() -> None:
     # OB16
-    co_ob16_rf_so2 = vdd.load.CutOff(dec_ob16_month, ("rf", "so2"))
+    # co_ob16_rf_so2 = vdd.load.CutOff(dec_ob16_month, ("rf", "so2"))
     co_ob16_temp_so2 = vdd.load.CutOff(dec_ob16_month, ("temp", "so2"))
-    co_ob16_temp_rf = vdd.load.CutOff(dec_ob16_month, ("temp", "rf"))
-    # CESM2 strong
-    co_cesm_s_rf_so2 = vdd.load.CutOff(dec_cesm_s, ("rf", "so2"))
-    co_cesm_s_temp_so2 = vdd.load.CutOff(dec_cesm_s, ("temp", "so2"))
-    co_cesm_s_temp_rf = vdd.load.CutOff(dec_cesm_s, ("temp", "rf"))
-    # CESM2 2sep
-    co_2sep_rf_so2 = vdd.load.CutOff(dec_cesm_2sep, ("rf", "so2"))
-    co_2sep_temp_so2 = vdd.load.CutOff(dec_cesm_2sep, ("temp", "so2"))
-    co_2sep_temp_rf = vdd.load.CutOff(dec_cesm_2sep, ("temp", "rf"))
-    # CESM2 4sep
-    co_4sep_rf_so2 = vdd.load.CutOff(dec_cesm_4sep, ("rf", "so2"))
-    co_4sep_temp_so2 = vdd.load.CutOff(dec_cesm_4sep, ("temp", "so2"))
-    co_4sep_temp_rf = vdd.load.CutOff(dec_cesm_4sep, ("temp", "rf"))
+    co_ob16_temp_so2.cut_off([12 * i for i in [5, 6, 7, 10]])
+    # co_ob16_temp_rf = vdd.load.CutOff(dec_ob16_month, ("temp", "rf"))
+    # CESM2 medium
+    co_cesm_m_temp_so2 = vdd.load.CutOff(dec_cesm_m, ("temp", "so2"))
+    co_cesm_m_temp_so2.cut_off([12 * i for i in [3, 4, 5, 7]])
     pco = PlotCutOff(
-        co_ob16_rf_so2,
+        # co_ob16_rf_so2,
         co_ob16_temp_so2,
-        co_ob16_temp_rf,
-        co_cesm_s_rf_so2,
-        co_cesm_s_temp_so2,
-        co_cesm_s_temp_rf,
-        co_2sep_rf_so2,
-        co_2sep_temp_so2,
-        co_2sep_temp_rf,
-        co_4sep_rf_so2,
-        co_4sep_temp_so2,
-        co_4sep_temp_rf,
+        # co_ob16_temp_rf,
+        co_cesm_m_temp_so2,
     )
-    pco.call_cut_offs("cut_off", [12 * i for i in [5, 6, 7, 10]])
+    # pco.call_cut_offs("cut_off", [12 * i for i in [5, 6, 7, 10]])
     pco.call_cut_offs("generate_ensembles", 100)
     pco.plot()
 

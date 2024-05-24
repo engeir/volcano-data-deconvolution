@@ -3,10 +3,11 @@
 import datetime
 import pathlib
 import re
-from typing import Never, NoReturn, overload
+from typing import Literal, Never, NoReturn, overload
 
 import cftime
 import cosmoplots
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -17,6 +18,102 @@ plt.style.use([
     "vdd.jgr",
     "vdd.extra",
 ])
+
+
+def _calculate_figsize(
+    rows: int, columns: int, share_axes: Literal["x", "y", "both"] | None = None
+) -> tuple[float, float]:
+    """Calculate the figure size based on the number of rows and columns."""
+    full_cols = 3.37 * columns
+    squash_cols = 3.37 * columns - (columns - 1) * 3.37 * 0.25
+    full_rows = 2.08277 * rows
+    squash_rows = 2.08277 * rows - (rows - 1) * 2.08277 * 0.25
+    match share_axes:
+        case None:
+            return full_rows, full_cols
+        case "x":
+            return squash_rows, full_cols
+        case "y":
+            return full_rows, squash_cols
+        case "both":
+            return squash_rows, squash_cols
+        case _:
+            raise ValueError(f"Unknown value for share_axes: {share_axes}")
+
+
+def figure_multiple_rows_columns(
+    rows: int,
+    columns: int,
+    labels: list[str] | None = None,
+    label_x: float = -0.2,
+    label_y: float = 0.95,
+    share_axes: Literal["x", "y", "both"] | None = None,
+    **kwargs,
+) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
+    """Return a figure with axes which is appropriate for (rows, columns) subfigures.
+
+    Parameters
+    ----------
+    rows : int
+        The number of rows in the figure
+    columns : int
+        The number of columns in the figure
+    labels : list[str] | None
+        The labels to be applied to each subfigure. Defaults to (a), (b), (c), ...
+    label_x and label_y : float
+        x- and y- positions of the labels relative to each Axes object.
+    share_axes : Literal["x", "y", "both"]
+        Share the axes in the figure. Defaults to not sharing.
+    **kwargs:
+        Additional keyword arguments to be passed to Axes.text.
+
+    Returns
+    -------
+    plt.Figure
+        The figure object
+    List[plt.Axes]
+        A list of all the axes objects owned by the figure
+    """
+    full_height, full_width = _calculate_figsize(rows, columns, share_axes)
+    fig = plt.figure(figsize=(full_width, full_height))
+    axes = []
+    labels = labels or [
+        rf"$\mathrm{{({chr(97 + ell)})}}$" for ell in range(rows * columns)
+    ]
+    for r in range(rows):
+        if share_axes in {"x", "both"}:
+            rel_height = 0.75 + 0.25 / rows
+            height = 0.75 / rows / rel_height
+            bottom_pad = 0.2 / rows / rel_height
+            bottom = bottom_pad + height * (rows - 1 - r)
+        else:
+            bottom_pad = 0.2 / rows
+            height = 0.75 / rows
+            bottom = bottom_pad + (rows - 1 - r) / rows
+        for c in range(columns):
+            if share_axes in {"y", "both"}:
+                rel_width = 0.75 + 0.25 / columns
+                width = 0.75 / columns / rel_width
+                left_pad = 0.2 / columns / rel_width
+                left = left_pad + width * c
+            else:
+                left_pad = 0.2 / columns
+                width = 0.75 / columns
+                left = left_pad + c / columns
+            axes.append(fig.add_axes((left, bottom, width, height)))
+            if share_axes in {"x", "both"} and r != rows - 1:
+                axes[-1].set_xticklabels([])
+            if share_axes in {"y", "both"} and c != 0:
+                axes[-1].set_yticklabels([])
+            axes[-1].text(
+                label_x,
+                label_y,
+                labels[columns * r + c],
+                transform=axes[-1].transAxes,
+                **kwargs,
+            )
+
+    return fig, axes
 
 
 def combine(*files: str | pathlib.Path) -> cosmoplots.Combine:
