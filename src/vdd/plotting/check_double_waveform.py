@@ -98,8 +98,8 @@ class CheckRecreatedWaveforms:
             so2_new = self._get_so2_new(dec)
             for attr in ["aod", "rf", "temp"]:
                 self._run_attr_loop(dec, attr, so2_new, i)
-        [ax.set_xlabel("Time [yr]") for ax in self.axs]
-        [ax.set_xlim((-1, 21)) for ax in self.axs]
+        [ax.set_xlabel("Time after first eruption [yr]") for ax in self.axs]
+        # [ax.set_xlim((-1, 21)) for ax in self.axs]
         [ax.legend(framealpha=0.5) for ax in self.axs]
         [self.axs[i].set_ylabel("Aerosol optical depth [1]") for i in self.keys["aod"]]
         [self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]") for i in self.keys["rf"]]
@@ -161,17 +161,17 @@ class CheckRecreatedWaveforms:
         rec_new = np.convolve(resp_arr, so2_new, "same")
         plot = self.axs[self.keys[attr][idx]].plot
         plot(
-            dec.tau,
+            dec.temp.time,
             arr,
             c="k",
             lw=0.5,
-            label=f"${attr[0].upper()}_{{\\mathrm{{TT-{name.upper()}}}}}$",
+            label=f"${attr[0].upper()}_{{\\mathrm{{INT-{name.upper()}}}}}$",
         )
         kwargs = {"ls": "--", "c": _COLORS[c_idx], "lw": 1.0}
         varphi = f"\\varphi_{{{attr[0].upper()}}}"
-        conv_so2 = f"\\ast S_{{\\mathrm{{TT-{name.upper()}}}}}"
+        conv_so2 = f"\\ast S_{{\\mathrm{{INT-{name.upper()}}}}}"
         plot(
-            dec.tau,
+            dec.temp.time,
             rec_new,
             "-.",
             lw=1.0,
@@ -179,9 +179,9 @@ class CheckRecreatedWaveforms:
             label=f"${varphi}^{{\\mathrm{{INTERMEDIATE}}}}{conv_so2}$",
         )
         plot(
-            dec.tau,
+            dec.temp.time,
             rec_same,
-            label=f"${varphi}^{{\\mathrm{{TT-{name.upper()}}}}}{conv_so2}$",
+            label=f"${varphi}^{{\\mathrm{{INT-{name.upper()}}}}}{conv_so2}$",
             **kwargs,
         )
 

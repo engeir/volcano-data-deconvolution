@@ -172,6 +172,7 @@ class CESMData(BaseModel):
             The RF data.
         """
         out = self._get_rf_cesm()
+        out = out if len(out) % 2 else out[:-1]
         return self._align_arrays("rf", out)
 
     @cached_property
@@ -1572,7 +1573,7 @@ class TSComparison:
         if fig is None:
             fig = plt.figure()
         ax = fig.gca()
-        ax.set_xlabel("Time [yr]")
+        ax.set_xlabel("Time after first eruption [yr]")
         ax.set_ylabel("Absolute")
         time_ = self.orig.time
         ax.plot(time_, self.orig.data, label="Original")

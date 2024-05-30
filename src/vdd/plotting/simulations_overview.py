@@ -63,7 +63,7 @@ def gantt() -> None:
         lw=0.5,
     )
     ax.text(start_time - 0.1, -2, "1850", ha="right", va="center")
-    ax.text(end_time + 0.3, -2, "1872", ha="left", va="center")
+    ax.text(end_time + 0.3, -2, "1871", ha="left", va="center")
     ax.vlines(start_time, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
     ax.vlines(end_time + 0.2, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
     ax.text(2 / 12, text_y, "1850-02", rotation=90)
@@ -120,14 +120,14 @@ def gantt() -> None:
     ax.arrow(start_time, 13, end_time, 0, color=extreme_c, **arrow_kwargs)
     ax.scatter(5 / 12, 12, **scatter_kwargs)
     ax.scatter(11 / 12, 13, **scatter_kwargs)
-    # TT-2SEP
-    ax.text(0, 14.5, "TT-2SEP", ha="right", va="center")
+    # INT-2SEP
+    ax.text(0, 14.5, "INT-2SEP", ha="right", va="center")
     ax.arrow(start_time, 14, end_time, 0, color=tt2sep_c, **arrow_kwargs)
     ax.arrow(start_time, 15, end_time, 0, color=tt2sep_c, **arrow_kwargs)
     ax.scatter([2 / 12, 2 + 2 / 12], [14, 14], **scatter_kwargs)
     ax.scatter([8 / 12, 2 + 8 / 12], [15, 15], **scatter_kwargs)
-    # TT-4SEP
-    ax.text(0, 16.5, "TT-4SEP", ha="right", va="center")
+    # INT-4SEP
+    ax.text(0, 16.5, "INT-4SEP", ha="right", va="center")
     ax.arrow(start_time, 16, end_time, 0, color=tt4sep_c, **arrow_kwargs)
     ax.arrow(start_time, 17, end_time, 0, color=tt4sep_c, **arrow_kwargs)
     ax.scatter([2 / 12, 4 + 2 / 12], [16, 16], **scatter_kwargs)

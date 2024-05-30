@@ -135,7 +135,12 @@ class PlotCutOff:
             ymax = co.response.max()
             resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
             resp_a.legend(loc="upper right", framealpha=0.9)
-            temp_a.set_xlabel("Time [yr]")
+            xlab = (
+                "Time [yr]"
+                if "OB16" in co.dec.name
+                else "Time after first eruption [yr]"
+            )
+            temp_a.set_xlabel(xlab)
             temp_a.set_ylabel("Temperature anomaly [K]")
             temp_a.legend(loc="upper right", framealpha=0.9)
             match v.time.data[0]:

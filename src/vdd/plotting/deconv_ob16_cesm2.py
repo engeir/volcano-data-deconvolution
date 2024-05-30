@@ -76,7 +76,7 @@ class PlotResponseFunctions:
                 ax = fig.gca()
                 rf_xlim = (-2, 10)
                 ax.set_xlim(rf_xlim)
-                ax.set_xlabel("Time lag ($\\tau$) [yr]")
+                ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]"
                 )
@@ -97,7 +97,7 @@ class PlotResponseFunctions:
                 ax = fig.gca()
                 rf_xlim = (-2, 10)
                 ax.set_xlim(rf_xlim)
-                ax.set_xlabel("Time lag ($\\tau$) [yr]")
+                ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 burden response [1]"
                 )
@@ -118,7 +118,7 @@ class PlotResponseFunctions:
                 ax = fig.gca()
                 temp_xlim = (-2, 20)
                 ax.set_xlim(temp_xlim)
-                ax.set_xlabel("Time lag ($\\tau$) [yr]")
+                ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]"
                 )
@@ -139,7 +139,7 @@ class PlotResponseFunctions:
                 ax = fig.gca()
                 temp_xlim = (-1, 10)
                 ax.set_xlim(temp_xlim)
-                ax.set_xlabel("Time lag ($\\tau$) [yr]")
+                ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]"
                 )
@@ -165,8 +165,8 @@ class PlotResponseFunctions:
                 for ax in axs:
                     temp_xlim = (-2, 20)
                     ax.set_xlim(temp_xlim)
-                    ax.set_xlabel("Time lag ($\\tau$) [yr]")
-                    sub = "\\mathrm{R,S}" if "rf" in save_as else "\\mathrm{T,S}"
+                    ax.set_xlabel("Time lag [yr]")
+                    sub = "\\mathrm{R}" if "rf" in save_as else "\\mathrm{T}"
                     ax.set_ylabel(f"$\\varphi_{{{sub}}} / \\max\\varphi_{{{sub}}}$")
                     ax.legend()
                 fig.savefig(_SAVE_DIR / f"{save_as}")
@@ -227,7 +227,7 @@ class PlotResponseFunctions:
                         response = getattr(dec, f"response_{res_name}_so2")
                         scale = np.nanmax(response)
                         arr = response / scale
-                        lab = f"{name} ({vdd.utils.s2n(scale)})"
+                        lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\mathrm{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
                         kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
                         if name == "OB16":
                             ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
@@ -239,9 +239,9 @@ class PlotResponseFunctions:
                             ax.plot(dec.tau, arr, **kwargs)
                         elif i_ == 3 and name == "EXTREME":
                             ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 4 and name == "TT-2SEP":
+                        elif i_ == 4 and name == "INT-2SEP":
                             ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 5 and name == "TT-4SEP":
+                        elif i_ == 5 and name == "INT-4SEP":
                             ax.plot(dec.tau, arr, **kwargs)
                         else:
                             ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)

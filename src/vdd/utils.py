@@ -165,10 +165,12 @@ def name_translator(name: re.Match) -> str:
             return "intermediate"
         case "size5000":
             return "extreme"
-        case "tt-2sep" | "tt-4sep" | "strong":
+        case "strong":
             return name.group(0)
-        case "double-overlap":
-            return "tt-4sep"
+        case "tt-2sep":
+            return "int-2sep"
+        case "double-overlap" | "tt-4sep":
+            return "int-4sep"
         case _:
             raise ValueError(f"Unknown name: {name}")
 
