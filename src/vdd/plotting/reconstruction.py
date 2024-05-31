@@ -610,6 +610,8 @@ class PlotManyReconstructions:
 
 
 def _plot_reconstructed_temperature() -> None:
+    # Makes most sense when comparing all CESM2 simulations against each other, with
+    # OB16 as the control.
     rec = ReconstructOB16(*all_decs)
     rec.plot_temperature()
     plt.show()
@@ -625,19 +627,26 @@ def _plot_many_reconstructions() -> None:
         np.intersect1d(
             np.argwhere(rec_ob16_.response_temp_so2 < zero_like).flatten(),
             np.argwhere(rec_ob16_.tau > valid_until).flatten(),
-        ).flatten()[0]:
+        ).flatten()[0] :  # noqa: E203. This rule is still unstable (ruff==0.4.6)
     ] = 0
     try:
+        # In case we never reach zero, for example when running with the large eruption
+        # simulation output
         rec_small_.response_temp_so2[
             np.intersect1d(
                 np.argwhere(rec_small_.response_temp_so2 < zero_like).flatten(),
                 np.argwhere(rec_small_.tau > valid_until).flatten(),
-            ).flatten()[0]:
+            ).flatten()[0] :  # noqa: E203. This rule is still unstable (ruff==0.4.6)
         ] = 0
     except Exception:
         pass
     rec_ob16 = PlotReconstruction(ob16, rec_ob16_)
     rec_small = PlotReconstruction(ob16, rec_small_)
+    _plot_individual(rec_ob16, rec_small)
+    _plot_all(rec_ob16, rec_small)
+
+
+def _plot_individual(rec_ob16, rec_small) -> None:
     figpdf, axspdf = cosmoplots.figure_multiple_rows_columns(1, 2)
     figcdf, axscdf = cosmoplots.figure_multiple_rows_columns(1, 2)
     rec_ob16.peak_difference_analysis(*[axspdf[0], axscdf[0]])
@@ -658,6 +667,9 @@ def _plot_many_reconstructions() -> None:
     rec_ob16.plot_reconstruction_temp(axrec[0])
     rec_small.plot_reconstruction_temp(axrec[1])
     figrec.savefig(_SAVE_DIR / "compare-historical-size-temp-reconstructed")
+
+
+def _plot_all(rec_ob16, rec_small) -> None:
     # All in one
     figtot, axtot = cosmoplots.figure_multiple_rows_columns(4, 2)
     rec_ob16.plot_reconstruction_temp(axtot[0])

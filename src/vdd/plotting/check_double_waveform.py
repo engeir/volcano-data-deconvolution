@@ -27,12 +27,13 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
-dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
-dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
-dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
-dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
+use_padding = True
+dec_cesm_4sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_2sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_e = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="size5000"))
+dec_cesm_s = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="strong"))
+dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus"))
+dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
 
 
 def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
@@ -99,7 +100,8 @@ class CheckRecreatedWaveforms:
             for attr in ["aod", "rf", "temp"]:
                 self._run_attr_loop(dec, attr, so2_new, i)
         [ax.set_xlabel("Time after first eruption [yr]") for ax in self.axs]
-        # [ax.set_xlim((-1, 21)) for ax in self.axs]
+        if use_padding:
+            [ax.set_xlim((-1, 21)) for ax in self.axs]
         [ax.legend(framealpha=0.5) for ax in self.axs]
         [self.axs[i].set_ylabel("Aerosol optical depth [1]") for i in self.keys["aod"]]
         [self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]") for i in self.keys["rf"]]

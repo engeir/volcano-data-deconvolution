@@ -7,10 +7,10 @@ import volcano_base
 
 import vdd.load
 
-PEAK_LIMIT = 0.1
-SMALL_LIMIT = 20
-BIG_LIMIT = 80
-CLOSE_LIMIT = 4
+PEAK_LIMIT = 0.1  # Tg -- in order to remove all the zeros
+SMALL_LIMIT = 20  # Tg -- limit defining small eruptions
+BIG_LIMIT = 80  # Tg -- limit defining big eruptions
+CLOSE_LIMIT = 4  # yr -- limit defining close eruptions
 
 _ = volcano_base.load.OttoBliesner(freq="h0", progress=True)
 ob16 = vdd.load.DeconvolveOB16(data="h0", length=12001)

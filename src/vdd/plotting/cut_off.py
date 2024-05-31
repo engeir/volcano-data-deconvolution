@@ -1,13 +1,8 @@
-"""Analysis of how cutting off the response functions affect the result."""
+"""Analysis of how cutting off the response functions affect the result.
 
-# TODO: Using the ideas from `volcano-deconv`, implement a simple CutOff class that will
-# repeatedly cut off estimated response functions, recreate, add noise (for example
-# phase randomised input signal), and from this create an ensemble of response
-# estimates.
-#
-# 1. Implement the CutOff class.
-#    - [ ] Owns a Deconvolve object.
-#    - [ ] Uses only one response function and corresponding signal (RF or temperature).
+Implementation of the basic CutOff class is done in `vdd.load`. This script implements
+routines to plot the cut-off in a nice way.
+"""
 
 import cftime
 import matplotlib as mpl

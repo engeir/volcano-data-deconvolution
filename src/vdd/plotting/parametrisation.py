@@ -1,13 +1,15 @@
-"""Parametrise the temperature from SO2, via RF."""
+"""Explore ways of estimating the temperature response pulse function to RF.
 
-# TODO: Obtain an estimate of the T to RF response function.
-#
+Parametrise the temperature from SO2, via RF.
+"""
+
+# INFO: Obtain an estimate of the T to RF response function.
 # - [x] Get response functions representing T to SO2 and RF to SO2.
 # - [x] Try deconvolving right away to obtain the T to RF response function. Both using
 #       T and RF, and using the response functions.
-# - [ ] Verify that the response functions in the previous step are zero at negative
+# - [x] Verify that the response functions in the previous step are zero at negative
 #       time lags.
-# - [ ] Try smoothing the response functions to obtain a more stable result.
+# - [x] Try smoothing the response functions to obtain a more stable result. (Bad.)
 
 import fppanalysis
 import matplotlib.pyplot as plt

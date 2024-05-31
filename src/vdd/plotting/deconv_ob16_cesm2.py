@@ -23,12 +23,13 @@ plt.style.use([
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
-dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
-dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
-dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
-dec_cesm_m = DecCESM(pad_before=True, cesm=DataCESM(strength="medium"))
+use_padding = True
+dec_cesm_4sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_2sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_e = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="size5000"))
+dec_cesm_s = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="strong"))
+dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus"))
+dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
 # Original
 dec_ob16 = vdd.load.DeconvolveOB16(data="h0", length=int(12 * 1000) + 1)
 # Experimental (needs vdd.deconvolve_methods.alternative_deconv)
@@ -174,6 +175,39 @@ class PlotResponseFunctions:
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
 
+    def _norm_plot(self, temp_so2_gs_a, rf_so2_gs_a) -> None:
+        for ax_list, res_name in zip(
+            [temp_so2_gs_a, rf_so2_gs_a], ["temp", "rf"], strict=True
+        ):
+            for i, ax in enumerate(ax_list):
+                i_ = i
+                for dec in self.decs:
+                    name = ns(dec.name)
+                    clr = "r"
+                    name = name.replace("CESM2 ", "").upper()
+                    response = getattr(dec, f"response_{res_name}_so2")
+                    scale = np.nanmax(response)
+                    arr = response / scale
+                    lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
+                    kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
+                    match i_, name:
+                        case _, "OB16":
+                            ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
+                        case 0, "SMALL":
+                            ax.plot(dec.tau, arr, **kwargs)
+                        case 1, "INTERMEDIATE":
+                            ax.plot(dec.tau, arr, **kwargs)
+                        case 2, "STRONG":
+                            ax.plot(dec.tau, arr, **kwargs)
+                        case 3, "EXTREME":
+                            ax.plot(dec.tau, arr, **kwargs)
+                        case 4, "INT-2SEP":
+                            ax.plot(dec.tau, arr, **kwargs)
+                        case 5, "INT-4SEP":
+                            ax.plot(dec.tau, arr, **kwargs)
+                        case _:
+                            ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
+
     def run(self, save_as: list[str] | None = None) -> None:
         """Run the class."""
         rf_so2 = self.plot_rf_so2()
@@ -182,12 +216,6 @@ class PlotResponseFunctions:
         temp_rf = self.plot_temp_rf()
         temp_so2_gs = self.plot_grayscale_highlight()
         rf_so2_gs = self.plot_grayscale_highlight()
-        rf_so2_a = rf_so2.gca()
-        rf_so2_decay_a = rf_so2_decay.gca()
-        temp_so2_a = temp_so2.gca()
-        temp_rf_a = temp_rf.gca()
-        temp_so2_gs_a = temp_so2_gs.get_axes()
-        rf_so2_gs_a = rf_so2_gs.get_axes()
         for dec in self.decs:
             rf_so2_resp = (
                 vdd.utils.normalise(dec.response_rf_so2)
@@ -210,41 +238,12 @@ class PlotResponseFunctions:
             temp_rf_resp = (
                 vdd.utils.normalise(_temp_rf_resp) if self.norm else _temp_rf_resp
             )
-            rf_so2_a.plot(dec.tau, rf_so2_resp, label=ns(dec.name))
-            rf_so2_decay_a.plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))
-            temp_so2_a.plot(dec.tau, temp_so2_resp, label=ns(dec.name))
-            temp_rf_a.plot(dec.tau, temp_rf_resp, label=ns(dec.name))
+            rf_so2.gca().plot(dec.tau, rf_so2_resp, label=ns(dec.name))
+            rf_so2_decay.gca().plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))
+            temp_so2.gca().plot(dec.tau, temp_so2_resp, label=ns(dec.name))
+            temp_rf.gca().plot(dec.tau, temp_rf_resp, label=ns(dec.name))
         if self.norm:
-            for ax_list, res_name in zip(
-                [temp_so2_gs_a, rf_so2_gs_a], ["temp", "rf"], strict=True
-            ):
-                for i, ax in enumerate(ax_list):
-                    i_ = i
-                    for dec in self.decs:
-                        name = ns(dec.name)
-                        clr = "r"
-                        name = name.replace("CESM2 ", "").upper()
-                        response = getattr(dec, f"response_{res_name}_so2")
-                        scale = np.nanmax(response)
-                        arr = response / scale
-                        lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
-                        kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
-                        if name == "OB16":
-                            ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
-                        elif i_ == 0 and name == "SMALL":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 1 and name == "INTERMEDIATE":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 2 and name == "STRONG":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 3 and name == "EXTREME":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 4 and name == "INT-2SEP":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        elif i_ == 5 and name == "INT-4SEP":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        else:
-                            ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
+            self._norm_plot(temp_so2_gs.get_axes(), rf_so2_gs.get_axes())
         save_as = save_as or [
             "rf-so2",
             "rf-so2_decay",
@@ -263,37 +262,7 @@ class PlotResponseFunctions:
 
 
 def _main() -> None:
-    save_as = [
-        "rf-so2",
-        "rf-so2_decay",
-        "temp-so2",
-        "temp-rf",
-        "temp-so2-gs",
-        "rf-so2-gs",
-    ]
-    # for dec in all_decs[1:]:
-    #     save_as_ = [
-    #         val + "-" + vdd.utils.clean_filename(ns(dec.name)).name for val in save_as
-    #     ]
-    #     PlotResponseFunctions(dec_ob16, dec, norm=True).run(save_as_)
-    #     PlotResponseFunctions(dec_ob16, dec, norm=False).run(save_as_)
-    #     plt.close("all")
-    # PlotResponseFunctions(*all_decs, norm=False).run()
     PlotResponseFunctions(*all_decs, norm=True).run()
-    plt.show()
-    return
-    files = (
-        [_SAVE_DIR / f"rf-so2-{k}.jpg" for k in ["abs", "norm"]],
-        [_SAVE_DIR / f"rf-so2_decay-{k}.jpg" for k in ["abs", "norm"]],
-        [_SAVE_DIR / f"temp-so2-{k}.jpg" for k in ["abs", "norm"]],
-        [_SAVE_DIR / f"temp-rf-{k}.jpg" for k in ["abs", "norm"]],
-    )
-    for file in files:
-        vdd.utils.combine(*file).in_grid(2, 1).save(
-            _SAVE_DIR / ns(file[0].name.replace("-abs", ""))
-        )
-        for f in file:
-            f.unlink()
     plt.show()
 
 
