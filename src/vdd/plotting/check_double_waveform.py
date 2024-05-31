@@ -165,23 +165,23 @@ class CheckRecreatedWaveforms:
             arr,
             c="k",
             lw=0.5,
-            label=f"${attr[0].upper()}_{{\\mathrm{{INT-{name.upper()}}}}}$",
+            label=f"${attr[0].upper()}_{{\\text{{INT-{name.upper()}}}}}$",
         )
         kwargs = {"ls": "--", "c": _COLORS[c_idx], "lw": 1.0}
         varphi = f"\\varphi_{{{attr[0].upper()}}}"
-        conv_so2 = f"\\ast S_{{\\mathrm{{INT-{name.upper()}}}}}"
+        conv_so2 = f"\\ast S_{{\\text{{INT-{name.upper()}}}}}"
         plot(
             dec.temp.time,
             rec_new,
             "-.",
             lw=1.0,
             c=_COLORS[1],
-            label=f"${varphi}^{{\\mathrm{{INTERMEDIATE}}}}{conv_so2}$",
+            label=f"${varphi}^{{\\text{{INTERMEDIATE}}}}{conv_so2}$",
         )
         plot(
             dec.temp.time,
             rec_same,
-            label=f"${varphi}^{{\\mathrm{{INT-{name.upper()}}}}}{conv_so2}$",
+            label=f"${varphi}^{{\\text{{INT-{name.upper()}}}}}{conv_so2}$",
             **kwargs,
         )
 

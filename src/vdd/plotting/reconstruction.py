@@ -332,9 +332,11 @@ class PlotReconstruction:
         ax.set_ylabel("Temperature anomaly [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
-        ax.plot(time_, self.temp_control, c=COLORS[1], label="$T_{\\mathrm{CONTROL}}$")
-        ax.plot(time_, temp.data, c=COLORS[0], label="$T_{\\mathrm{OB16}}$")
-        lso2 = f"$\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        ax.plot(time_, self.temp_control, c=COLORS[1], label="$T_{\\text{CONTROL}}$")
+        ax.plot(time_, temp.data, c=COLORS[0], label="$T_{\\text{OB16}}$")
+        lso2 = (
+            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
+        )
         ax.plot(time_, self.rec_temp_so2, c=COLORS[2], label=lso2)
         ax.set_xlim((-790 * 365, -650 * 365))
         ax.legend(framealpha=0.5)
@@ -357,14 +359,16 @@ class PlotReconstruction:
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_self) = :.4f}")  # noqa: E203
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_so2) = :.4f}")  # noqa: E203
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_ctrl) = :.4f}")  # noqa: E203
-        ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="$T_{\\mathrm{CONTROL}}$")
-        ax.plot(corr_self_time, corr_self, c=COLORS[0], label="$T_{\\mathrm{OB16}}$")
-        lso2 = f"$\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
-        # lso2 = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="$T_{\\text{CONTROL}}$")
+        ax.plot(corr_self_time, corr_self, c=COLORS[0], label="$T_{\\text{OB16}}$")
+        lso2 = (
+            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
+        )
+        # lso2 = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=lso2)
         ax.set_xlim((-100, 100))
         ax.set_xlabel("Time lag [yr]")
-        ax.set_ylabel("Correlation with \n$T_{\\mathrm{OB16}}$ [K]")
+        ax.set_ylabel("Correlation with \n$T_{\\text{OB16}}$ [K]")
         ax.legend()
         return ax
 
@@ -402,18 +406,20 @@ class PlotReconstruction:
             f_control,
             p_control,
             c=COLORS[1],
-            label="$T_{\\mathrm{CONTROL}}$",
+            label="$T_{\\text{CONTROL}}$",
         )
-        ax.plot(f_orig, p_orig, c=COLORS[0], label="$T_{\\mathrm{OB16}}$")
-        lrec = f"$\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        ax.plot(f_orig, p_orig, c=COLORS[0], label="$T_{\\text{OB16}}$")
+        lrec = (
+            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
+        )
         ax.plot(f_so2_rec, p_so2_rec, c=COLORS[2], label=lrec)
-        lresidual = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(f_so2_res, p_so2_res, c=COLORS[4], label=lresidual)
         ax.plot(
             f_so2,
             p_so2,
             c=COLORS[3],
-            label=f"$\\varphi_{{T}}^{{\\mathrm{{{self._get_name()}}}}}$",
+            label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}$",
         )
         # Suppress the warning
         warnings.filterwarnings("ignore")
@@ -432,10 +438,10 @@ class PlotReconstruction:
         ax.plot(
             f_so2,
             p_so2,
-            label=f"$\\varphi_{{T}}^{{\\mathrm{{{self._get_name()}}}}}$",
+            label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}$",
             alpha=0.5,
         )
-        ax.plot(f_control, p_control, label="$T_{\\mathrm{CONTROL}}$", alpha=0.5)
+        ax.plot(f_control, p_control, label="$T_{\\text{CONTROL}}$", alpha=0.5)
         ax.plot(f_orig_so2, p_orig_so2, label="SO2 TS", alpha=0.5)
         # Suppress the warning
         warnings.filterwarnings("ignore")
@@ -544,10 +550,10 @@ class PlotReconstruction:
             b_rf,
             f_r,
             color=COLORS[1],
-            label=f"$T_{{\\mathrm{{CONTROL}}}}$ (p-value: {txt[1]:.4f})",
+            label=f"$T_{{\\text{{CONTROL}}}}$ (p-value: {txt[1]:.4f})",
             **kw,
         )
-        lresidual = f"$T_{{\\mathrm{{OB16}}}}-\\varphi_T^{{\\mathrm{{{self._get_name()}}}}}\\ast S_{{\\mathrm{{OB16}}}}$"
+        lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.bar(
             b_so2,
             f_s,

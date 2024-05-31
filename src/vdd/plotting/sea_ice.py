@@ -39,7 +39,7 @@ def plot_sea_ice() -> None:
         arr = arr.assign_coords({
             "time": volcano_base.manipulate.dt2float(arr.time.data) - 1850
         })
-        lab = f"$I_{{\\mathrm{{{ns(new_).upper()}}}}}$"
+        lab = f"$I_{{\\text{{{ns(new_).upper()}}}}}$"
         arr.plot(label=lab)
     plt.xlabel("Time after first eruption [yr]")
     plt.ylabel("Sea Ice Fraction [1]")

@@ -104,31 +104,31 @@ class PlotCutOff:
                 co.dec.tau,
                 co.response,
                 c=colors[0],
-                label=f"$\\varphi_T^{{\\mathrm{{{name}}}}}$",
+                label=f"$\\varphi_T^{{\\text{{{name}}}}}$",
             )
             resp_a.plot(
                 v.tau,
                 v.response,
                 c=colors[2],
-                label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\mathrm{{{name}}}}}$",
+                label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\text{{{name}}}}}$",
             )
             temp_a.plot(
                 co.output.time,
                 co.dec.temp_control,
                 c=colors[1],
-                label="$T_{\\mathrm{CONTROL}}$",
+                label="$T_{\\text{CONTROL}}$",
             )
             temp_a.plot(
                 co.output.time,
                 co.output,
                 c=colors[0],
-                label=f"$T_{{\\mathrm{{{name}}}}}$",
+                label=f"$T_{{\\text{{{name}}}}}$",
             )
             temp_a.plot(
                 v.time,
                 v.temp_rec,
                 c=colors[2],
-                label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\mathrm{{{name}}}}}\\ast S_{{\\mathrm{{{name}}}}}$",
+                label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\text{{{name}}}}}\\ast S_{{\\text{{{name}}}}}$",
             )
             resp_a.set_xlabel("Time lag [yr]")
             resp_a.set_ylabel("$\\varphi_T$")

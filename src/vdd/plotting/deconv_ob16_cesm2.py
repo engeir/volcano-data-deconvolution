@@ -166,7 +166,7 @@ class PlotResponseFunctions:
                     temp_xlim = (-2, 20)
                     ax.set_xlim(temp_xlim)
                     ax.set_xlabel("Time lag [yr]")
-                    sub = "\\mathrm{R}" if "rf" in save_as else "\\mathrm{T}"
+                    sub = "R" if "rf" in save_as else "T"
                     ax.set_ylabel(f"$\\varphi_{{{sub}}} / \\max\\varphi_{{{sub}}}$")
                     ax.legend()
                 fig.savefig(_SAVE_DIR / f"{save_as}")
@@ -227,7 +227,7 @@ class PlotResponseFunctions:
                         response = getattr(dec, f"response_{res_name}_so2")
                         scale = np.nanmax(response)
                         arr = response / scale
-                        lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\mathrm{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
+                        lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
                         kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
                         if name == "OB16":
                             ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
