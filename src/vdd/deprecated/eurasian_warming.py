@@ -26,7 +26,7 @@ warnings.warn(
 
 def _main() -> None:
     d_ = vdd.load.CESMData(strength="size5000", dims=["lat", "lon"])
-    d_.temp.plot()
+    d_.temp.plot()  # type: ignore
     plt.figure()
     d = vdd.load.CESMData(strength="medium", dims=[])
     # time_sel = np.array([11, 12, 13, 23, 24, 25]) + 12 * 5

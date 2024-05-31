@@ -1,6 +1,10 @@
-"""Simply plot the response function from CESM and compare with analytical response functions."""
+"""Implements a simple recreation of a plot from Gupta and Marshall (2018).
 
-import warnings
+See https://doi.org/10.1175/JCLI-D-17-0703.s1 for the original paper.
+
+Simply plot the response function from CESM and compare with analytical response
+functions.
+"""
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -8,12 +12,6 @@ from scipy.optimize import curve_fit
 from scipy.stats import gamma
 
 import vdd.load
-
-warnings.warn(
-    "This script is deprecated and may be removed in the future.",
-    category=DeprecationWarning,
-    stacklevel=1,
-)
 
 plt.style.use([
     "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
@@ -50,20 +48,12 @@ def _plot():
     plt.plot(time, temp, label="T")
     plt.legend(framealpha=0.5)
     plt.figure()
-    gap = 15
-    x1 = np.linspace(0, 100, 1000)
-    x2 = np.linspace(-gap * 1, 100 - gap * 1, 1000)
-    x3 = np.linspace(-gap * 2, 100 - gap * 2, 1000)
-    x4 = np.linspace(-gap * 3, 100 - gap * 3, 1000)
-    temp_sum = (
-        gamma_pdf(x1, *temp_params)
-        + gamma_pdf(x2, *temp_params)
-        + gamma_pdf(x3, *temp_params)
-        + gamma_pdf(x4, *temp_params)
-    )
-    temp_single = gamma_pdf(x1, *temp_params)
-    plt.plot(x1, temp_single, label="Fitted T Gamma")
-    plt.plot(x1, temp_sum, label="Fitted T Gamma")
+    gap = 20
+    x = [np.linspace(-gap * i, 1000 - gap * i, 1000) for i in range(40)]
+    temp_sum = sum(gamma_pdf(xi, *temp_params) for xi in x)
+    temp_single = gamma_pdf(x[0], *temp_params)
+    plt.plot(x[0], temp_single, label="Fitted T Gamma")
+    plt.plot(x[0], temp_sum, label="Fitted T Gamma")
     print(temp_sum[-1], temp_single[-1])
     print(temp_sum.mean(), temp_single.mean())
     plt.show()
