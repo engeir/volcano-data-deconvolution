@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.1...volcano-data-deconvolution-v1.0.2) (2024-06-03)
+
+
+### Documentation
+
+* **README:** link to zenodo latest DOI ([8cccacc](https://github.com/engeir/volcano-data-deconvolution/commit/8cccacca87f4e7dde9c8f5b1371ca9ce495eda8b))
+* **zenodo:** better specification of metadata name and affiliation ([8346dbb](https://github.com/engeir/volcano-data-deconvolution/commit/8346dbbaec07a0dcf4c9f614a7082a9265d1bd7b))
+
 ## [1.0.1](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.0...volcano-data-deconvolution-v1.0.1) (2024-06-03)
 
 
