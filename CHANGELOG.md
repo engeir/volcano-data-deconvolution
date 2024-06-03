@@ -1,5 +1,75 @@
 # Changelog
 
+## [1.0.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.7.0...volcano-data-deconvolution-v1.0.0) (2024-06-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sim name:** change all simulations to use newer naming convention
+
+### Features
+
+* **cesm2 load:** optionally specify dims to average out ([875aeca](https://github.com/engeir/volcano-data-deconvolution/commit/875aecae6e3fd0745363622de2142c7e66d47809))
+* clean up double waveform figure ([27f7ae1](https://github.com/engeir/volcano-data-deconvolution/commit/27f7ae1080f823c6b3203cb7120a2ee220bd6f73))
+* clean up reconstruction figures ([592fce7](https://github.com/engeir/volcano-data-deconvolution/commit/592fce77e0bd32f15d9af7f42086d315e66e17e1))
+* clean up reconstruction figures ([d48121f](https://github.com/engeir/volcano-data-deconvolution/commit/d48121f5954e3675334e408aa7992b30ce251817))
+* **load:** add option to specify length of OB16 time series ([afe55fa](https://github.com/engeir/volcano-data-deconvolution/commit/afe55fa238f09b1aabb2baed4b850cce70ffb940))
+* **load:** add time series statistics comparison class ([9baa890](https://github.com/engeir/volcano-data-deconvolution/commit/9baa8900cfa971e23c851e88802a35ff5e779aaa))
+* **reconstruction:** add new spectrum comparison plot ([726843d](https://github.com/engeir/volcano-data-deconvolution/commit/726843da60f4ddfc09cd20c7af597bcf9da650c3))
+
+
+### Bug Fixes
+
+* **deconv:** forgot parenthesis that made mod 2 check pass every time ([ebff64a](https://github.com/engeir/volcano-data-deconvolution/commit/ebff64a383a3b0f0098fba5bdada1bb35d86e7d0))
+* **load:** raise error for even length in deconvolution ([41718c7](https://github.com/engeir/volcano-data-deconvolution/commit/41718c7ab4c738d10ef96c81a4314ce8eea12ff6))
+* **mypy:** do not call `.data` attr on numpy array object ([41718c7](https://github.com/engeir/volcano-data-deconvolution/commit/41718c7ab4c738d10ef96c81a4314ce8eea12ff6))
+
+
+### Miscellaneous
+
+* **analysis:** simple plots looking at Eurasian warming ([c4d5341](https://github.com/engeir/volcano-data-deconvolution/commit/c4d5341bfc4359edc526d0a76949a08c45841944))
+* **cutoff:** update with better default for plotting cut-off ([4e7c0c5](https://github.com/engeir/volcano-data-deconvolution/commit/4e7c0c584951c6f999439d1bad1b4346b41f8644))
+* **deconv:** use SO2 with decay in analysis ([ced1d03](https://github.com/engeir/volcano-data-deconvolution/commit/ced1d0310fafe8b4699a31022ea95c73858f2aa6))
+* **double waveform:** finalise the plotting script ([906f719](https://github.com/engeir/volcano-data-deconvolution/commit/906f7198fa7aff00f7d66eb29c55dd02701a163f))
+* **load:** use the newer tt-4sep over double-overlap ([758d154](https://github.com/engeir/volcano-data-deconvolution/commit/758d154940d475d15d1fae7a026eadea650db718))
+* **mypy:** comment all false negatives ([4eef56e](https://github.com/engeir/volcano-data-deconvolution/commit/4eef56ed6462c67fcb5154467820358d4608eabb))
+* **numerical soln:** create plots based on params of other sims ([0fd00e7](https://github.com/engeir/volcano-data-deconvolution/commit/0fd00e72383d7f5a204b05b750d79c1d2dad2fd0))
+* **plotting:** fix time axis label and more ([e838916](https://github.com/engeir/volcano-data-deconvolution/commit/e8389162ebbb199c65f9e7f44cc9c03e5b22127b))
+* save images as pdf ([a00654c](https://github.com/engeir/volcano-data-deconvolution/commit/a00654c7cde2c9aaf8d8f13d0a9c664c8beacde8))
+* upload code... ([6df95bf](https://github.com/engeir/volcano-data-deconvolution/commit/6df95bf1847487a59a94d5987bb3f012be060b0b))
+* use latex text style in figs, not mathrm ([78df340](https://github.com/engeir/volcano-data-deconvolution/commit/78df3409cb3cc72b72d1431a82120f5e16be4dd8))
+
+
+### Styles
+
+* fix plot styles and update sim name ([28962ce](https://github.com/engeir/volcano-data-deconvolution/commit/28962ceb9df4e42011502c95abe33beaae5b30ca))
+
+
+### Code Refactoring
+
+* **load:** slice on the properties to continue lazy loading ([4f45a37](https://github.com/engeir/volcano-data-deconvolution/commit/4f45a37e9a9a70836e1b289bb886977054901e90))
+* **load:** use the deconv method of the Deconvolve object, not fppanalysis impl ([41718c7](https://github.com/engeir/volcano-data-deconvolution/commit/41718c7ab4c738d10ef96c81a4314ce8eea12ff6))
+* move plot of single deconvolve object into its own private method ([b607ecb](https://github.com/engeir/volcano-data-deconvolution/commit/b607ecbd253aeec9c22ac133a081363813a6f3d7))
+* remove deprecated scripts and move some nice-to-have to own dir ([308e719](https://github.com/engeir/volcano-data-deconvolution/commit/308e71968b1714c94a9133e23243a1384ca23538))
+* remove old code and clean up ([2e90dc2](https://github.com/engeir/volcano-data-deconvolution/commit/2e90dc2874c645e9fe4fec3bd32175d62dd37f93))
+* **sim name:** change all simulations to use newer naming convention ([930fd70](https://github.com/engeir/volcano-data-deconvolution/commit/930fd705e6587e0310e1391a9d38135aa6cca130))
+* squash figures by using one x-axis ([c44ba64](https://github.com/engeir/volcano-data-deconvolution/commit/c44ba64494894ff7eaf208d4cb558324b120d284))
+
+
+### Continuous Integration
+
+* **github:** update organization name of release-please workflow ([6c1c94c](https://github.com/engeir/volcano-data-deconvolution/commit/6c1c94cce9c2e0ee9ffae45ae915ea36ebb6cac0))
+
+
+### Build System
+
+* **deps-dev:** update development dependencies ([99116ac](https://github.com/engeir/volcano-data-deconvolution/commit/99116ac50b6179c6435a28e13b9db883321ab45b))
+
+
+### Documentation
+
+* **README:** add description for entry points ([8781130](https://github.com/engeir/volcano-data-deconvolution/commit/8781130daeedfb5b289ded5b218e09cde15b113c))
+
 ## [0.7.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.6.0...volcano-data-deconvolution-v0.7.0) (2024-04-11)
 
 
