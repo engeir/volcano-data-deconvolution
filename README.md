@@ -43,10 +43,16 @@ Hello, this is vdd at version v0.7.0!
 
 ## Usage
 
-See the scripts in the [`src/vdd/plotting/`](./src/vdd/plotting/) directory for the
-experiments that this project implements.
+The main programs, i.e. those that create plots used in the accompanying paper, are run
+as entry point scripts of the package. A list of all entry points can be found by
+running the command `rye run`, or for a curated list of this project's entry points, run
 
-Run as:
+```bash
+rye run 2>&1 | grep vdd
+```
+
+All other useful scripts are located in the [`src/vdd/plotting/`](./src/vdd/plotting/)
+directory. Any of those scripts can be run as
 
 ```bash
 rye run python ./src/vdd/plotting/<script>.py
