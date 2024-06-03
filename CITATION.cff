@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: Enger
+  given-names: Eirik Rolland
+  orcid: https://orcid.org/0000-0001-6709-8688
+title: Accompanying code to 'Temperature response to volcanic forcing'
+version: volcano-data-deconvolution-v1.0.4  # x-release-please-version
+# date-released: 2024-06-03
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of My Research Software
+    type: doi
+    value: "10.5281/zenodo.11445641"
+license: MIT
+repository-code: "https://github.com/engeir/volcano-data-deconvolution"
