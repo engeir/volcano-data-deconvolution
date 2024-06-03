@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.0...volcano-data-deconvolution-v1.0.1) (2024-06-03)
+
+
+### Documentation
+
+* **zenodo:** add JSON file for zenodo publication ([670431b](https://github.com/engeir/volcano-data-deconvolution/commit/670431bda8a438996091d98041093ced86a9f3f0))
+
 ## [1.0.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v0.7.0...volcano-data-deconvolution-v1.0.0) (2024-06-03)
 
 
