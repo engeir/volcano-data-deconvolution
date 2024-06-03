@@ -60,7 +60,7 @@ def _place_eruption(
         if isinstance(eruption_time, Sequence)
         else vertical_position
     )
-    ax.scatter(eruption_time, vertical_scatter, **scatter_kwargs)
+    ax.scatter(eruption_time, vertical_scatter, **scatter_kwargs)  # type: ignore[arg-type]
     return ax
 
 
@@ -136,6 +136,11 @@ def gantt() -> None:
     plt.savefig(_SAVE_DIR / "simulation_timeline")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Run the main function."""
     gantt()
     plt.show()
+
+
+if __name__ == "__main__":
+    main()

@@ -305,7 +305,7 @@ class PlotReconstruction:
         if view:
             aligned_arrays["so2-start"][s:e].plot()
             so2_temp.plot()
-            self.dec_ob16.temp.plot()
+            self.dec_ob16.temp.plot()  # type: ignore[call-arg]
             plt.plot(self.dec_ob16.temp.time, self.rec_temp_so2)
             plt.plot(self.dec_ob16.temp.time, self.rec_temp_rf)
             plt.scatter(peaks_time, peaks_original)
@@ -493,12 +493,12 @@ class PlotReconstruction:
 
     def peak_difference_analysis(  # noqa: PLR0914
         self, ax1: mpl.axes.Axes, ax2: mpl.axes.Axes
-    ) -> [mpl.axes.Axes, mpl.axes.Axes]:
+    ) -> tuple[mpl.axes.Axes, mpl.axes.Axes]:
         """Plot the difference between the reconstructed and the original peaks."""
         self._diff_of_max_peak()
         so2_basis = self.peaks_so2 - self.peaks_original
         ctrl_basis = self.temp_control
-        so2_conf, ctrl_conf = self._peak_difference_ttest(so2_basis, ctrl_basis)
+        so2_conf, ctrl_conf = self._peak_difference_ttest(so2_basis, ctrl_basis)  # type: ignore[arg-type]
         pdf_so2, cdf_so2, bin_centers_so2 = fppanalysis.distribution(
             so2_basis, 30, ccdf=False
         )
@@ -540,7 +540,7 @@ class PlotReconstruction:
         fits: tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
         dist: Literal["pdf", "cdf"],
         txt: tuple[str, str],
-    ) -> mpl.figure.Figure:
+    ) -> mpl.axes.Axes:
         b_so2, b_rf, f_s, f_r = fpp_out
         norm_fit, _ = fits
         norm_so2 = getattr(scipy.stats.norm, dist)(b_so2, *norm_fit[0])
@@ -551,7 +551,7 @@ class PlotReconstruction:
             f_r,
             color=COLORS[1],
             label=f"$T_{{\\text{{CONTROL}}}}$ (p-value: {txt[1]:.4f})",
-            **kw,
+            **kw,  # type: ignore[arg-type]
         )
         lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.bar(
@@ -559,7 +559,7 @@ class PlotReconstruction:
             f_s,
             color=COLORS[4],
             label=f"{lresidual} (p-value: {txt[0]:.4f})",
-            **kw,
+            **kw,  # type: ignore[arg-type]
         )
         bar_hand, bar_lab = ax.get_legend_handles_labels()
         # Norm

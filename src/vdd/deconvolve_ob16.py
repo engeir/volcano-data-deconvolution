@@ -23,9 +23,9 @@ def check_cesm_output() -> None:
     if any(x != cesm.rf.time.data) or any(x != cesm.temp.time.data):
         raise ValueError("Times do not match.")
     plt.figure()
-    vdd.utils.normalise(cesm.aod).plot()
-    vdd.utils.normalise(cesm.rf).plot()
-    vdd.utils.normalise(cesm.temp).plot()
+    vdd.utils.normalise(cesm.aod).plot()  # type: ignore[call-arg]
+    vdd.utils.normalise(cesm.rf).plot()  # type: ignore[call-arg]
+    vdd.utils.normalise(cesm.temp).plot()  # type: ignore[call-arg]
     # plt.plot(x, vdd.utils.normalise(cesm.aod))
     # plt.plot(x, vdd.utils.normalise(cesm.rf))
     # plt.plot(x, vdd.utils.normalise(cesm.temp))
@@ -109,12 +109,12 @@ def _look_at_ob_data() -> None:  # noqa: PLR0914
     signal2 = np.convolve(so2, tmp, mode="same")
     signal3 = np.convolve(so2, tmp_ext, mode="same")
     plt.figure()
-    vdd.utils.normalise(temp).plot()
+    vdd.utils.normalise(temp).plot()  # type: ignore[call-arg]
     plt.plot(so2.time.data, vdd.utils.normalise(signal3))
     plt.plot(so2.time.data, vdd.utils.normalise(signal2))
     plt.legend(["OB16 T", "CESM2 T extra", "CESM2 T"])
     plt.figure()
-    vdd.utils.normalise(rf_fr).plot()
+    vdd.utils.normalise(rf_fr).plot()  # type: ignore[call-arg]
     plt.plot(so2.time.data, vdd.utils.normalise(signal))
     plt.show()
 

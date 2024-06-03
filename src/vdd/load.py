@@ -392,7 +392,7 @@ class CESMData(BaseModel):
         self._rf_control = c_total_dt.assign_coords(time=c_total_float.time)
         if plot_example:
             plt.figure()
-            [f.plot() for f in rf]
+            [f.plot() for f in rf]  # type: ignore[call-arg]
             plt.show()
         mean_array = volcano_base.manipulate.get_median(rf, xarray=True)
         if plot_example:
@@ -730,8 +730,8 @@ class Deconvolve(metaclass=_PostInitCaller):
         """Deconvolve the RF signal with the SO2 signal."""
         # Quick comparison
         plt.figure()
-        vdd.utils.normalise(self.rf).plot()
-        vdd.utils.normalise(self.so2).plot()
+        vdd.utils.normalise(self.rf).plot()  # type: ignore[call-arg]
+        vdd.utils.normalise(self.so2).plot()  # type: ignore[call-arg]
         plt.figure()
         plt.plot(self.tau, self.response_rf_so2)
         plt.figure()
@@ -741,8 +741,8 @@ class Deconvolve(metaclass=_PostInitCaller):
         """Deconvolve the temperature signal with the SO2 signal."""
         # Quick comparison
         plt.figure()
-        vdd.utils.normalise(self.temp).plot()
-        vdd.utils.normalise(self.so2).plot()
+        vdd.utils.normalise(self.temp).plot()  # type: ignore[call-arg]
+        vdd.utils.normalise(self.so2).plot()  # type: ignore[call-arg]
         plt.figure()
         plt.plot(self.tau, self.response_temp_so2)
         plt.figure()
@@ -752,8 +752,8 @@ class Deconvolve(metaclass=_PostInitCaller):
         """Deconvolve the temperature signal with the SO2 signal."""
         # Quick comparison
         plt.figure()
-        vdd.utils.normalise(self.temp).plot()
-        vdd.utils.normalise(self.rf).plot()
+        vdd.utils.normalise(self.temp).plot()  # type: ignore[call-arg]
+        vdd.utils.normalise(self.rf).plot()  # type: ignore[call-arg]
         plt.figure()
         plt.plot(self.tau, self.response_temp_rf)
         plt.figure()

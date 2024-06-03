@@ -32,6 +32,12 @@ requires-python = ">= 3.12"
 
 [project.scripts]
 vdd = "vdd.__main__:main"
+vdd-plot-response = "vdd.plotting.deconv_ob16_cesm2:main"
+vdd-plot-simulations = "vdd.plotting.simulations_overview:main"
+vdd-plot-sea-ice = "vdd.plotting.sea_ice:plot_sea_ice"
+vdd-plot-double-waveform = "vdd.plotting.check_double_waveform:main"
+vdd-plot-cut-off = "vdd.plotting.cut_off:_main"
+vdd-plot-reconstruction = "vdd.plotting.reconstruction:_main"
 
 [project.urls]
 repository = "https://github.com/engeir/volcano-data-deconvolution"
@@ -60,6 +66,7 @@ use_parentheses = true
 [tool.mypy]
 allow_redefinition = false
 check_untyped_defs = true
+disallow_untyped_calls = false
 files = ["src", "tests"]
 ignore_errors = false
 ignore_missing_imports = true
@@ -107,7 +114,7 @@ exclude = [
   "venv",
 ]
 # Files that were downloaded
-extend-exclude = ["python-ucar.cgd.ccsm4.cesmLME*py"]
+extend-exclude = []
 # Same as Black.
 line-length = 88
 # Assume Python 3.12

@@ -14,14 +14,14 @@ CLOSE_LIMIT = 4  # yr -- limit defining close eruptions
 
 _ = volcano_base.load.OttoBliesner(freq="h0", progress=True)
 ob16 = vdd.load.DeconvolveOB16(data="h0", length=12001)
-(so2 := ob16.so2).plot()
+(so2 := ob16.so2).plot()  # type: ignore[call-arg]
 so2 = so2.assign_coords(time=volcano_base.manipulate.dt2float(so2.time.data))
 so2 = so2.assign_coords(time=np.asarray([round(val) for val in so2.time.data]))
 so2_peaks = so2.where(so2 > PEAK_LIMIT).dropna("time")
 so2_peaks_ser = so2_peaks.to_series()
 peak_times = np.array(so2_peaks.time.data)
 print(peak_times)
-peaks_sort = np.concatenate(([100], np.diff(peak_times)))
+peaks_sort: np.ndarray = np.concatenate(([100], np.diff(peak_times)))  # type: ignore[arg-type]
 print(peaks_sort)
 so2_peaks_close = so2_peaks.where(peaks_sort < CLOSE_LIMIT).dropna("time")
 so2_peaks_close_ser = so2_peaks_close.to_series()
