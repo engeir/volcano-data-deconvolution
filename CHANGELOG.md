@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.3...volcano-data-deconvolution-v1.0.4) (2024-06-03)
+
+
+### Miscellaneous
+
+* **zenodo:** try specifying affiliation string as zenodo show it ([d8bd9ae](https://github.com/engeir/volcano-data-deconvolution/commit/d8bd9aee9efd9f12ae47b80e862a48deac0b7989))
+
 ## [1.0.3](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.2...volcano-data-deconvolution-v1.0.3) (2024-06-03)
 
 
