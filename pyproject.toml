@@ -4,7 +4,7 @@ requires = ["setuptools"]
 
 [project]
 name = "volcano-data-deconvolution"
-version = "1.0.2"
+version = "1.0.3"
 description = "Deconvolution applied to volcanic eruption time series"
 authors = [{ name = "engeir", email = "engeir@pm.me" }]
 dependencies = [
