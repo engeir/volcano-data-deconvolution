@@ -1,15 +1,29 @@
 {
-    "creators": [
-        {
-            "orcid": "0000-0001-6709-8688",
-            "affiliation": "UiT The Arctic University of Norway",
-            "name": "Enger, Eirik Rolland"
-        }
-    ],
+  "creators": [
+    {
+      "orcid": "0000-0001-6709-8688",
+      "affiliation": {
+        "id": "00wge5k78",
+        "name": "UiT The Arctic University of Norway"
+      },
+      "person_or_org": {
+        "family_name": "Enger",
+        "given_name": "Eirik Rolland",
+        "identifiers": [
+          {
+            "identifier": "0000-0001-6709-8688",
+            "scheme": "orcid"
+          }
+        ],
+        "name": "Enger, Eirik Rolland",
+        "type": "personal"
+      }
+    }
+  ],
 
-    "license": "MIT",
+  "license": "MIT",
 
-    "title": "Accompanying code to 'Temperature response to volcanic forcing'",
+  "title": "Accompanying code to 'Temperature response to volcanic forcing'",
 
-    "keywords": ["volcano", "eruption", "global mean surface temperature"]
+  "keywords": ["volcano", "eruption", "global mean surface temperature"]
 }
