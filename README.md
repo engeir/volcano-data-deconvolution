@@ -1,4 +1,6 @@
-# Deconvolution of volcanic eruption time series
+# Accompanying code to 'Temperature response to volcanic forcing'
+
+[![DOI](https://zenodo.org/badge/742292778.svg)](https://zenodo.org/badge/latestdoi/742292778)
 
 <sup>Latest version: v1.0.1</sup> <!-- x-release-please-version -->
 
