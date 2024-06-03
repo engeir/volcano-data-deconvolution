@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.3](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.2...volcano-data-deconvolution-v1.0.3) (2024-06-03)
+
+
+### Bug Fixes
+
+* **zenodo:** correctly specify zenodo metadata ([26349fb](https://github.com/engeir/volcano-data-deconvolution/commit/26349fb262e38b371e3f47ed67b31f8ac7492d0e))
+* **zenodo:** only use the name field ([d05f086](https://github.com/engeir/volcano-data-deconvolution/commit/d05f0863ae17d9f4ba624f3f2a25f7be2852e783))
+
+
+### Tests
+
+* **zenodo:** test that the zenodo json schema is correct ([26349fb](https://github.com/engeir/volcano-data-deconvolution/commit/26349fb262e38b371e3f47ed67b31f8ac7492d0e))
+
 ## [1.0.2](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.1...volcano-data-deconvolution-v1.0.2) (2024-06-03)
 
 
