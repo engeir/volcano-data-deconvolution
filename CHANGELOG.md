@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.4...volcano-data-deconvolution-v1.0.5) (2024-06-03)
+
+
+### Continuous Integration
+
+* **github:** update citation.cff and validate after ([8def5c5](https://github.com/engeir/volcano-data-deconvolution/commit/8def5c571ab9e234bd0a51cd90d2fa49b0450d30))
+
 ## [1.0.4](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.3...volcano-data-deconvolution-v1.0.4) (2024-06-03)
 
 
