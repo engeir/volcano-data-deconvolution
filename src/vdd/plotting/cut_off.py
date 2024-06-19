@@ -4,6 +4,8 @@ Implementation of the basic CutOff class is done in `vdd.load`. This script impl
 routines to plot the cut-off in a nice way.
 """
 
+import datetime
+
 import cftime
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -26,7 +28,8 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_m = DecCESM(pad_before=False, cesm=DataCESM(strength="medium"))
+use_padding: vdd.load.T_Padding = "noise"
+dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
 
@@ -109,26 +112,26 @@ class PlotCutOff:
             )
             temp_a.plot(
                 co.output.time,
-                co.dec.temp_control,
+                -1 * co.dec.temp_control,
                 c=colors[1],
                 label="$T_{\\text{CONTROL}}$",
             )
             temp_a.plot(
                 co.output.time,
-                co.output,
+                -1 * co.output,
                 c=colors[0],
                 label=f"$T_{{\\text{{{name}}}}}$",
             )
             temp_a.plot(
                 v.time,
-                v.temp_rec,
+                -1 * v.temp_rec,
                 c=colors[2],
                 label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\text{{{name}}}}}\\ast S_{{\\text{{{name}}}}}$",
             )
             resp_a.set_xlabel("Time lag [yr]")
             resp_a.set_ylabel("$\\varphi_T$")
             ymax = co.response.max()
-            resp_a.set_ylim((ymax * (-0.05), ymax * 1.05))
+            resp_a.set_ylim((ymax * (-0.10), ymax * 1.10))
             resp_a.legend(loc="upper right", framealpha=0.9)
             xlab = (
                 "Time [yr]"
@@ -137,12 +140,16 @@ class PlotCutOff:
             )
             temp_a.set_xlabel(xlab)
             temp_a.set_ylabel("Temperature anomaly [K]")
-            temp_a.legend(loc="upper right", framealpha=0.9)
+            temp_a.legend(loc="lower right", framealpha=0.9)
             match v.time.data[0]:
                 case cftime._cftime.DatetimeNoLeap():
-                    temp_a.set_xlim((-790 * 365, -650 * 365))
+                    temp_a.set_xlim((
+                        vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+                        vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
+                    ))
                     resp_a.set_xlim((-1, 20))
                 case _:
+                    temp_a.set_xlim((-1, 11))
                     resp_a.set_xlim((-1, 11))
         return fig
 

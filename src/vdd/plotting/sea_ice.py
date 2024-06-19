@@ -17,7 +17,16 @@ plt.style.use([
 
 def plot_sea_ice() -> None:
     """Plot sea ice data."""
-    sims = ("medium", "medium-plus", "strong", "size5000", "tt-2sep", "tt-4sep")
+    sims = (
+        "medium",
+        "medium-plus",
+        "strong",
+        "size5000",
+        "medium-2sep",
+        "medium-4sep",
+        "tt-2sep",
+        "tt-4sep",
+    )
     new: volcano_base.load.FindFiles = (
         volcano_base.load.FindFiles()
         .find("ICEFRAC", "e_BWma1850", sims, "h0")
@@ -25,11 +34,9 @@ def plot_sea_ice() -> None:
     )
     plt.figure()
     for new_ in sims:
-        arrs_: volcano_base.load.FindFiles = (
-            new.copy()
-            .keep(new_)
-            .remove("ens1" if new_ not in {"tt-2sep", "tt-4sep"} else "ens0")
-        )
+        arrs_: volcano_base.load.FindFiles = new.copy().keep(new_)
+        large_ens = 4
+        arrs_.remove("ens1" if len(arrs_) >= large_ens else "ens0")
         print(arrs_)
         arr_ = arrs_.load()
         arr_ = volcano_base.manipulate.shift_arrays(arr_, daily=False)

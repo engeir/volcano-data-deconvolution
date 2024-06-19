@@ -34,6 +34,8 @@ DecCESM = vdd.load.DeconvolveCESM
 # CESM2
 dec_cesm_4sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-4sep"))
 dec_cesm_2sep = DecCESM(pad_before=True, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_m4 = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-4sep"))
+dec_cesm_m2 = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-2sep"))
 dec_cesm_e = DecCESM(pad_before=True, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=True, cesm=DataCESM(strength="strong"))
 dec_cesm_p = DecCESM(pad_before=True, cesm=DataCESM(strength="medium-plus"))
@@ -44,6 +46,8 @@ dec_ob16_month.name = "OB16 month"
 all_decs = (
     dec_cesm_4sep,
     dec_cesm_2sep,
+    dec_cesm_m4,
+    dec_cesm_m2,
     dec_cesm_e,
     dec_cesm_s,
     dec_cesm_p,

@@ -1,81 +1,71 @@
 # See https://pre-commit.com/ for usage and config
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
-  hooks:
-  - id: check-yaml
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
-
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.12.0
-  hooks:
-  - id: pretty-format-yaml
-    args: [--autofix, --indent, '2']
-
-- repo: local
-  hooks:
-  - id: dprint
-    name: dprint
-    entry: dprint fmt --incremental=false --allow-no-files
-    language: node
-    pass_filenames: false
-    additional_dependencies: [dprint]
-
-  - id: check-added-large-files
-    name: Check for added large files
-    stages: [commit]
-    entry: check-added-large-files
-    language: system
-
-  - id: ruff_format
-    name: ruff_format
-    stages: [commit]
-    language: system
-    entry: rye fmt
-    types: [python]
-
-  - id: ruff
-    name: ruff_check
-    stages: [commit]
-    language: system
-    entry: rye lint
-    types: [python]
-
-  - id: xdoctest
-    name: xdoctest
-    stages: [commit]
-    language: system
-    entry: rye run xdoctest
-    types: [python]
-
-  - id: pydocstringformatter
-    name: pydocstringformatter
-    stages: [commit]
-    language: system
-    entry: rye run pydocstringformatter src tests
-    types: [python]
-
-  - id: mypy
-    name: mypy
-    stages: [commit]
-    language: system
-    entry: rye run mypy
-    types: [python]
-    require_serial: true
-
-  - id: pydoclint
-    name: pydoclint
-    stages: [commit]
-    language: system
-    entry: rye run pydoclint     # src tests
-    types: [python]
-    require_serial: true
-
-  - id: pytest
-    name: pytest
-    stages: [commit]
-    language: system
-    entry: rye run pytest tests
-    types: [python]
-    pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.10.0
+    hooks:
+      - id: yamlfmt
+        language: system
+  - repo: local
+    hooks:
+      - id: dprint
+        name: dprint
+        entry: dprint fmt --incremental=false --allow-no-files
+        language: node
+        pass_filenames: false
+        additional_dependencies: [dprint]
+      - id: check-added-large-files
+        name: Check for added large files
+        stages: [commit]
+        entry: check-added-large-files
+        language: system
+      - id: ruff_format
+        name: ruff_format
+        stages: [commit]
+        language: system
+        entry: rye fmt
+        types: [python]
+      - id: ruff
+        name: ruff_check
+        stages: [commit]
+        language: system
+        entry: rye lint
+        types: [python]
+      - id: xdoctest
+        name: xdoctest
+        stages: [commit]
+        language: system
+        entry: rye run xdoctest
+        types: [python]
+      - id: pydocstringformatter
+        name: pydocstringformatter
+        stages: [commit]
+        language: system
+        entry: rye run pydocstringformatter src tests
+        types: [python]
+      - id: mypy
+        name: mypy
+        stages: [commit]
+        language: system
+        entry: rye run mypy
+        types: [python]
+        require_serial: true
+      - id: pydoclint
+        name: pydoclint
+        stages: [commit]
+        language: system
+        entry: rye run pydoclint # src tests
+        types: [python]
+        require_serial: true
+      - id: pytest
+        name: pytest
+        stages: [commit]
+        language: system
+        entry: rye run pytest tests
+        types: [python]
+        pass_filenames: false

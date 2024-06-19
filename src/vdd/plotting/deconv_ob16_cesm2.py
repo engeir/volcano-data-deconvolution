@@ -1,6 +1,5 @@
 """Plot the deconvolution comparison between OB16 and CESM2."""
 
-import cosmoplots
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,9 +22,11 @@ plt.style.use([
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-use_padding = True
-dec_cesm_4sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_2sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
+use_padding: vdd.load.T_Padding = "noise"
+dec_cesm_int4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_int2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_med4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-4sep"))
+dec_cesm_med2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-2sep"))
 dec_cesm_e = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="strong"))
 dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus"))
@@ -43,8 +44,10 @@ all_decs = (
     dec_cesm_p,
     dec_cesm_s,
     dec_cesm_e,
-    dec_cesm_2sep,
-    dec_cesm_4sep,
+    dec_cesm_med2,
+    dec_cesm_med4,
+    dec_cesm_int2,
+    dec_cesm_int4,
 )
 
 
@@ -82,7 +85,7 @@ class PlotResponseFunctions:
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
+                # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
@@ -103,7 +106,7 @@ class PlotResponseFunctions:
                     f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 burden response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
+                # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
                 raise ValueError("rf must be a mpl.figure.Figure or None")
@@ -124,7 +127,7 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
+                # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
@@ -145,7 +148,7 @@ class PlotResponseFunctions:
                     f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]"
                 )
                 ax.legend()
-                fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
+                # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")
@@ -155,11 +158,13 @@ class PlotResponseFunctions:
         fig: mpl.figure.Figure | None = None, save_as: str = "temp-so2-gs"
     ) -> mpl.figure.Figure:
         """Plot the temperature to SO2 response functions with a grayscale highlight."""
-        rows = 3
+        rows = 4
         cols = 2
         match fig:
             case None:
-                fig, _ = cosmoplots.figure_multiple_rows_columns(rows, cols)
+                fig, _ = vdd.utils.figure_multiple_rows_columns(
+                    rows, cols, share_axes="x"
+                )
                 return fig
             case mpl.figure.Figure():
                 axs = fig.get_axes()
@@ -181,67 +186,74 @@ class PlotResponseFunctions:
         ):
             for i, ax in enumerate(ax_list):
                 i_ = i
-                for dec in self.decs:
-                    name = ns(dec.name)
-                    clr = "r"
-                    name = name.replace("CESM2 ", "").upper()
-                    response = getattr(dec, f"response_{res_name}_so2")
-                    scale = np.nanmax(response)
-                    arr = response / scale
-                    lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
-                    kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
-                    match i_, name:
-                        case _, "OB16":
-                            ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
-                        case 0, "SMALL":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        case 1, "INTERMEDIATE":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        case 2, "STRONG":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        case 3, "EXTREME":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        case 4, "INT-2SEP":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        case 5, "INT-4SEP":
-                            ax.plot(dec.tau, arr, **kwargs)
-                        case _:
-                            ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
+                self._grayscale_plot(ax, res_name, i_)
+
+    def _grayscale_plot(self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:
+        for dec in self.decs:
+            name = ns(dec.name)
+            clr = "r"
+            name = name.replace("CESM2 ", "").upper()
+            response = getattr(dec, f"response_{res_name}_so2")
+            scale = np.nanmax(response)
+            arr = response / scale
+            lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
+            kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
+            match i_, name:
+                case _, "OB16":
+                    ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
+                case 0, "SMALL":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 1, "INTERMEDIATE":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 2, "STRONG":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 3, "EXTREME":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 4, "SMALL-2SEP":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 5, "SMALL-4SEP":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 6, "INT-2SEP":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case 7, "INT-4SEP":
+                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+                case _:
+                    ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
 
     def run(self, save_as: list[str] | None = None) -> None:
         """Run the class."""
-        rf_so2 = self.plot_rf_so2()
-        rf_so2_decay = self.plot_rf_so2_decay()
-        temp_so2 = self.plot_temp_so2()
-        temp_rf = self.plot_temp_rf()
+        # rf_so2 = self.plot_rf_so2()
+        # rf_so2_decay = self.plot_rf_so2_decay()
+        # temp_so2 = self.plot_temp_so2()
+        # temp_rf = self.plot_temp_rf()
         temp_so2_gs = self.plot_grayscale_highlight()
         rf_so2_gs = self.plot_grayscale_highlight()
-        for dec in self.decs:
-            rf_so2_resp = (
-                vdd.utils.normalise(dec.response_rf_so2)
-                if self.norm
-                else dec.response_rf_so2
-            )
-            rf_so2_decay_resp = (
-                vdd.utils.normalise(dec.response_rf_so2_decay)
-                if self.norm
-                else dec.response_rf_so2_decay
-            )
-            temp_so2_resp = (
-                vdd.utils.normalise(dec.response_temp_so2)
-                if self.norm
-                else dec.response_temp_so2
-            )
-            _temp_rf_resp = dec._deconv_method(
-                dec.response_temp_so2, dec.response_rf_so2
-            )[0].flatten()
-            temp_rf_resp = (
-                vdd.utils.normalise(_temp_rf_resp) if self.norm else _temp_rf_resp
-            )
-            rf_so2.gca().plot(dec.tau, rf_so2_resp, label=ns(dec.name))
-            rf_so2_decay.gca().plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))
-            temp_so2.gca().plot(dec.tau, temp_so2_resp, label=ns(dec.name))
-            temp_rf.gca().plot(dec.tau, temp_rf_resp, label=ns(dec.name))
+        # for dec in self.decs:
+        #     rf_so2_resp = (
+        #         vdd.utils.normalise(dec.response_rf_so2)
+        #         if self.norm
+        #         else dec.response_rf_so2
+        #     )
+        #     rf_so2_decay_resp = (
+        #         vdd.utils.normalise(dec.response_rf_so2_decay)
+        #         if self.norm
+        #         else dec.response_rf_so2_decay
+        #     )
+        #     temp_so2_resp = (
+        #         vdd.utils.normalise(dec.response_temp_so2)
+        #         if self.norm
+        #         else dec.response_temp_so2
+        #     )
+        #     _temp_rf_resp = dec._deconv_method(
+        #         dec.response_temp_so2, dec.response_rf_so2
+        #     )[0].flatten()
+        #     temp_rf_resp = (
+        #         vdd.utils.normalise(_temp_rf_resp) if self.norm else _temp_rf_resp
+        #     )
+        #     rf_so2.gca().plot(dec.tau, rf_so2_resp, label=ns(dec.name))
+        #     rf_so2_decay.gca().plot(dec.tau, rf_so2_decay_resp, label=ns(dec.name))
+        #     temp_so2.gca().plot(dec.tau, temp_so2_resp, label=ns(dec.name))
+        #     temp_rf.gca().plot(dec.tau, temp_rf_resp, label=ns(dec.name))
         if self.norm:
             self._norm_plot(temp_so2_gs.get_axes(), rf_so2_gs.get_axes())
         save_as = save_as or [
@@ -252,19 +264,20 @@ class PlotResponseFunctions:
             "temp-so2-gs",
             "rf-so2-gs",
         ]
-        self.plot_rf_so2(rf_so2, save_as[0])
-        self.plot_rf_so2_decay(rf_so2_decay, save_as[1])
-        self.plot_temp_so2(temp_so2, save_as[2])
-        self.plot_temp_rf(temp_rf, save_as[3])
+        # self.plot_rf_so2(rf_so2, save_as[0])
+        # self.plot_rf_so2_decay(rf_so2_decay, save_as[1])
+        # self.plot_temp_so2(temp_so2, save_as[2])
+        # self.plot_temp_rf(temp_rf, save_as[3])
         if self.norm:
             self.plot_grayscale_highlight(temp_so2_gs, save_as[4])
             self.plot_grayscale_highlight(rf_so2_gs, save_as[5])
 
 
-def _main() -> None:
+def main() -> None:
+    """Run the main function."""
     PlotResponseFunctions(*all_decs, norm=True).run()
     plt.show()
 
 
 if __name__ == "__main__":
-    _main()
+    main()

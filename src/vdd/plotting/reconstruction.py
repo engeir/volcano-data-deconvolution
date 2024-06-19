@@ -52,7 +52,8 @@ COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-dec_cesm_m = DecCESM(pad_before=False, cesm=DataCESM(strength="medium"))
+use_padding: vdd.load.T_Padding = "noise"
+dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
 # OB16
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
@@ -71,7 +72,7 @@ class ReconstructOB16:
         """Plot the reconstructed temperatures."""
         xlim = (
             vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
         )
         all_f = plt.figure()
         all_a = all_f.gca()
@@ -107,7 +108,7 @@ class ReconstructOB16:
         """Plot the reconstructed temperature for a single simulation."""
         xlim = (
             vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
         )
         fn = ns(vdd.utils.clean_filename(dec.name))
         inv_f = plt.figure()
@@ -223,7 +224,7 @@ class PlotReconstruction:
         np.ndarray
             Residual of the SO2.
         """
-        return self.dec_ob16.temp.data - self.rec_temp_so2
+        return -1 * self.dec_ob16.temp.data - -1 * self.rec_temp_so2
 
     @cached_property
     def residual_rf(self) -> np.ndarray:
@@ -234,7 +235,7 @@ class PlotReconstruction:
         np.ndarray
             Residual of the radiative forcing.
         """
-        return self.dec_ob16.temp.data - self.rec_temp_rf
+        return -1 * self.dec_ob16.temp.data - -1 * self.rec_temp_rf
 
     @cached_property
     def _peaks_tup(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -332,40 +333,46 @@ class PlotReconstruction:
         ax.set_ylabel("Temperature anomaly [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
-        ax.plot(time_, self.temp_control, c=COLORS[1], label="$T_{\\text{CONTROL}}$")
-        ax.plot(time_, temp.data, c=COLORS[0], label="$T_{\\text{OB16}}$")
-        lso2 = (
+        ax.plot(
+            time_, -1 * self.temp_control, c=COLORS[1], label="$T_{\\text{CONTROL}}$"
+        )
+        ax.plot(time_, -1 * temp.data, c=COLORS[0], label="$T_{\\text{OB16}}$")
+        l_so2 = (
             f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         )
-        ax.plot(time_, self.rec_temp_so2, c=COLORS[2], label=lso2)
-        ax.set_xlim((-790 * 365, -650 * 365))
+        ax.plot(time_, -1 * self.rec_temp_so2, c=COLORS[2], label=l_so2)
+        xlim = (
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
+        )
+        ax.set_xlim(xlim)
         ax.legend(framealpha=0.5)
         return ax
 
     def correlation(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compute the correlation between the residuals and temperature."""
         corr_self_time, corr_self = fppanalysis.corr_fun(
-            self.dec_ob16.temp.data, self.dec_ob16.temp.data, 1 / 12
+            -1 * self.dec_ob16.temp.data, -1 * self.dec_ob16.temp.data, 1 / 12
         )
         corr_so2_time, corr_so2 = fppanalysis.corr_fun(
-            self.dec_ob16.temp.data,
-            self.rec_temp_so2,
+            -1 * self.dec_ob16.temp.data,
+            -1 * self.rec_temp_so2,
             1 / 12,
             # self.residual_so2, self.dec_ob16.temp.data, 1 / 12
         )
         corr_ctrl_time, corr_ctrl = fppanalysis.corr_fun(
-            self.dec_ob16.temp.data, self.dec_ob16.temp_control, 1 / 12
+            -1 * self.dec_ob16.temp.data, -1 * self.dec_ob16.temp_control, 1 / 12
         )
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_self) = :.4f}")  # noqa: E203
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_so2) = :.4f}")  # noqa: E203
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_ctrl) = :.4f}")  # noqa: E203
         ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="$T_{\\text{CONTROL}}$")
         ax.plot(corr_self_time, corr_self, c=COLORS[0], label="$T_{\\text{OB16}}$")
-        lso2 = (
+        l_so2 = (
             f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         )
-        # lso2 = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
-        ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=lso2)
+        # l_so2 = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
+        ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=l_so2)
         ax.set_xlim((-100, 100))
         ax.set_xlabel("Time lag [yr]")
         ax.set_ylabel("Correlation with \n$T_{\\text{OB16}}$ [K]")
@@ -398,9 +405,9 @@ class PlotReconstruction:
     def spectrum(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compare the spectrum of the residuals and the control temperature."""
         f_so2_res, p_so2_res = self._spectrum_1d(self.residual_so2)
-        f_so2_rec, p_so2_rec = self._spectrum_1d(self.rec_temp_so2)
-        f_control, p_control = self._spectrum_1d(self.temp_control.data)
-        f_orig, p_orig = self._spectrum_1d(self.dec_ob16.temp.data)
+        f_so2_rec, p_so2_rec = self._spectrum_1d(-1 * self.rec_temp_so2)
+        f_control, p_control = self._spectrum_1d(-1 * self.temp_control.data)
+        f_orig, p_orig = self._spectrum_1d(-1 * self.dec_ob16.temp.data)
         f_so2, p_so2 = self._spectrum_1d(self.reconstruction.response_temp_so2)
         ax.plot(
             f_control,
@@ -496,8 +503,8 @@ class PlotReconstruction:
     ) -> tuple[mpl.axes.Axes, mpl.axes.Axes]:
         """Plot the difference between the reconstructed and the original peaks."""
         self._diff_of_max_peak()
-        so2_basis = self.peaks_so2 - self.peaks_original
-        ctrl_basis = self.temp_control
+        so2_basis = -1 * (self.peaks_so2 - self.peaks_original)
+        ctrl_basis = -1 * self.temp_control
         so2_conf, ctrl_conf = self._peak_difference_ttest(so2_basis, ctrl_basis)  # type: ignore[arg-type]
         pdf_so2, cdf_so2, bin_centers_so2 = fppanalysis.distribution(
             so2_basis, 30, ccdf=False
@@ -643,7 +650,7 @@ def _plot_many_reconstructions() -> None:
     rec_ob16 = PlotReconstruction(ob16, rec_ob16_)
     rec_small = PlotReconstruction(ob16, rec_small_)
     _plot_individual(rec_ob16, rec_small)
-    _plot_all(rec_ob16, rec_small)
+    # _plot_all(rec_ob16, rec_small)
 
 
 def _plot_individual(rec_ob16, rec_small) -> None:
@@ -681,12 +688,12 @@ def _plot_all(rec_ob16, rec_small) -> None:
     rec_ob16.correlation(axtot[6])
     rec_small.correlation(axtot[7])
     figtot.savefig(_SAVE_DIR / "compare-historical-size-all-in-one")
-    plt.show()
 
 
 def _main() -> None:
     # _plot_reconstructed_temperature()
     _plot_many_reconstructions()
+    plt.show()
 
 
 if __name__ == "__main__":

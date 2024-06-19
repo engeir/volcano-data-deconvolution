@@ -27,13 +27,14 @@ _SAVE_DIR = volcano_base.config.SAVE_PATH
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-sim_start = 1 / 12
-sim_end = 5 + 1 / 12
+_COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+_SIM_START = 1 / 12
+_SIM_END = 5 + 1 / 12
 
 
 def _define_eruption(eruption_time: float, text: str, ax: Axes) -> Axes:
     """Give an eruption date and draw a vertical line."""
-    text_y = 18
+    text_y = 22
     axvline_kwargs = {
         "lw": 0.7,
         "ls": "--",
@@ -54,7 +55,7 @@ def _place_eruption(
 ) -> Axes:
     arrow_kwargs = {"width": 0, "head_width": 0.5, "head_length": 0.1, "lw": 0.7}
     scatter_kwargs = {"s": 6, "color": "k"}
-    ax.arrow(sim_start, vertical_position, sim_end, 0, color=color, **arrow_kwargs)
+    ax.arrow(_SIM_START, vertical_position, _SIM_END, 0, color=color, **arrow_kwargs)
     vertical_scatter = (
         [vertical_position for _ in eruption_time]
         if isinstance(eruption_time, Sequence)
@@ -64,35 +65,7 @@ def _place_eruption(
     return ax
 
 
-def gantt() -> None:
-    """Create a Gantt chart of the simulation timeline."""
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    small_c = colors[0]
-    intermediate_c = colors[1]
-    strong_c = colors[2]
-    extreme_c = colors[3]
-    tt2sep_c = colors[4]
-    tt4sep_c = colors[5]
-    plt.figure()
-    ax = plt.gca()
-    # Remove all borders
-    ax.axis("off")
-    # Time line
-    ax.arrow(
-        sim_start,
-        -2,
-        sim_end,
-        0,
-        color="k",
-        width=0,
-        head_width=0.5,
-        head_length=0.1,
-        lw=0.5,
-    )
-    ax.text(sim_start - 0.1, -2, "1850", ha="right", va="center")
-    ax.text(sim_end + 0.3, -2, "1871", ha="left", va="center")
-    ax.vlines(sim_start, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
-    ax.vlines(sim_end + 0.2, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
+def _create_all_eruptions(ax: Axes) -> None:
     _define_eruption(2 / 12, "1850-02", ax)
     _define_eruption(5 / 12, "1850-05", ax)
     _define_eruption(8 / 12, "1850-08", ax)
@@ -102,6 +75,39 @@ def gantt() -> None:
     _define_eruption(2 + 8 / 12, "1852-08", ax)
     _define_eruption(4 + 2 / 12, "1854-02", ax)
     _define_eruption(4 + 8 / 12, "1854-08", ax)
+
+
+def gantt() -> None:
+    """Create a Gantt chart of the simulation timeline."""
+    small_c = _COLORS[0]
+    intermediate_c = _COLORS[1]
+    strong_c = _COLORS[2]
+    extreme_c = _COLORS[3]
+    tt2sep_c = _COLORS[4]
+    tt4sep_c = _COLORS[5]
+    small2sep_c = _COLORS[6]
+    small4sep_c = _COLORS[7]
+    plt.figure()
+    ax = plt.gca()
+    # Remove all borders
+    ax.axis("off")
+    # Time line
+    ax.arrow(
+        _SIM_START,
+        -2,
+        _SIM_END,
+        0,
+        color="k",
+        width=0,
+        head_width=0.5,
+        head_length=0.1,
+        lw=0.5,
+    )
+    ax.text(_SIM_START - 0.1, -2, "1850", ha="right", va="center")
+    ax.text(_SIM_END + 0.3, -2, "1871", ha="left", va="center")
+    ax.vlines(_SIM_START, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
+    ax.vlines(_SIM_END + 0.2, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
+    _create_all_eruptions(ax)
     # SMALL
     ax.text(0, 1.5, "SMALL", ha="right", va="center")
     _place_eruption(5 / 12, 0, small_c, ax)
@@ -124,14 +130,22 @@ def gantt() -> None:
     ax.text(0, 12.5, "EXTREME", ha="right", va="center")
     _place_eruption(5 / 12, 12, extreme_c, ax)
     _place_eruption(11 / 12, 13, strong_c, ax)
+    # SMALL-2SEP
+    ax.text(0, 14.5, "SMALL-2SEP", ha="right", va="center")
+    _place_eruption([2 / 12, 2 + 2 / 12], 14, small2sep_c, ax)
+    _place_eruption([8 / 12, 2 + 8 / 12], 15, small2sep_c, ax)
+    # SMALL-4SEP
+    ax.text(0, 16.5, "SMALL-4SEP", ha="right", va="center")
+    _place_eruption([2 / 12, 4 + 2 / 12], 16, small4sep_c, ax)
+    _place_eruption([8 / 12, 4 + 8 / 12], 17, small4sep_c, ax)
     # INT-2SEP
-    ax.text(0, 14.5, "INT-2SEP", ha="right", va="center")
-    _place_eruption([2 / 12, 2 + 2 / 12], 14, tt2sep_c, ax)
-    _place_eruption([8 / 12, 2 + 8 / 12], 15, tt2sep_c, ax)
+    ax.text(0, 18.5, "INT-2SEP", ha="right", va="center")
+    _place_eruption([2 / 12, 2 + 2 / 12], 18, tt2sep_c, ax)
+    _place_eruption([8 / 12, 2 + 8 / 12], 19, tt2sep_c, ax)
     # INT-4SEP
-    ax.text(0, 16.5, "INT-4SEP", ha="right", va="center")
-    _place_eruption([2 / 12, 4 + 2 / 12], 16, tt4sep_c, ax)
-    _place_eruption([8 / 12, 4 + 8 / 12], 17, tt4sep_c, ax)
+    ax.text(0, 20.5, "INT-4SEP", ha="right", va="center")
+    _place_eruption([2 / 12, 4 + 2 / 12], 20, tt4sep_c, ax)
+    _place_eruption([8 / 12, 4 + 8 / 12], 21, tt4sep_c, ax)
     # ax.set_ylim(-3, 21.5)
     plt.savefig(_SAVE_DIR / "simulation_timeline")
 

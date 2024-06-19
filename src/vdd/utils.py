@@ -3,7 +3,7 @@
 import datetime
 import pathlib
 import re
-from typing import Literal, Never, NoReturn, overload
+from typing import Literal, Never, NoReturn, Self, overload
 
 import cftime
 import cosmoplots
@@ -20,36 +20,7 @@ plt.style.use([
 ])
 
 
-def _calculate_figsize(
-    rows: int, columns: int, share_axes: Literal["x", "y", "both"] | None = None
-) -> tuple[float, float]:
-    """Calculate the figure size based on the number of rows and columns."""
-    full_cols = 3.37 * columns
-    squash_cols = 3.37 * columns - (columns - 1) * 3.37 * 0.25
-    full_rows = 2.08277 * rows
-    squash_rows = 2.08277 * rows - (rows - 1) * 2.08277 * 0.25
-    match share_axes:
-        case None:
-            return full_rows, full_cols
-        case "x":
-            return squash_rows, full_cols
-        case "y":
-            return full_rows, squash_cols
-        case "both":
-            return squash_rows, squash_cols
-        case _:
-            raise ValueError(f"Unknown value for share_axes: {share_axes}")
-
-
-def figure_multiple_rows_columns(
-    rows: int,
-    columns: int,
-    labels: list[str] | None = None,
-    label_x: float = -0.2,
-    label_y: float = 0.95,
-    share_axes: Literal["x", "y", "both"] | None = None,
-    **kwargs,
-) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
+class FigureGrid:
     """Return a figure with axes which is appropriate for (rows, columns) subfigures.
 
     Parameters
@@ -60,60 +31,176 @@ def figure_multiple_rows_columns(
         The number of columns in the figure
     labels : list[str] | None
         The labels to be applied to each subfigure. Defaults to (a), (b), (c), ...
-    label_x and label_y : float
-        x- and y- positions of the labels relative to each Axes object.
+    """
+
+    def __init__(self, rows: int, columns: int, labels: list[str] | None = None):
+        self.rows = rows
+        self.columns = columns
+        self.labels = labels
+        self._pos: tuple[float, float] = (-0.2, 0.95)
+        self._share_axes: Literal["x", "y", "both"] | None = None
+        self._columns_first: bool = False
+
+    def _calculate_figsize(self) -> tuple[float, float]:
+        """Calculate the figure size based on the number of rows and columns."""
+        full_cols = 3.37 * self.columns
+        squash_cols = 3.37 * self.columns - (self.columns - 1) * 3.37 * 0.25
+        full_rows = 2.08277 * self.rows
+        squash_rows = 2.08277 * self.rows - (self.rows - 1) * 2.08277 * 0.25
+        match self._share_axes:
+            case None:
+                return full_rows, full_cols
+            case "x":
+                return squash_rows, full_cols
+            case "y":
+                return full_rows, squash_cols
+            case "both":
+                return squash_rows, squash_cols
+            case _:
+                raise ValueError(f"Unknown value for share_axes: {self._share_axes}")
+
+    def _update_Labels(self) -> list[str]:
+        labels = (
+            [
+                rf"$\mathrm{{({chr(97 + ell)})}}$"
+                for ell in range(self.rows * self.columns)
+            ]
+            if not self.labels or len(self.labels) != int(self.rows * self.columns)
+            else self.labels.copy()
+        )
+        if self._columns_first:
+            labels = [
+                labels[i * self.rows + j]
+                for j in range(self.rows)
+                for i in range(self.columns)
+            ]
+        return labels
+
+    def using(
+        self,
+        *,
+        pos: tuple[float, float] | None = None,
+        share_axes: Literal["x", "y", "both"] | None = None,
+        columns_first: bool | None = None,
+    ) -> Self:
+        """Set text properties.
+
+        The properties must be given as keyword arguments to take effect.
+
+        Parameters
+        ----------
+        pos : tuple[float, float] | None
+            The position in the subfigure relative to `gravity`. Default is `(10.0,
+            10.0)`.
+        share_axes : Literal["x", "y", "both"] | None
+            Use a shared axis for the given direction. Default is `None`.
+        columns_first : bool | None
+            If the labels should be placed in a columns-first order. Default is `False`,
+            meaning rows are numbered first.
+
+        Returns
+        -------
+        Self
+            The object itself.
+        """
+        self._pos = pos or self._pos
+        self._share_axes = share_axes or self._share_axes
+        self._columns_first = columns_first or self._columns_first
+        return self
+
+    def get_grid(
+        self,
+        **kwargs: dict,
+    ) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
+        """Return a figure with axes which is appropriate for (rows, columns) subfigures.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional keyword arguments to be passed to Axes.text.
+
+        Returns
+        -------
+        mpl.figure.Figure
+            The figure object
+        list[mpl.axes.Axes]
+            A list of all the axes objects owned by the figure
+        """
+        full_height, full_width = self._calculate_figsize()
+        fig = plt.figure(figsize=(full_width, full_height))
+        axes = []
+        labels = self._update_Labels()
+        for r in range(self.rows):
+            if self._share_axes in {"x", "both"}:
+                rel_height = 0.75 + 0.25 / self.rows
+                height = 0.75 / self.rows / rel_height
+                bottom_pad = 0.2 / self.rows / rel_height
+                bottom = bottom_pad + height * (self.rows - 1 - r)
+            else:
+                bottom_pad = 0.2 / self.rows
+                height = 0.75 / self.rows
+                bottom = bottom_pad + (self.rows - 1 - r) / self.rows
+            for c in range(self.columns):
+                if self._share_axes in {"y", "both"}:
+                    rel_width = 0.75 + 0.25 / self.columns
+                    width = 0.75 / self.columns / rel_width
+                    left_pad = 0.2 / self.columns / rel_width
+                    left = left_pad + width * c
+                else:
+                    left_pad = 0.2 / self.columns
+                    width = 0.75 / self.columns
+                    left = left_pad + c / self.columns
+                axes.append(fig.add_axes((left, bottom, width, height)))
+                if self._share_axes in {"x", "both"} and r != self.rows - 1:
+                    axes[-1].set_xticklabels([])
+                if self._share_axes in {"y", "both"} and c != 0:
+                    axes[-1].set_yticklabels([])
+                axes[-1].text(
+                    self._pos[0],
+                    self._pos[1],
+                    labels[self.columns * r + c],
+                    transform=axes[-1].transAxes,
+                    **kwargs,
+                )
+        return fig, axes
+
+
+def figure_multiple_rows_columns(
+    rows: int,
+    columns: int,
+    share_axes: Literal["x", "y", "both"],
+    columns_first: bool = False,
+) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
+    """Return a figure with axes which is appropriate for (rows, columns) subfigures.
+
+    Parameters
+    ----------
+    rows : int
+        The number of rows in the figure
+    columns : int
+        The number of columns in the figure
     share_axes : Literal["x", "y", "both"]
         Share the axes in the figure. Defaults to not sharing.
-    **kwargs:
-        Additional keyword arguments to be passed to Axes.text.
+    columns_first : bool
+        If the labels should be placed in a columns-first order. Default is `False`.
 
     Returns
     -------
-    plt.Figure
+    mpl.figure.Figure
         The figure object
-    List[plt.Axes]
+    list[mpl.axes.Axes]
         A list of all the axes objects owned by the figure
-    """
-    full_height, full_width = _calculate_figsize(rows, columns, share_axes)
-    fig = plt.figure(figsize=(full_width, full_height))
-    axes = []
-    labels = labels or [
-        rf"$\mathrm{{({chr(97 + ell)})}}$" for ell in range(rows * columns)
-    ]
-    for r in range(rows):
-        if share_axes in {"x", "both"}:
-            rel_height = 0.75 + 0.25 / rows
-            height = 0.75 / rows / rel_height
-            bottom_pad = 0.2 / rows / rel_height
-            bottom = bottom_pad + height * (rows - 1 - r)
-        else:
-            bottom_pad = 0.2 / rows
-            height = 0.75 / rows
-            bottom = bottom_pad + (rows - 1 - r) / rows
-        for c in range(columns):
-            if share_axes in {"y", "both"}:
-                rel_width = 0.75 + 0.25 / columns
-                width = 0.75 / columns / rel_width
-                left_pad = 0.2 / columns / rel_width
-                left = left_pad + width * c
-            else:
-                left_pad = 0.2 / columns
-                width = 0.75 / columns
-                left = left_pad + c / columns
-            axes.append(fig.add_axes((left, bottom, width, height)))
-            if share_axes in {"x", "both"} and r != rows - 1:
-                axes[-1].set_xticklabels([])
-            if share_axes in {"y", "both"} and c != 0:
-                axes[-1].set_yticklabels([])
-            axes[-1].text(
-                label_x,
-                label_y,
-                labels[columns * r + c],
-                transform=axes[-1].transAxes,
-                **kwargs,
-            )
 
-    return fig, axes
+    Note
+    ----
+    This functions is deprecated, and works only as a wrapper for the `FigureGrid`
+    class.
+    """
+    return (
+        FigureGrid(rows, columns)
+        .using(share_axes=share_axes, columns_first=columns_first)
+        .get_grid()
+    )
 
 
 def combine(*files: str | pathlib.Path) -> cosmoplots.Combine:
@@ -158,7 +245,7 @@ def d2n(date: datetime.datetime) -> float:
 
 def name_translator(name: re.Match) -> str:
     """Translate the first match group from the old naming convention to the new one."""
-    match name.group(0):
+    match name[0]:
         case "medium":
             return "small"
         case "medium-plus":
@@ -166,7 +253,7 @@ def name_translator(name: re.Match) -> str:
         case "size5000":
             return "extreme"
         case "strong":
-            return name.group(0)
+            return name[0]
         case "tt-2sep":
             return "int-2sep"
         case "double-overlap" | "tt-4sep":
@@ -275,7 +362,9 @@ def weighted_monthly_avg(da: xr.DataArray) -> xr.DataArray:
 
 
 def pad_before_convolution(
-    arr: xr.DataArray, diff_before_zero: float = 0.08493151
+    arr: xr.DataArray,
+    diff_before_zero: float = 0.08493151,
+    pad_values: np.ndarray | None = None,
 ) -> xr.DataArray:
     """Pad the array on the left with zeros as preparation for a convolution.
 
@@ -292,6 +381,8 @@ def pad_before_convolution(
         The time difference between time zero and the time step prior. Since time data
         may be monthly with varying number of days, a constant time step is not always
         wanted. The default is 0.08493151, used for monthly data.
+    pad_values : np.ndarray | None
+        The values to pad the array with. Defaults to zeros.
 
     Returns
     -------
@@ -300,6 +391,12 @@ def pad_before_convolution(
     """
     n = len(arr.time) - 1
     arr_ = arr.pad(time=(n, 0), mode="constant", constant_values=0)
+    if pad_values is None:
+        pad_values_ = np.zeros(len(arr_) - len(arr))
+    else:
+        assert len(pad_values) == len(arr_) - len(arr)
+        pad_values_ = pad_values
+    arr_.data[: len(pad_values_)] = pad_values_
     match arr.time.data[0]:
         case float():
             time_ = arr.time.data - arr.time.data[0]

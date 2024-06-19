@@ -27,9 +27,11 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-use_padding = True
-dec_cesm_4sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_2sep = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
+use_padding: vdd.load.T_Padding = "noise"
+dec_cesm_p4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_p2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_m4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-4sep"))
+dec_cesm_m2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-2sep"))
 dec_cesm_e = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="size5000"))
 dec_cesm_s = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="strong"))
 dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus"))
@@ -81,33 +83,52 @@ class CheckRecreatedWaveforms:
 
     def __init__(
         self,
+        /,
         *decs: vdd.load.DeconvolveCESM,
-        single_waveform: vdd.load.DeconvolveCESM = dec_cesm_p,
+        single_waveform: vdd.load.DeconvolveCESM | None = None,
         scale_by_aod: Literal["log", "log-inside", "root"] | bool = False,
+        keys: dict[str, tuple[int, int]] | None = None,
     ):
-        self.single_waveform = single_waveform
+        self.single_waveform = (
+            dec_cesm_p if single_waveform is None else single_waveform
+        )
         self.decs = decs
         self.scale_by_aod = scale_by_aod
-        self.figs, self.axs = vdd.utils.figure_multiple_rows_columns(
-            3, 2, share_axes="x"
+        self.keys = (
+            {"aod": (0, 1), "rf": (2, 3), "temp": (4, 5)} if keys is None else keys
         )
-        self.keys = {"aod": (0, 1), "rf": (2, 3), "temp": (4, 5)}
+        self.figs, self.axs = vdd.utils.figure_multiple_rows_columns(
+            len(self.keys), 2, share_axes="x", columns_first=True
+        )
 
     def run_loop(self) -> None:
         """Run the main loop."""
+        max_len = 3
         for i, dec in enumerate(self.decs):
-            so2_new = self._get_so2_new(dec)
-            for attr in ["aod", "rf", "temp"]:
+            # so2_new = self._get_so2_new(dec)
+            if len(self.keys) == max_len:
+                dec._data.initialise_data()
+            so2 = dec.so2
+            so2_new = so2.copy()
+            for attr in list(self.keys.keys()):
                 self._run_attr_loop(dec, attr, so2_new, i)
         [ax.set_xlabel("Time after first eruption [yr]") for ax in self.axs]
         if use_padding:
             [ax.set_xlim((-1, 21)) for ax in self.axs]
         [ax.legend(framealpha=0.5) for ax in self.axs]
-        [self.axs[i].set_ylabel("Aerosol optical depth [1]") for i in self.keys["aod"]]
-        [self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]") for i in self.keys["rf"]]
+        if len(self.keys) == max_len:
+            [
+                self.axs[i].set_ylabel("Aerosol optical depth [1]")
+                for i in self.keys["aod"]
+            ]
+            [
+                self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]")
+                for i in self.keys["rf"]
+            ]
         [self.axs[i].set_ylabel("Temperature anomaly [K]") for i in self.keys["temp"]]
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
-        self.figs.savefig(_SAVE_DIR / f"responses_combined{corrected}")
+        base = "small" if "medium" in self.decs[0].name else "int"
+        self.figs.savefig(_SAVE_DIR / f"responses_combined_{base}{corrected}")
         plt.show()
 
     def _get_so2_new(self, dec: vdd.load.DeconvolveCESM) -> xr.DataArray:
@@ -136,15 +157,21 @@ class CheckRecreatedWaveforms:
                 )
         return so2_new
 
-    def _run_attr_loop(
-        self, dec: vdd.load.DeconvolveCESM, attr: str, so2_new: xr.DataArray, i: int
-    ) -> None:
-        name = "2sep" if "2sep" in dec.name else "4sep"
-        idx = 0 if name == "2sep" else 1
-        c_idx = 4 if name == "2sep" else 5
+    def _prepare_plot_data(
+        self, dec: vdd.load.DeconvolveCESM, attr: str, so2_new: xr.DataArray
+    ) -> tuple[
+        tuple[xr.DataArray, np.ndarray, np.ndarray, int],
+        tuple[str, str, str],
+        tuple[int, int],
+    ]:
+        base = "SMALL" if "medium" in dec.name else "INT"
+        base_long = "SMALL" if "medium" in dec.name else "INTERMEDIATE"
+        sep = "2sep" if "2sep" in dec.name else "4sep"
+        idx = 0 if sep == "2sep" else 1
+        c_idx = 4 if sep == "2sep" else 5
         so2 = dec.so2
-        diff_len = len(self.single_waveform.response_rf_so2) - len(so2)
-        arr = getattr(dec, attr)
+        diff_len = len(self.single_waveform.response_temp_so2) - len(so2)
+        arr: xr.DataArray = getattr(dec, attr)
         if diff_len < 0:
             diff_len = abs(diff_len)
             dec_resp = getattr(dec, f"response_{attr}_so2")[
@@ -161,29 +188,37 @@ class CheckRecreatedWaveforms:
             resp_arr = getattr(self.single_waveform, f"response_{attr}_so2")
         rec_same = np.convolve(dec_resp, so2, "same")
         rec_new = np.convolve(resp_arr, so2_new, "same")
-        plot = self.axs[self.keys[attr][idx]].plot
+        sign = 1 if attr == "aod" else -1
+        return (arr, rec_same, rec_new, sign), (base, base_long, sep), (idx, c_idx)
+
+    def _run_attr_loop(
+        self, dec: vdd.load.DeconvolveCESM, attr: str, so2_new: xr.DataArray, i: int
+    ) -> None:
+        arrs, names, idx = self._prepare_plot_data(dec, attr, so2_new)
+        *_, sign = arrs
+        plot = self.axs[self.keys[attr][idx[0]]].plot
         plot(
             dec.temp.time,
-            arr,
+            sign * arrs[0],
             c="k",
             lw=0.5,
-            label=f"${attr[0].upper()}_{{\\text{{INT-{name.upper()}}}}}$",
+            label=f"${attr[0].upper()}_{{\\text{{{names[0]}-{names[2].upper()}}}}}$",
         )
-        kwargs = {"ls": "--", "c": _COLORS[c_idx], "lw": 1.0}
+        kwargs = {"ls": "--", "c": _COLORS[idx[1]], "lw": 1.0}
         varphi = f"\\varphi_{{{attr[0].upper()}}}"
-        conv_so2 = f"\\ast S_{{\\text{{INT-{name.upper()}}}}}"
+        conv_so2 = f"\\ast S_{{\\text{{{names[0]}-{names[2].upper()}}}}}"
         plot(
             dec.temp.time,
-            rec_new,
+            sign * arrs[2],
             "-.",
             lw=1.0,
             c=_COLORS[1],
-            label=f"${varphi}^{{\\text{{INTERMEDIATE}}}}{conv_so2}$",
+            label=f"${varphi}^{{\\text{{{names[1]}}}}}{conv_so2}$",
         )
         plot(
             dec.temp.time,
-            rec_same,
-            label=f"${varphi}^{{\\text{{INT-{name.upper()}}}}}{conv_so2}$",
+            sign * arrs[1],
+            label=f"${varphi}^{{\\text{{{names[0]}-{names[2].upper()}}}}}{conv_so2}$",
             **kwargs,
         )
 
@@ -198,7 +233,12 @@ def main() -> None:
     # CheckRecreatedWaveforms(
     #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root"
     # ).run_loop()
-    CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep).run_loop()
+    CheckRecreatedWaveforms(
+        dec_cesm_p2, dec_cesm_p4, single_waveform=dec_cesm_p
+    ).run_loop()
+    CheckRecreatedWaveforms(
+        dec_cesm_m2, dec_cesm_m4, single_waveform=dec_cesm_m
+    ).run_loop()
 
 
 if __name__ == "__main__":
