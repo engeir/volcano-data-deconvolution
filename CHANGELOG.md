@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.1.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.5...volcano-data-deconvolution-v1.1.0) (2024-06-19)
+
+
+### Features
+
+* **figure:** add SMALL double volcano to plotting ([850b18e](https://github.com/engeir/volcano-data-deconvolution/commit/850b18e72bdb5219fcf9afdb8aa2104652a131e4))
+
+
+### Styles
+
+* format README code blocks ([bfba28f](https://github.com/engeir/volcano-data-deconvolution/commit/bfba28f6b737af4384a385db05cc6c97f224d99e))
+
+
+### Continuous Integration
+
+* **workflow:** run tests ([e4f1c0a](https://github.com/engeir/volcano-data-deconvolution/commit/e4f1c0abf47bde96dd87d46287da96d417d93b57))
+
+
+### Build System
+
+* automate plot update with mise along with just ([dfd9b45](https://github.com/engeir/volcano-data-deconvolution/commit/dfd9b45c3d9b5c8fde4ecec2d9ddc953bfac96e4))
+
+
+### Documentation
+
+* add note about mise task to run the code ([bfba28f](https://github.com/engeir/volcano-data-deconvolution/commit/bfba28f6b737af4384a385db05cc6c97f224d99e))
+
 ## [1.0.5](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.4...volcano-data-deconvolution-v1.0.5) (2024-06-03)
 
 
