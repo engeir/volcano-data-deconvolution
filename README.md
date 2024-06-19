@@ -22,7 +22,7 @@ also create a virtual environment with an available python runtime.
 
 ```bash
 git clone git@github.com:engeir/volcano-data-deconvolution.git
-cd volcano-data-deconvolution
+cd volcano-data-deconvolution || exit
 rye sync
 ```
 
@@ -57,8 +57,18 @@ All other useful scripts are located in the [`src/vdd/plotting/`](./src/vdd/plot
 directory. Any of those scripts can be run as
 
 ```bash
-rye run python ./src/vdd/plotting/<script>.py
+rye run python ./src/vdd/plotting/some_plotting_script.py
 ```
 
-[rye]: https://rye-up.com/
+> [!NOTE]
+>
+> And again, if you use mise, you can do
+>
+> ```bash
+> mise run run
+> ```
+>
+> and it will magically just work.
+
+[rye]: https://rye.astral.sh/
 [mise]: https://mise.jdx.dev/
