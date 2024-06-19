@@ -1,2 +1,98 @@
 [env]
-_.python.venv = ".venv" # relative to this file's directory
+_.python.venv = ".venv"
+
+[settings]
+experimental = true
+
+[tasks.default]
+run = "rye run vdd"
+depends = ["sync"]
+
+[tasks."setup:unix"]
+description = "Set up the environment with Rye"
+env = { RYE_INSTALL_OPTION = "--yes" }
+run = "curl -sSf https://rye.astral.sh/get | bash"
+
+[tasks."setup:windows"]
+description = "Set up the environment with Rye"
+run = 'echo "Please install Rye manually from https://rye.astral.sh"'
+
+[tasks.run]
+description = "Run all plotting recipes"
+depends = ["sync", "run:*"]
+
+[tasks.copy]
+description = "Move generated files over to the latex project"
+env = { OUT_DIR = "./generated_files", LATEX_DIR = "../deconvolution-temperature-response-to-radiative-forcing-within-cesm/" }
+run = [
+  "test -d $LATEX_DIR",
+  "cp -x --preserve=timestamps $OUT_DIR/deconv_ob16_cesm2/temp-so2-gs.pdf $LATEX_DIR",                                             # Fig 1
+  "cp -x --preserve=timestamps $OUT_DIR/deconv_ob16_cesm2/rf-so2-gs.pdf $LATEX_DIR",                                               # Fig 2
+  "cp -x --preserve=timestamps $OUT_DIR/sea-ice/sea-ice.pdf $LATEX_DIR",                                                           # Fig 3
+  "cp -x --preserve=timestamps $OUT_DIR/waveform/responses_combined_int.pdf $LATEX_DIR",                                           # Fig 4
+  "cp -x --preserve=timestamps $OUT_DIR/waveform/responses_combined_small.pdf $LATEX_DIR",                                         # Fig 5
+  "cp -x --preserve=timestamps $OUT_DIR/cut_off/ob16-month_resp_temp-so2_combined.pdf $LATEX_DIR",                                 # Fig 6
+  "cp -x --preserve=timestamps $OUT_DIR/cut_off/cesm2-small_resp_temp-so2_combined.pdf $LATEX_DIR",                                # Fig 7
+  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-temp-reconstructed.pdf $LATEX_DIR",                 # Fig 8
+  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-peak-difference-pdf.pdf $LATEX_DIR",                # Fig 9
+  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf $LATEX_DIR",     # Fig 10
+  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf $LATEX_DIR", # Fig 11
+  "cp -x --preserve=timestamps $OUT_DIR/simulation_timeline.pdf $LATEX_DIR",                                                       # Fig A1
+]
+
+[tasks.sync]
+hide = true
+alias = "install"
+run = "rye sync"
+sources = ["./pyproject.toml"]
+outputs = ["./requirements.lock", "./requirements-dev.lock"]
+
+[tasks."run:plot-response"]
+description = "Run the response functions plotting"
+run = "rye run vdd-plot-response"
+sources = ["./src/vdd/plotting/deconv_ob16_cesm2.py"]
+outputs = [
+  "./generated_files/deconv_ob16_cesm2/temp-so2-gs.pdf", # Fig 1
+  "./generated_files/deconv_ob16_cesm2/rf-so2-gs.pdf",   # Fig 2
+]
+
+[tasks."run:plot-sea-ice"]
+description = "Run the sea-ice plotting"
+run = "rye run vdd-plot-sea-ice"
+sources = ["./src/vdd/plotting/sea_ice.py"]
+outputs = ["./generated_files/sea-ice/sea-ice.pdf"] # Fig 3
+
+[tasks."run:plot-double-waveform"]
+description = "Run the double waveforms plotting"
+run = "rye run vdd-plot-double-waveform"
+sources = ["./src/vdd/plotting/check_double_waveform.py"]
+outputs = [
+  "./generated_files/waveform/responses_combined_int.pdf",   # Fig 4
+  "./generated_files/waveform/responses_combined_small.pdf", # Fig 5
+]
+
+[tasks."run:plot-cut-off"]
+description = "Run the cut-off plotting"
+run = "rye run vdd-plot-cut-off"
+sources = ["./src/vdd/plotting/cut_off.py"]
+outputs = [
+  "./generated_files/cut_off/ob16-month_resp_temp-so2_combined.pdf",  # Fig 6
+  "./generated_files/cut_off/cesm2-small_resp_temp-so2_combined.pdf", # Fig 7
+]
+
+[tasks."run:plot-reconstruction"]
+description = "Run the reconstruction plotting"
+run = "rye run vdd-plot-reconstruction"
+sources = ["./src/vdd/plotting/reconstruction.py"]
+outputs = [
+  "./generated_files/reconstruction/compare-historical-size-temp-reconstructed.pdf",                 # Fig 8
+  "./generated_files/reconstruction/compare-historical-size-peak-difference-pdf.pdf",                # Fig 9
+  "./generated_files/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf",     # Fig 10
+  "./generated_files/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf", # Fig 11
+]
+
+[tasks."run:plot-simulations"]
+description = "Run the simulations overview plotting"
+run = "rye run vdd-plot-simulations"
+sources = ["./src/vdd/plotting/simulations_overview.py"]
+outputs = ["./generated_files/simulation_timeline.pdf"]  # Fig A1

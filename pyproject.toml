@@ -157,13 +157,13 @@ ignore = [
 per-file-ignores = {}
 select = [
   # https://docs.astral.sh/ruff/rules/
-  "B", # flake8-bugbear
-  "D", # pydocstyle
-  "E", # pycodestyle
-  "F", # pyflakes
-  "I", # isort
+  "B",  # flake8-bugbear
+  "D",  # pydocstyle
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "I",  # isort
   "PL", # pylint
-  "Q", # flake8-quotes
+  "Q",  # flake8-quotes
   "UP", # pyupgrade
 ]
 unfixable = []
