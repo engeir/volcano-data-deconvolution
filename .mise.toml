@@ -1,5 +1,6 @@
 [env]
-_.python.venv = ".venv"
+_.python.venv = { path = ".venv", create = true }
+TQDM_DISABLE = "True"                             # Based on https://github.com/tqdm/tqdm/issues/614#issuecomment-1671126923
 
 [settings]
 experimental = true
