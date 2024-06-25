@@ -553,7 +553,8 @@ class PlotReconstruction:
         norm_so2 = getattr(scipy.stats.norm, dist)(b_so2, *norm_fit[0])
         norm_rf = getattr(scipy.stats.norm, dist)(b_rf, *norm_fit[1])
         kw = {"width": 0.01, "alpha": 1.0}
-        ax.bar(
+        ax3 = plt.figure().gca()
+        ax3.bar(
             b_rf,
             f_r,
             color=COLORS[1],
@@ -561,23 +562,97 @@ class PlotReconstruction:
             **kw,  # type: ignore[arg-type]
         )
         lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
-        ax.bar(
+        ax3.bar(
             b_so2,
             f_s,
             color=COLORS[4],
             label=f"{lresidual} (p-value: {txt[0]:.4f})",
             **kw,  # type: ignore[arg-type]
         )
-        bar_hand, bar_lab = ax.get_legend_handles_labels()
+        bar_hand, bar_lab = ax3.get_legend_handles_labels()
         # Norm
-        ax.plot(b_rf, norm_rf, c=COLORS[1], label="_Norm CTRL")
-        ax.plot(b_so2, norm_so2, c=COLORS[4], label="_Norm SO2")
-        ax.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
+        ax3.plot(b_rf, norm_rf, c=COLORS[1], label="_Norm CTRL")
+        ax3.plot(b_so2, norm_so2, c=COLORS[4], label="_Norm SO2")
+        ax3.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
         # Make the plot symmetric around 0
-        xlim = np.abs(ax.get_xlim()).max()
-        ax.set_xlim((-xlim, xlim))
-        ax.set_ylabel(dist.upper())
-        ax.set_xlabel("Temperature anomaly [K]")
+        xlim = np.abs(ax3.get_xlim()).max()
+        ax3.set_xlim((-xlim, xlim))
+        ax3.set_ylabel(dist.upper())
+        ax3.set_xlabel("Temperature anomaly [K]")
+        lspread = f"$T_{{\\text{{OB16}}}}(\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})$"
+        norm = 10
+        shift_x = 0.15
+        lims = (-1.55, 0.6)
+        std = self.temp_control.data.std() / 2
+        ax.annotate(
+            "",
+            xy=(lims[1], lims[1]),
+            xytext=(lims[0], lims[0]),
+            arrowprops=dict(
+                shrinkA=0, shrinkB=0, arrowstyle="->", lw=0.7, color="grey"
+            ),
+        )
+        ax.fill(
+            [lims[0] - std, lims[1] - std, lims[1] + std, lims[0] + std],
+            [lims[0] + std, lims[1] + std, lims[1] - std, lims[0] - std],
+            "grey",
+            alpha=0.3,
+        )
+        ax.fill(
+            [
+                lims[0] - 2 * std,
+                lims[1] - 2 * std,
+                lims[1] + 2 * std,
+                lims[0] + 2 * std,
+            ],
+            [
+                lims[0] + 2 * std,
+                lims[1] + 2 * std,
+                lims[1] - 2 * std,
+                lims[0] - 2 * std,
+            ],
+            "grey",
+            alpha=0.3,
+        )
+        ax.annotate(
+            "Temperature difference [K]",
+            xy=(0.4 + shift_x, -0.4 + shift_x),
+            xytext=(-0.45 + shift_x, 0.45 + shift_x),
+            arrowprops=dict(
+                shrinkA=0,
+                shrinkB=0,
+                lw=0.7,
+                relpos=(1, 0),
+                color="grey",
+                arrowstyle="<-",
+            ),
+            c="grey",
+            ha="right",
+            va="bottom",
+            size=6,
+        )
+        bc_s = b_rf / 2
+        bc_sx, bc_sy = bc_s + shift_x, bc_s - shift_x
+        bs_s = b_so2 / 2
+        bs_sx, bs_sy = bs_s + shift_x, bs_s - shift_x
+        ax.scatter(bc_sx + f_r / norm, f_r / norm - bc_sy, s=3, c=COLORS[1], zorder=5)
+        ax.scatter(bs_sx + f_s / norm, f_s / norm - bs_sy, s=3, c=COLORS[4], zorder=5)
+        ax.plot(bc_sx + norm_rf / norm, norm_rf / norm - bc_sy, c=COLORS[1])
+        ax.plot(bs_sx + norm_so2 / norm, norm_so2 / norm - bs_sy, c=COLORS[4])
+        ax.scatter(
+            -self.peaks_so2,
+            -self.peaks_original,
+            marker="*",
+            c=COLORS[4],
+            s=12,
+            zorder=10,
+            label=lspread,
+        )
+        ax.set_ylabel("$T_{{\\text{{OB16}}}}$ peak [K]")
+        ax.set_xlabel(
+            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$ peak [K]"
+        )
+        ax.legend(loc="lower right")
         return ax
 
     def _diff_of_max_peak(self) -> None:
