@@ -44,4 +44,4 @@ def alternative_deconv(
         A tuple containing the deconvolved forcing signal and the mean value.
     """
     res = deconv_mean_2(signal, forcing)
-    return res.x[-1], np.asarray(res.nit)
+    return res.x[:-1], np.asarray(res.nit)
