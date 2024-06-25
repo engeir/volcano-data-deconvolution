@@ -90,16 +90,6 @@ def _look_at_ob_data() -> None:  # noqa: PLR0914
     so2 = vdd.utils.weighted_monthly_avg(so2_day)
 
     so2, rf_fr, temp = xr.align(so2, rf, temperature)
-    # t_so2, err_t_so2 = fppanalysis.deconvolution_methods.RL_gauss_deconvolve(
-    #     temperature, so2, 200
-    # )
-    # t_rf, err_t_rf = fppanalysis.deconvolution_methods.RL_gauss_deconvolve(
-    #     temperature, rf, 200
-    # )
-    # print(t_so2)
-    # plt.plot(t_so2)
-    # plt.plot(t_rf)
-    # plt.show()
 
     cesm_month = vdd.load.CESMData()
     frc = cesm_month.rf

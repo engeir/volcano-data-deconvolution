@@ -4,7 +4,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
+from rich.console import Console
 
+import vdd.deconvolve_methods
 import vdd.load
 import vdd.utils
 from vdd.utils import name_swap as ns
@@ -22,6 +24,16 @@ plt.style.use([
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
+console = Console()
+_USE_NEW_DECONV = False
+
+
+def _new_deconv(signal, forcing):
+    with console.status("Deconvolving with new method"):
+        res, err = vdd.deconvolve_methods.alternative_deconv(signal, forcing)
+    return res, err
+
+
 use_padding: vdd.load.T_Padding = "noise"
 dec_cesm_int4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
 dec_cesm_int2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
@@ -33,10 +45,6 @@ dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus
 dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
 # Original
 dec_ob16 = vdd.load.DeconvolveOB16(data="h0", length=int(12 * 1000) + 1)
-# Experimental (needs vdd.deconvolve_methods.alternative_deconv)
-# ob16 = volcano_base.load.OttoBliesner(freq="h0", progress=True)
-# dec_ob16 = vdd.load.DeconvolveOB16(data=ob16)
-# dec_ob16.change_deconvolution_method(alternative_deconv)
 dec_ob16.name = "OB16"
 all_decs = (
     dec_ob16,
@@ -49,6 +57,13 @@ all_decs = (
     dec_cesm_int2,
     dec_cesm_int4,
 )
+if _USE_NEW_DECONV:
+    for dec in all_decs:
+        # NOTE: The OB16 time series takes a while to deconvolve with this method.
+        # (10-20 minutes.) We skip it be default.
+        if dec.name == "OB16":
+            continue
+        dec.change_deconvolution_method(_new_deconv)
 
 
 class PlotResponseFunctions:
@@ -175,7 +190,8 @@ class PlotResponseFunctions:
                     sub = "R" if "rf" in save_as else "T"
                     ax.set_ylabel(f"$\\varphi_{{{sub}}} / \\max\\varphi_{{{sub}}}$")
                     ax.legend()
-                fig.savefig(_SAVE_DIR / f"{save_as}")
+                new_deconv = "-alternative_deconv" if _USE_NEW_DECONV else ""
+                fig.savefig(_SAVE_DIR / f"{save_as}{new_deconv}")
                 return fig
             case _:
                 raise ValueError("temp must be a mpl.figure.Figure or None")

@@ -26,7 +26,6 @@ rrso2[: len(rrso2) // 2] = 0
 rtso2[: len(rtso2) // 2] = 0
 srrso2 = fppanalysis.run_mean(rrso2, 50)
 srtso2 = fppanalysis.run_mean(rtso2, 50)
-# dtr = fppanalysis.RL_gauss_deconvolve(srtso2, srrso2, 200)[0].flatten()
 dtr = dec_ob16._deconv_method(srtso2, srrso2)[0].flatten()
 plt.figure()
 plt.plot(rf, label="RF")
