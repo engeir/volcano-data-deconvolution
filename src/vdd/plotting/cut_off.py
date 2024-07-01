@@ -5,6 +5,7 @@ routines to plot the cut-off in a nice way.
 """
 
 import datetime
+from typing import Self
 
 import cftime
 import matplotlib as mpl
@@ -16,10 +17,12 @@ import volcano_base
 import vdd.load
 import vdd.utils
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+    ],
+)
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "cut_off"
 
 if not _SAVE_DIR.exists():
@@ -28,8 +31,8 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-use_padding: vdd.load.T_Padding = "noise"
-dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
+padding = vdd.load.PaddingMethod.NOISE
+dec_cesm_m = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium"))
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
 
@@ -37,23 +40,18 @@ dec_ob16_month.name = "OB16 month"
 class PlotCutOff:
     """Plot the results of the CutOff class for any deconvolution object."""
 
-    def __init__(self, *cut_offs: vdd.load.CutOff) -> None:
+    def __init__(self: Self, *cut_offs: vdd.load.CutOff) -> None:
         self.cut_offs = cut_offs
 
-    def call_cut_offs(self, method: str, *args, **kwargs) -> None:
+    def call_cut_offs(self: Self, method: str, *args, **kwargs) -> None:  # noqa: ANN002,ANN003
         """Call a method on all CutOff objects."""
         match method, args, kwargs:
             case method, (arg1,), _:
                 for co in self.cut_offs:
                     getattr(co, method)(arg1)
 
-    def plot(self, remove_grid_parts: bool = True) -> None:
+    def plot(self: Self) -> None:
         """Plot the results of the CutOff class.
-
-        Parameters
-        ----------
-        remove_grid_parts : bool
-            If True, the individual images will be removed after combining them.
 
         Raises
         ------
@@ -62,16 +60,19 @@ class PlotCutOff:
         """
         for co in self.cut_offs:
             fig, _ = vdd.utils.figure_multiple_rows_columns(
-                len(co.cuts), 2, share_axes="x"
+                len(co.cuts),
+                2,
+                share_axes="x",
             )
             if not co.cuts:
+                msg = "No cuts have been made. Run `call_cut_offs('cut_off', ...)`."
                 raise ValueError(
-                    "No cuts have been made. Run `call_cut_offs('cut_off', ...)`."
+                    msg,
                 )
             self._plot_single(fig, co)
             name = vdd.utils.name_swap(vdd.utils.clean_filename(co.dec.name))
             ts = vdd.utils.name_swap(
-                vdd.utils.clean_filename("-".join(co.ts_specifier))
+                vdd.utils.clean_filename("-".join(co.ts_specifier)),
             )
             fig.savefig(_SAVE_DIR / f"{name}_resp_{ts}_combined")
 
@@ -83,10 +84,9 @@ class PlotCutOff:
         for i, (k, v) in enumerate(co.cuts.items()):
             resp_a, temp_a = fig.axes[i * 2], fig.axes[i * 2 + 1]
             resp_a.axvline(int(k) / 12, c="k", ls="--")
-            percentiles = []
-            for i_, j in co.ensembles[k].items():
-                if "response" in str(i_):
-                    percentiles.append(j)
+            percentiles = [
+                j for i_, j in co.ensembles[k].items() if "response" in str(i_)
+            ]
             percs_np = np.asarray(percentiles)
             resp_a = plastik.percentiles(
                 co.dec.tau,
@@ -142,11 +142,17 @@ class PlotCutOff:
             temp_a.set_ylabel("Temperature anomaly [K]")
             temp_a.legend(loc="lower right", framealpha=0.9)
             match v.time.data[0]:
-                case cftime._cftime.DatetimeNoLeap():
-                    temp_a.set_xlim((
-                        vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-                        vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
-                    ))
+                case cftime._cftime.DatetimeNoLeap():  # noqa: SLF001
+                    temp_a.set_xlim(
+                        (
+                            vdd.utils.d2n(
+                                datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC)
+                            ),
+                            vdd.utils.d2n(
+                                datetime.datetime(1310, 1, 1, 0, 0, tzinfo=datetime.UTC)
+                            ),
+                        ),
+                    )
                     resp_a.set_xlim((-1, 20))
                 case _:
                     temp_a.set_xlim((-1, 11))

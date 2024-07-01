@@ -12,7 +12,7 @@ import vdd.utils
 
 plt.rc("text.latex", preamble=r"\usepackage{amsmath}")
 plt.style.use(
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle"
+    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
 )
 
 
@@ -21,7 +21,8 @@ def check_cesm_output() -> None:
     cesm = vdd.load.CESMData()
     x = cesm.aod.time.data
     if any(x != cesm.rf.time.data) or any(x != cesm.temp.time.data):
-        raise ValueError("Times do not match.")
+        msg = "Times do not match."
+        raise ValueError(msg)
     plt.figure()
     vdd.utils.normalise(cesm.aod).plot()  # type: ignore[call-arg]
     vdd.utils.normalise(cesm.rf).plot()  # type: ignore[call-arg]
@@ -38,7 +39,8 @@ def extend_temp_shape() -> xr.DataArray:
     t *= -1
     count = 1
     x_base = np.concatenate((np.array([0]), t.time.data))
-    assert len(x_base) == int(12 * 20)
+    if len(x_base) != int(12 * 20):
+        raise ValueError
     x = x_base + 20 * count
     decay_year = 200
     while x[-1] < decay_year:
@@ -47,10 +49,11 @@ def extend_temp_shape() -> xr.DataArray:
     decay = 1.5 * np.exp(-x / 30)
     decay += np.random.default_rng().normal(0, 0.1, len(x))
     signal = np.concatenate((t, decay))
-    t_new = xr.DataArray(
-        -1 * signal, coords={"time": np.concatenate((t.time.data, x))}, dims=["time"]
+    return xr.DataArray(
+        -1 * signal,
+        coords={"time": np.concatenate((t.time.data, x))},
+        dims=["time"],
     )
-    return t_new
 
 
 def deconvolve_rf_and_temp_with_so2() -> None:
@@ -58,7 +61,6 @@ def deconvolve_rf_and_temp_with_so2() -> None:
     dec_class = vdd.load.DeconvolveOB16()
     dec_class.plot_dec_rf_with_so2()
     dec_class.plot_dec_temp_with_so2()
-    print(dec_class.response_rf_so2)
     plt.show()
 
 
@@ -74,7 +76,7 @@ def compare_ob16_with_cesm() -> None:
     plt.show()
 
 
-def _look_at_ob_data() -> None:  # noqa: PLR0914
+def _look_at_ob_data() -> None:
     """Deconvolve data."""
     # volcano_base.load.get_ob16_outputs()
     ob16_day = volcano_base.load.OttoBliesner(freq="h1", progress=True)

@@ -6,26 +6,33 @@ import volcano_base
 
 import vdd.load
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+    ],
+)
 
 ob16_month = volcano_base.load.OttoBliesner(freq="h0", progress=True)
 dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month, length=12000)
 # dec_ob16_month = vdd.load.DeconvolveOB16(data=ob16_month)
 # dec_ob16_month.change_deconvolution_method(alternative_deconv)
+padding = vdd.load.PaddingMethod.ZEROS
 cesm_e = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="size5000")
+    pad_before=padding,
+    cesm=vdd.load.CESMData(strength="size5000"),
 )
 cesm_s = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="strong")
+    pad_before=padding,
+    cesm=vdd.load.CESMData(strength="strong"),
 )
 cesm_p = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="medium-plus")
+    pad_before=padding,
+    cesm=vdd.load.CESMData(strength="medium-plus"),
 )
 cesm_m = vdd.load.DeconvolveCESM(
-    pad_before=True, cesm=vdd.load.CESMData(strength="medium")
+    pad_before=padding,
+    cesm=vdd.load.CESMData(strength="medium"),
 )
 ob16_time = dec_ob16_month.temp.time.data
 ob16_so2 = dec_ob16_month.so2

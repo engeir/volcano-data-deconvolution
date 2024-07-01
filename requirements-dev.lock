@@ -9,7 +9,7 @@
 #   generate-hashes: false
 
 -e file:.
-annotated-types==0.6.0
+annotated-types==0.7.0
     # via pydantic
 attrs==23.2.0
     # via jsonschema
@@ -20,12 +20,12 @@ beautifulsoup4==4.12.3
 cartopy==0.23.0
     # via volcano-data-deconvolution
     # via xmovie
-certifi==2024.2.2
+certifi==2024.6.2
     # via pyproj
     # via requests
 cfgv==3.4.0
     # via pre-commit
-cftime==1.6.3
+cftime==1.6.4
     # via nc-time-axis
     # via volcano-base
 charset-normalizer==3.3.2
@@ -33,6 +33,8 @@ charset-normalizer==3.3.2
 click==8.1.7
     # via dask
     # via pydoclint
+closedexpressions==0.1.2
+    # via volcano-data-deconvolution
 cloudpickle==3.0.0
     # via dask
 cmcrameri==1.9
@@ -44,7 +46,7 @@ cosmoplots==0.4.3
     # via volcano-data-deconvolution
 cycler==0.12.1
     # via matplotlib
-dask==2024.5.0
+dask==2024.6.2
     # via volcano-base
     # via volcano-data-deconvolution
     # via xmovie
@@ -52,17 +54,17 @@ datetime==5.5
     # via volcano-base
 distlib==0.3.8
     # via virtualenv
-docstring-parser-fork==0.0.5
+docstring-parser-fork==0.0.9
     # via pydoclint
-filelock==3.14.0
+filelock==3.15.4
     # via virtualenv
 fontawesomefree==6.5.1
     # via pywaffle
-fonttools==4.51.0
+fonttools==4.53.0
     # via matplotlib
 fppanalysis==0.1.4
     # via volcano-data-deconvolution
-fsspec==2024.3.1
+fsspec==2024.6.0
     # via dask
 h5netcdf==1.3.0
     # via volcano-base
@@ -82,13 +84,13 @@ jsonschema-specifications==2023.12.1
     # via jsonschema
 kiwisolver==1.4.5
     # via matplotlib
-llvmlite==0.42.0
+llvmlite==0.43.0
     # via numba
 locket==1.0.0
     # via partd
 markdown-it-py==3.0.0
     # via rich
-matplotlib==3.8.4
+matplotlib==3.9.0
     # via cartopy
     # via cmcrameri
     # via cosmoplots
@@ -101,20 +103,22 @@ matplotlib==3.8.4
 mdurl==0.1.2
     # via markdown-it-py
 mpmath==1.3.0
+    # via closedexpressions
     # via fppanalysis
     # via sympy
-mypy==1.10.0
+mypy==1.10.1
 mypy-extensions==1.0.0
     # via mypy
 nc-time-axis==1.4.1
     # via volcano-data-deconvolution
-nodeenv==1.8.0
+nodeenv==1.9.1
     # via pre-commit
-numba==0.59.1
+numba==0.60.0
     # via volcano-data-deconvolution
 numpy==1.26.4
     # via cartopy
     # via cftime
+    # via closedexpressions
     # via cmcrameri
     # via contourpy
     # via cosmoplots
@@ -132,7 +136,7 @@ numpy==1.26.4
     # via volcano-data-deconvolution
     # via xarray
     # via xmovie
-packaging==24.0
+packaging==24.1
     # via cartopy
     # via cmcrameri
     # via dask
@@ -150,18 +154,18 @@ pillow==10.3.0
     # via matplotlib
 plastik==0.6.2
     # via volcano-data-deconvolution
-platformdirs==4.2.1
+platformdirs==4.2.2
     # via virtualenv
 pluggy==1.5.0
     # via pytest
 pre-commit==3.7.1
 pre-commit-hooks==4.6.0
-pydantic==2.7.1
+pydantic==2.7.4
     # via volcano-base
     # via volcano-data-deconvolution
-pydantic-core==2.18.2
+pydantic-core==2.18.4
     # via pydantic
-pydoclint==0.4.1
+pydoclint==0.5.1
 pydocstringformatter==0.7.3
 pygments==2.18.0
     # via rich
@@ -177,14 +181,14 @@ pyqt5-sip==12.13.0
     # via pyqt5
 pyshp==2.3.1
     # via cartopy
-pytest==8.2.0
+pytest==8.2.2
 python-dateutil==2.9.0.post0
     # via matplotlib
     # via pandas
 pytz==2024.1
     # via datetime
     # via pandas
-pywaffle==1.1.0
+pywaffle==1.1.1
     # via plastik
 pywavelets==1.6.0
     # via fppanalysis
@@ -194,9 +198,9 @@ pyyaml==6.0.1
 referencing==0.35.1
     # via jsonschema
     # via jsonschema-specifications
-requests==2.31.0
+requests==2.32.3
     # via volcano-base
-returns==0.22.0
+returns==0.23.0
     # via volcano-base
 rich==13.7.1
     # via volcano-base
@@ -207,12 +211,12 @@ ruamel-yaml==0.18.6
     # via pre-commit-hooks
 ruamel-yaml-clib==0.2.8
     # via ruamel-yaml
-ruff==0.4.6
-scipy==1.13.0
+ruff==0.5.0
+scipy==1.12.0
     # via fppanalysis
     # via volcano-base
-setuptools==69.5.1
-    # via nodeenv
+    # via volcano-data-deconvolution
+setuptools==70.1.1
     # via zope-interface
 shapely==2.0.4
     # via cartopy
@@ -220,34 +224,34 @@ six==1.16.0
     # via python-dateutil
 soupsieve==2.5
     # via beautifulsoup4
-sympy==1.12
+sympy==1.12.1
     # via volcano-data-deconvolution
 toolz==0.12.1
     # via dask
     # via partd
 tqdm==4.66.4
     # via fppanalysis
-typing-extensions==4.11.0
+typing-extensions==4.12.2
     # via mypy
     # via pydantic
     # via pydantic-core
     # via returns
 tzdata==2024.1
     # via pandas
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
-virtualenv==20.26.1
+virtualenv==20.26.3
     # via pre-commit
-volcano-base==2.0.3
+volcano-base==2.0.7
     # via volcano-data-deconvolution
-xarray==2024.5.0
+xarray==2024.6.0
     # via volcano-base
     # via volcano-data-deconvolution
     # via xmovie
-xdoctest==1.1.3
+xdoctest==1.1.5
 xmovie==0.3.1
     # via volcano-data-deconvolution
-zipp==3.18.1
+zipp==3.19.2
     # via importlib-metadata
-zope-interface==6.3
+zope-interface==6.4.post2
     # via datetime

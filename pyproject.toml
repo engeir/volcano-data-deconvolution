@@ -15,7 +15,7 @@ dependencies = [
   "dask>=2024.2.0",
   "nc-time-axis>=1.4.1",
   "xarray>=2024.2.0",
-  "volcano-base>=2.0.2",
+  "volcano-base>=2.0.7",
   "pydantic>=2.6.4",
   "pyqt5>=5.15.10",
   "plastik>=0.6.2",
@@ -25,6 +25,8 @@ dependencies = [
   "cmcrameri>=1.8",
   "xmovie>=0.3.1",
   "cosmoplots>=0.4.3",
+  "scipy<=1.12.0, <1.14.0",
+  "closedexpressions>=0.1.2",
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
@@ -50,8 +52,8 @@ dev-dependencies = [
   "xdoctest>=1.1.3",
   "pre-commit>=3.7.0",
   "pre-commit-hooks>=4.6.0",
-  "mypy>=1.9.0",
-  "ruff>=0.3.7",
+  "mypy>=1.10.1",
+  "ruff>=0.5.0",
   "jsonschema>=4.22.0",
 ]
 
@@ -92,6 +94,7 @@ write = true
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
+  "*.pyi",
   ".bzr",
   ".direnv",
   ".eggs",
@@ -122,12 +125,12 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.format]
-preview = true
+preview = false
 docstring-code-format = true
 docstring-code-line-length = 88
 
 [tool.ruff.lint]
-preview = true
+preview = false
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -138,33 +141,17 @@ fixable = ["ALL"]
 # select = ["E4", "E7", "E9", "F"]  # These are the default
 # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
 ignore = [
-  # "COM812", # Since we don't select COM, this is already ignored
-  # "COM819", # Since we don't select COM, this is already ignored
-  "D206",
-  "D300",
-  "E111",
-  "E114",
-  "E117",
-  "E266",
-  "E501",
-  # "ISC001", # Since we don't select ISC, this is already ignored
-  # "ISC002", # Since we don't select ISC, this is already ignored
-  "Q000",
-  "Q001",
-  "Q002",
-  "Q003",
+  "CPY001",
+  "COM812",
+  "E501",   # Line too long
+  "ERA001", # Uncommented code
+  "ISC001",
+  "T201",   # `print` found
 ]
 per-file-ignores = {}
 select = [
+  "ALL",
   # https://docs.astral.sh/ruff/rules/
-  "B",  # flake8-bugbear
-  "D",  # pydocstyle
-  "E",  # pycodestyle
-  "F",  # pyflakes
-  "I",  # isort
-  "PL", # pylint
-  "Q",  # flake8-quotes
-  "UP", # pyupgrade
 ]
 unfixable = []
 
@@ -190,3 +177,13 @@ ignore-decorators = ["typing.overload"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pyright]
+exclude = [".venv"]
+venvPath = "."
+venv = ".venv"
+
+[tool.basedpyright]
+exclude = [".venv"]
+venvPath = "."
+venv = ".venv"

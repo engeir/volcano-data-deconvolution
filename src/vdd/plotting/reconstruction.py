@@ -16,10 +16,11 @@
 #        OB16 response sum (layman's integral) be the true sum, or to normalise every
 #        array we come across. Try all. (Amplitude seems to work best.)
 
+import contextlib
 import datetime
 import warnings
 from functools import cached_property
-from typing import Literal
+from typing import Literal, Self
 
 import cosmoplots
 import fppanalysis
@@ -36,24 +37,27 @@ from rich.table import Table
 
 import vdd.load
 import vdd.utils
+from vdd.load import Normalise, PaddingMethod
 from vdd.utils import name_swap as ns
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "reconstruction"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+    ],
+)
 
 COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-use_padding: vdd.load.T_Padding = "noise"
-dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
+padding = PaddingMethod.NOISE
+dec_cesm_m = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium"))
 # OB16
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
@@ -63,16 +67,16 @@ all_decs = (dec_cesm_m, dec_ob16_month)
 class ReconstructOB16:
     """Class that reconstructs the temperature of OB16 from CESM2 simulations."""
 
-    def __init__(self, *decs: vdd.load.Deconvolve) -> None:
+    def __init__(self: Self, *decs: vdd.load.Deconvolve) -> None:
         self.ob16 = vdd.load.DeconvolveOB16(data="h0")
         self.ob16.name = "OB16 month"
         self.decs = decs
 
-    def plot_temperature(self) -> None:
+    def plot_temperature(self: Self) -> None:
         """Plot the reconstructed temperatures."""
         xlim = (
-            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC)),
+            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0, tzinfo=datetime.UTC)),
         )
         all_f = plt.figure()
         all_a = all_f.gca()
@@ -85,7 +89,7 @@ class ReconstructOB16:
         for dec in self.decs:
             res = self._plot_temperature_single(dec, res, (all_a, all_zoom_a))
         table = Table(
-            title="Difference between reconstructed temperature from OB16 and other simulations"
+            title="Difference between reconstructed temperature from OB16 and other simulations",
         )
         table.add_column("Simulation name", justify="left", style="cyan", no_wrap=True)
         table.add_column("Raw response", justify="center", style="magenta")
@@ -100,15 +104,15 @@ class ReconstructOB16:
         all_zoom_f.savefig(_SAVE_DIR / "reconstruct_from_all_zoom.jpg")
 
     def _plot_temperature_single(
-        self,
+        self: Self,
         dec: vdd.load.Deconvolve,
         res: list[tuple[str, str, str]],
         axs: tuple[mpl.axes.Axes, mpl.axes.Axes],
     ) -> list[tuple[str, str, str]]:
         """Plot the reconstructed temperature for a single simulation."""
         xlim = (
-            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC)),
+            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0, tzinfo=datetime.UTC)),
         )
         fn = ns(vdd.utils.clean_filename(dec.name))
         inv_f = plt.figure()
@@ -149,74 +153,70 @@ class PlotReconstruction:
     reconstruction : vdd.load.Reconstructor
         The reconstruction object. We use the response functions from this object to
         reconstruct the OB16 data via convolution of response functions.
-
-    Attributes
-    ----------
-    ob16 : volcano_base.load.OttoBliesner
-        OB16 monthly data.
-    normalise : bool
-        Whether to normalise the data or not.
-    dec_ob16 : vdd.load.DeconvolveOB16
-        Deconvolved OB16 data.
-    reconstruction : vdd.load.Reconstructor
-        The reconstruction object.
-    sim_name : pathlib.Path
-        Name of the simulation extracted from the reconstruction object, used for saving
-        figures.
     """
 
     def __init__(
-        self,
+        self: Self,
         ob16: volcano_base.load.OttoBliesner,
         reconstruction: vdd.load.Reconstructor,
-    ):
+    ) -> None:
         self.ob16 = ob16
         self.normalise = reconstruction.normalise
-        dec_ob16 = vdd.load.DeconvolveOB16(
-            normalise=self.normalise, data=ob16, length=12001
+        self.dec_ob16 = vdd.load.DeconvolveOB16(
+            normalise=self.normalise,
+            data=ob16,
+            length=12001,
         )
-        dec_ob16.name = "OB16 month"
-        self.dec_ob16 = dec_ob16
+        self.dec_ob16.name = "OB16 month"
         self.reconstruction = reconstruction
         self.reconstruction.name = vdd.utils.name_swap(self.reconstruction.name)
         self.sim_name = vdd.utils.name_swap(
-            vdd.utils.clean_filename(reconstruction.name)
+            vdd.utils.clean_filename(reconstruction.name),
         )
 
     @cached_property
-    def temp_control(self) -> xr.DataArray:
+    def temp_control(self: Self) -> xr.DataArray:
         """Temperature control."""
         temp_control = xr.align(self.ob16.temperature_control, self.dec_ob16.temp)[0]
-        if self.normalise:
-            temp_control = (temp_control - temp_control.mean()) / temp_control.std()
+        match self.normalise:
+            case Normalise.MEAN_STD:
+                temp_control = (temp_control - temp_control.mean()) / temp_control.std()
         return temp_control
 
     @cached_property
-    def rec_temp_so2(self) -> np.ndarray:
+    def rec_temp_so2(self: Self) -> np.ndarray:
         """Reconstructed temperature from SO2."""
         response = self.reconstruction.response_temp_so2
         response[: len(response) // 2] = 0
-        if not self.normalise:
-            response = response / response.max() * self.dec_ob16.response_temp_so2.max()
+        match self.normalise:
+            case Normalise.NO:
+                response = (
+                    response / response.max() * self.dec_ob16.response_temp_so2.max()
+                )
         convolved = np.convolve(self.dec_ob16.so2.data, response, "same")
-        if self.normalise:
-            convolved = (convolved - convolved.mean()) / convolved.std()
+        match self.normalise:
+            case Normalise.MEAN_STD:
+                convolved = (convolved - convolved.mean()) / convolved.std()
         return convolved
 
     @cached_property
-    def rec_temp_rf(self) -> np.ndarray:
+    def rec_temp_rf(self: Self) -> np.ndarray:
         """Reconstructed temperature from radiative forcing."""
         response = self.reconstruction.response_temp_rf
         response[: len(response) // 2] = 0
-        if not self.normalise:
-            response = response / response.max() * self.dec_ob16.response_temp_rf.max()
+        match self.normalise:
+            case Normalise.NO:
+                response = (
+                    response / response.max() * self.dec_ob16.response_temp_rf.max()
+                )
         convolved = np.convolve(self.dec_ob16.rf.data, response, "same")
-        if self.normalise:
-            convolved = (convolved - convolved.mean()) / convolved.std()
+        match self.normalise:
+            case Normalise.MEAN_STD:
+                convolved = (convolved - convolved.mean()) / convolved.std()
         return convolved
 
     @cached_property
-    def residual_so2(self) -> np.ndarray:
+    def residual_so2(self: Self) -> np.ndarray:
         """Compute the residual of the SO2.
 
         Returns
@@ -227,7 +227,7 @@ class PlotReconstruction:
         return -1 * self.dec_ob16.temp.data - -1 * self.rec_temp_so2
 
     @cached_property
-    def residual_rf(self) -> np.ndarray:
+    def residual_rf(self: Self) -> np.ndarray:
         """Compute the residual of the radiative forcing.
 
         Returns
@@ -238,12 +238,12 @@ class PlotReconstruction:
         return -1 * self.dec_ob16.temp.data - -1 * self.rec_temp_rf
 
     @cached_property
-    def _peaks_tup(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _peaks_tup(self: Self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Compute the peaks of the residual of the SO2."""
         return self._find_peaks()
 
     @property
-    def peaks_time(self) -> np.ndarray:
+    def peaks_time(self: Self) -> np.ndarray:
         """Time array for the peaks.
 
         Returns
@@ -254,7 +254,7 @@ class PlotReconstruction:
         return self._peaks_tup[0]
 
     @property
-    def peaks_original(self) -> np.ndarray:
+    def peaks_original(self: Self) -> np.ndarray:
         """Peaks of the original temperature.
 
         Returns
@@ -265,7 +265,7 @@ class PlotReconstruction:
         return self._peaks_tup[1]
 
     @property
-    def peaks_so2(self) -> np.ndarray:
+    def peaks_so2(self: Self) -> np.ndarray:
         """Peaks of the temperature from SO2.
 
         Returns
@@ -276,7 +276,7 @@ class PlotReconstruction:
         return self._peaks_tup[2]
 
     @property
-    def peaks_rf(self) -> np.ndarray:
+    def peaks_rf(self: Self) -> np.ndarray:
         """Peaks of the temperature from radiative forcing.
 
         Returns
@@ -287,17 +287,17 @@ class PlotReconstruction:
         return self._peaks_tup[3]
 
     def _find_peaks(
-        self, view: bool = False
+        self: Self,
+        *,
+        view: bool = False,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Compute the peaks of the OB16 temperature."""
         aligned_arrays = self.ob16.aligned_arrays
-        s, e = self.dec_ob16._start_pt, self.dec_ob16._end_pt
+        s, e = self.dec_ob16.start_pt, self.dec_ob16.end_pt
         so2_temp = aligned_arrays["so2-temperature"][s:e]
         _idx_temp = np.argwhere(so2_temp.data > 0)
         peaks_original = self.dec_ob16.temp.data[_idx_temp].flatten()
         peaks_time = self.dec_ob16.temp.time.data[_idx_temp].flatten()
-        # peak_shift = 6 if self._get_name() == "SMALL" else 0
-        # peak_shift = 12 if self._get_name() == "INTERMEDIATE" else peak_shift
         # We could add 'peak_shift' to '_idx_temp' to account for the later peak of the
         # CESM2 pulse functions, but since we already scale the pulse function, this
         # will clearly yield a result very similar to OB16, and be of little interest.
@@ -315,7 +315,7 @@ class PlotReconstruction:
             plt.show()
         return peaks_time, peaks_original, peaks_so2, peaks_rf
 
-    def _get_name(self) -> str:
+    def _get_name(self: Self) -> str:
         match self.reconstruction.name:
             case name_ if "small" in name_.lower():
                 name = "SMALL"
@@ -327,14 +327,17 @@ class PlotReconstruction:
                 name = "OTHER"
         return name
 
-    def plot_reconstruction_temp(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
+    def plot_reconstruction_temp(self: Self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Plot the reconstruction of the data."""
         ax.set_xlabel("Time [yr]")
         ax.set_ylabel("Temperature anomaly [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
         ax.plot(
-            time_, -1 * self.temp_control, c=COLORS[1], label="$T_{\\text{CONTROL}}$"
+            time_,
+            -1 * self.temp_control,
+            c=COLORS[1],
+            label="$T_{\\text{CONTROL}}$",
         )
         ax.plot(time_, -1 * temp.data, c=COLORS[0], label="$T_{\\text{OB16}}$")
         l_so2 = (
@@ -342,17 +345,19 @@ class PlotReconstruction:
         )
         ax.plot(time_, -1 * self.rec_temp_so2, c=COLORS[2], label=l_so2)
         xlim = (
-            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0)),
+            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC)),
+            vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0, tzinfo=datetime.UTC)),
         )
         ax.set_xlim(xlim)
         ax.legend(framealpha=0.5)
         return ax
 
-    def correlation(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
+    def correlation(self: Self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compute the correlation between the residuals and temperature."""
         corr_self_time, corr_self = fppanalysis.corr_fun(
-            -1 * self.dec_ob16.temp.data, -1 * self.dec_ob16.temp.data, 1 / 12
+            -1 * self.dec_ob16.temp.data,
+            -1 * self.dec_ob16.temp.data,
+            1 / 12,
         )
         corr_so2_time, corr_so2 = fppanalysis.corr_fun(
             -1 * self.dec_ob16.temp.data,
@@ -361,17 +366,18 @@ class PlotReconstruction:
             # self.residual_so2, self.dec_ob16.temp.data, 1 / 12
         )
         corr_ctrl_time, corr_ctrl = fppanalysis.corr_fun(
-            -1 * self.dec_ob16.temp.data, -1 * self.dec_ob16.temp_control, 1 / 12
+            -1 * self.dec_ob16.temp.data,
+            -1 * self.dec_ob16.temp_control,
+            1 / 12,
         )
-        rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_self) = :.4f}")  # noqa: E203
-        rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_so2) = :.4f}")  # noqa: E203
-        rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_ctrl) = :.4f}")  # noqa: E203
+        rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_self) =:.4f}")
+        rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_so2) =:.4f}")
+        rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_ctrl) =:.4f}")
         ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="$T_{\\text{CONTROL}}$")
         ax.plot(corr_self_time, corr_self, c=COLORS[0], label="$T_{\\text{OB16}}$")
         l_so2 = (
             f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         )
-        # l_so2 = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=l_so2)
         ax.set_xlim((-100, 100))
         ax.set_xlabel("Time lag [yr]")
@@ -396,13 +402,16 @@ class PlotReconstruction:
         signal = (signal - signal.mean()) / signal.std()
         sample_frequency = 12
         frequency, power = ssi.welch(
-            signal, sample_frequency, nperseg=2**11, return_onesided=False
+            signal,
+            sample_frequency,
+            nperseg=2**11,
+            return_onesided=False,
         )
         frequency_plus = frequency[frequency > 0]
         power_plus = power[frequency > 0]
         return np.asarray(frequency_plus[1:]), np.asarray(power_plus[1:])
 
-    def spectrum(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
+    def spectrum(self: Self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Compare the spectrum of the residuals and the control temperature."""
         f_so2_res, p_so2_res = self._spectrum_1d(self.residual_so2)
         f_so2_rec, p_so2_rec = self._spectrum_1d(-1 * self.rec_temp_so2)
@@ -428,16 +437,9 @@ class PlotReconstruction:
             c=COLORS[3],
             label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}$",
         )
-        # Suppress the warning
-        warnings.filterwarnings("ignore")
-        cosmoplots.change_log_axis_base(ax, "both")
-        warnings.resetwarnings()
-        ax.set_xlabel("Frequency [yr$^{-1}$]")
-        ax.set_ylabel("Power spectral density")
-        ax.legend()
-        return ax
+        return self._plot_power(ax, "Frequency [yr$^{-1}$]")
 
-    def spectrum_parts(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
+    def spectrum_parts(self: Self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """View the spectrum of the response functions and the input data."""
         f_so2, p_so2 = self._spectrum_1d(self.reconstruction.response_temp_so2)
         f_control, p_control = self._spectrum_1d(self.temp_control.data)
@@ -450,17 +452,22 @@ class PlotReconstruction:
         )
         ax.plot(f_control, p_control, label="$T_{\\text{CONTROL}}$", alpha=0.5)
         ax.plot(f_orig_so2, p_orig_so2, label="SO2 TS", alpha=0.5)
-        # Suppress the warning
+        return self._plot_power(ax, "Frequency")
+
+    @staticmethod
+    def _plot_power(ax: mpl.axes.Axes, xlab: str) -> mpl.axes.Axes:
         warnings.filterwarnings("ignore")
         cosmoplots.change_log_axis_base(ax, "both")
         warnings.resetwarnings()
-        ax.set_xlabel("Frequency")
+        ax.set_xlabel(xlab)
         ax.set_ylabel("Power spectral density")
         ax.legend()
         return ax
 
     def _peak_difference_ttest(
-        self, so2_basis: np.ndarray, rf_basis: np.ndarray
+        self: Self,
+        so2_basis: np.ndarray,
+        rf_basis: np.ndarray,
     ) -> tuple[str, str]:
         # Specify the value to test for symmetry
         test_value = 0
@@ -472,12 +479,12 @@ class PlotReconstruction:
 
         sl = 0.05  # Significance level
 
-        def info(name, p_value) -> None:
+        def info(name: str, p_value: float) -> None:
             color = "red" if p_value < sl else "green"
             rprint(
                 f"[blue][bold]{self.sim_name}/{name}[/bold]: I can with [/blue][{color}]"
                 f"{(1 - p_value) * 100:.4f}% confidence[/{color}][blue] say that the "
-                f"distribution does not have a mean of {test_value}[/blue]"
+                f"distribution does not have a mean of {test_value}[/blue]",
             )
 
         # Check if the p-value is less than a significance level (e.g., 0.05) to
@@ -485,21 +492,23 @@ class PlotReconstruction:
         reject = f"The distribution does not have a mean of {test_value} (confidence of {int((1 - sl) * 100)}%)"
         reject_no = f"I cannot with at least {int((1 - sl) * 100)}% confidence say that the distribution does not have a mean of {test_value}"
         if p_value_so2 < sl:
-            print(reject)
+            rprint(reject)
         else:
-            print(reject_no)
-        print(t_statistic_so2, p_value_so2)
+            rprint(reject_no)
+        rprint(t_statistic_so2, p_value_so2)
         info("SO2", p_value_so2)
         if p_value_rf < sl:
-            print(reject)
+            rprint(reject)
         else:
-            print(reject_no)
-        print(t_statistic_rf, p_value_rf)
+            rprint(reject_no)
+        rprint(t_statistic_rf, p_value_rf)
         info("CTRL", p_value_rf)
         return p_value_so2, p_value_rf
 
-    def peak_difference_analysis(  # noqa: PLR0914
-        self, ax1: mpl.axes.Axes, ax2: mpl.axes.Axes
+    def peak_difference_analysis(
+        self: Self,
+        ax1: mpl.axes.Axes,
+        ax2: mpl.axes.Axes,
     ) -> tuple[mpl.axes.Axes, mpl.axes.Axes]:
         """Plot the difference between the reconstructed and the original peaks."""
         self._diff_of_max_peak()
@@ -507,17 +516,23 @@ class PlotReconstruction:
         ctrl_basis = -1 * self.temp_control
         so2_conf, ctrl_conf = self._peak_difference_ttest(so2_basis, ctrl_basis)  # type: ignore[arg-type]
         pdf_so2, cdf_so2, bin_centers_so2 = fppanalysis.distribution(
-            so2_basis, 30, ccdf=False
+            so2_basis,
+            30,
+            ccdf=False,
         )
         pdf_ctrl, cdf_ctrl, bin_centers_ctrl = fppanalysis.distribution(
-            ctrl_basis, 30, ccdf=False
+            ctrl_basis,
+            30,
+            ccdf=False,
         )
         stats_so2 = scipy.stats.describe(so2_basis)
         stats_ctrl = scipy.stats.describe(ctrl_basis)
         fit_so2 = scipy.stats.norm.fit(so2_basis)
         fit_ctrl = scipy.stats.norm.fit(ctrl_basis)
         dist_so2 = scipy.stats.skewnorm(
-            a=stats_so2.skewness, loc=stats_so2.mean, scale=np.sqrt(stats_so2.variance)
+            a=stats_so2.skewness,
+            loc=stats_so2.mean,
+            scale=np.sqrt(stats_so2.variance),
         )
         dist_ctrl = scipy.stats.skewnorm(
             a=stats_ctrl.skewness,
@@ -540,8 +555,8 @@ class PlotReconstruction:
         )
         return axpdf, axcdf
 
-    def _peak_difference_plot(  # noqa: PLR0914, PLR0913
-        self,
+    def _peak_difference_plot(  # noqa: PLR0913
+        self: Self,
         ax: mpl.axes.Axes,
         fpp_out: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
         fits: tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
@@ -588,9 +603,13 @@ class PlotReconstruction:
             "",
             xy=(lims[1], lims[1]),
             xytext=(lims[0], lims[0]),
-            arrowprops=dict(
-                shrinkA=0, shrinkB=0, arrowstyle="->", lw=0.7, color="grey"
-            ),
+            arrowprops={
+                "shrinkA": 0,
+                "shrinkB": 0,
+                "arrowstyle": "->",
+                "lw": 0.7,
+                "color": "grey",
+            },
         )
         ax.fill(
             [lims[0] - std, lims[1] - std, lims[1] + std, lims[0] + std],
@@ -618,14 +637,14 @@ class PlotReconstruction:
             "Temperature difference [K]",
             xy=(0.4 + shift_x, -0.4 + shift_x),
             xytext=(-0.45 + shift_x, 0.45 + shift_x),
-            arrowprops=dict(
-                shrinkA=0,
-                shrinkB=0,
-                lw=0.7,
-                relpos=(1, 0),
-                color="grey",
-                arrowstyle="<-",
-            ),
+            arrowprops={
+                "shrinkA": 0,
+                "shrinkB": 0,
+                "lw": 0.7,
+                "relpos": (1, 0),
+                "color": "grey",
+                "arrowstyle": "<-",
+            },
             c="grey",
             ha="right",
             va="bottom",
@@ -650,12 +669,12 @@ class PlotReconstruction:
         )
         ax.set_ylabel("$T_{{\\text{{OB16}}}}$ peak [K]")
         ax.set_xlabel(
-            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$ peak [K]"
+            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$ peak [K]",
         )
         ax.legend(loc="lower right")
         return ax
 
-    def _diff_of_max_peak(self) -> None:
+    def _diff_of_max_peak(self: Self) -> None:
         """Print the difference between the peaks of the original and the reconstructed."""
         peaks_so2 = scipy.signal.savgol_filter(self.rec_temp_so2, 12, 3)
         peaks_orig = scipy.signal.savgol_filter(self.dec_ob16.temp.data, 12, 3)
@@ -665,7 +684,7 @@ class PlotReconstruction:
         time_max = self.peaks_time[idx]
         rprint(
             f"[bold]{self._get_name()}: Difference at the largest volcanic eruption at {time_max}[/bold]: "
-            f"{diff_max:.4f} K, but the more reasonable difference is {reasonable_diff:.4f} K"
+            f"{diff_max:.4f} K, but the more reasonable difference is {reasonable_diff:.4f} K",
         )
 
 
@@ -673,12 +692,14 @@ class PlotManyReconstructions:
     """Wrapper class that creates any number of reconstructions."""
 
     def __init__(
-        self, ob16: volcano_base.load.OttoBliesner, *recs: vdd.load.Reconstructor
-    ):
+        self: Self,
+        ob16: volcano_base.load.OttoBliesner,
+        *recs: vdd.load.Reconstructor,
+    ) -> None:
         self.ob16 = ob16
         self.recs = recs
 
-    def run(self) -> None:
+    def run(self: Self) -> None:
         """Run the reconstructions."""
         for rec in self.recs:
             rec_class = PlotReconstruction(self.ob16, rec)
@@ -709,26 +730,27 @@ def _plot_many_reconstructions() -> None:
         np.intersect1d(
             np.argwhere(rec_ob16_.response_temp_so2 < zero_like).flatten(),
             np.argwhere(rec_ob16_.tau > valid_until).flatten(),
-        ).flatten()[0] :  # noqa: E203. This rule is still unstable (ruff==0.4.6)
+        ).flatten()[0] :
     ] = 0
-    try:
+    with contextlib.suppress(Exception):
         # In case we never reach zero, for example when running with the large eruption
         # simulation output
         rec_small_.response_temp_so2[
             np.intersect1d(
                 np.argwhere(rec_small_.response_temp_so2 < zero_like).flatten(),
                 np.argwhere(rec_small_.tau > valid_until).flatten(),
-            ).flatten()[0] :  # noqa: E203. This rule is still unstable (ruff==0.4.6)
+            ).flatten()[0] :
         ] = 0
-    except Exception:
-        pass
     rec_ob16 = PlotReconstruction(ob16, rec_ob16_)
     rec_small = PlotReconstruction(ob16, rec_small_)
     _plot_individual(rec_ob16, rec_small)
-    # _plot_all(rec_ob16, rec_small)
+    _plot_all(rec_ob16, rec_small)
 
 
-def _plot_individual(rec_ob16, rec_small) -> None:
+def _plot_individual(
+    rec_ob16: PlotReconstruction,
+    rec_small: PlotReconstruction,
+) -> None:
     figpdf, axspdf = cosmoplots.figure_multiple_rows_columns(1, 2)
     figcdf, axscdf = cosmoplots.figure_multiple_rows_columns(1, 2)
     rec_ob16.peak_difference_analysis(*[axspdf[0], axscdf[0]])
@@ -739,7 +761,7 @@ def _plot_individual(rec_ob16, rec_small) -> None:
     rec_ob16.correlation(axcorr[0])
     rec_small.correlation(axcorr[1])
     figcorr.savefig(
-        _SAVE_DIR / "compare-historical-size-correlation-residual-reconstructed"
+        _SAVE_DIR / "compare-historical-size-correlation-residual-reconstructed",
     )
     figsp, axsp = cosmoplots.figure_multiple_rows_columns(1, 2)
     rec_ob16.spectrum(axsp[0])
@@ -751,7 +773,7 @@ def _plot_individual(rec_ob16, rec_small) -> None:
     figrec.savefig(_SAVE_DIR / "compare-historical-size-temp-reconstructed")
 
 
-def _plot_all(rec_ob16, rec_small) -> None:
+def _plot_all(rec_ob16: PlotReconstruction, rec_small: PlotReconstruction) -> None:
     # All in one
     figtot, axtot = cosmoplots.figure_multiple_rows_columns(4, 2)
     rec_ob16.plot_reconstruction_temp(axtot[0])

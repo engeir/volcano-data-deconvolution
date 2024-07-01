@@ -9,10 +9,12 @@ _SAVE_DIR = volcano_base.config.SAVE_PATH / "sea-ice"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+    ],
+)
 
 
 def plot_sea_ice() -> None:
@@ -43,9 +45,11 @@ def plot_sea_ice() -> None:
         arr_ = volcano_base.manipulate.mean_flatten(arr_, dims=["lat", "lon"])
         arr = volcano_base.manipulate.get_median(arr_, xarray=True)
         arr = volcano_base.manipulate.weighted_year_avg(arr)[:20]
-        arr = arr.assign_coords({
-            "time": volcano_base.manipulate.dt2float(arr.time.data) - 1850
-        })
+        arr = arr.assign_coords(
+            {
+                "time": volcano_base.manipulate.dt2float(arr.time.data) - 1850,
+            },
+        )
         lab = f"$I_{{\\text{{{ns(new_).upper()}}}}}$"
         arr.plot(label=lab)
     plt.xlabel("Time after first eruption [yr]")

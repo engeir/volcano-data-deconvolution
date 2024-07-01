@@ -3,6 +3,6 @@
 import vdd
 
 
-def main():
+def main() -> None:
     """Run the main function for the vdd package."""
     print(f"Hello, this is {__package__} at version v{vdd.__version__}!")

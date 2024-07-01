@@ -17,26 +17,32 @@ parentdir = pathlib.Path(__file__).parents[1]
 def test_zenodo_json_schema() -> None:
     """Test the .zenodo.json file against the Zenodo schema."""
     with urllib.request.urlopen(
-        "https://github.com/zenodo/zenodo/raw/master/zenodo/modules/deposit/jsonschemas/deposits/records/legacyrecord.json"
+        "https://github.com/zenodo/zenodo/raw/master/zenodo/modules/deposit/jsonschemas/deposits/records/legacyrecord.json",
     ) as s:
         schema = json.loads(s.read())
-    with open(
-        str(parentdir.joinpath(".zenodo.json")),
-        encoding="locale",
-    ) as z:
-        instance = json.loads(z.read())
+    instance = json.loads(
+        pathlib.Path(str(parentdir.joinpath(".zenodo.json"))).read_text(
+            encoding="locale",
+        ),
+    )
     jsonschema.validate(instance=instance, schema=schema)
 
 
 def test_release_please_json_schema() -> None:
     """Test the release-please-config.json file against the release-please schema."""
     with urllib.request.urlopen(
-        "https://github.com/googleapis/release-please/raw/main/schemas/config.json"
+        "https://github.com/googleapis/release-please/raw/main/schemas/config.json",
     ) as s:
         schema = json.loads(s.read())
-    with open(
-        str(parentdir.joinpath("./.github/release-please/release-please-config.json")),
-        encoding="locale",
-    ) as z:
-        instance = json.loads(z.read())
+    instance = json.loads(
+        pathlib.Path(
+            str(
+                parentdir.joinpath(
+                    "./.github/release-please/release-please-config.json",
+                ),
+            ),
+        ).read_text(
+            encoding="locale",
+        ),
+    )
     jsonschema.validate(instance=instance, schema=schema)

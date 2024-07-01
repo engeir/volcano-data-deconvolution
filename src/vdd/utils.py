@@ -12,12 +12,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
 import xarray as xr
+from numpy.typing import NDArray
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.jgr",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.jgr",
+        "vdd.extra",
+    ],
+)
+
+
+class LiteralError(ValueError):
+    """Unknown literal value."""
+
+    def __init__(self: Self, message: str) -> None:
+        msg = f"Incorrect literal provided. Got: {message}"
+        super().__init__(msg)
 
 
 class FigureGrid:
@@ -33,7 +44,12 @@ class FigureGrid:
         The labels to be applied to each subfigure. Defaults to (a), (b), (c), ...
     """
 
-    def __init__(self, rows: int, columns: int, labels: list[str] | None = None):
+    def __init__(
+        self: Self,
+        rows: int,
+        columns: int,
+        labels: list[str] | None = None,
+    ) -> None:
         self.rows = rows
         self.columns = columns
         self.labels = labels
@@ -41,7 +57,7 @@ class FigureGrid:
         self._share_axes: Literal["x", "y", "both"] | None = None
         self._columns_first: bool = False
 
-    def _calculate_figsize(self) -> tuple[float, float]:
+    def _calculate_figsize(self: Self) -> tuple[float, float]:
         """Calculate the figure size based on the number of rows and columns."""
         full_cols = 3.37 * self.columns
         squash_cols = 3.37 * self.columns - (self.columns - 1) * 3.37 * 0.25
@@ -57,9 +73,9 @@ class FigureGrid:
             case "both":
                 return squash_rows, squash_cols
             case _:
-                raise ValueError(f"Unknown value for share_axes: {self._share_axes}")
+                raise LiteralError(self._share_axes)
 
-    def _update_Labels(self) -> list[str]:
+    def _update_labels(self: Self) -> list[str]:
         labels = (
             [
                 rf"$\mathrm{{({chr(97 + ell)})}}$"
@@ -77,7 +93,7 @@ class FigureGrid:
         return labels
 
     def using(
-        self,
+        self: Self,
         *,
         pos: tuple[float, float] | None = None,
         share_axes: Literal["x", "y", "both"] | None = None,
@@ -109,10 +125,10 @@ class FigureGrid:
         return self
 
     def get_grid(
-        self,
+        self: Self,
         **kwargs: dict,
     ) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
-        """Return a figure with axes which is appropriate for (rows, columns) subfigures.
+        """Return a figure with axes appropriate for (rows, columns) subfigures.
 
         Parameters
         ----------
@@ -129,7 +145,7 @@ class FigureGrid:
         full_height, full_width = self._calculate_figsize()
         fig = plt.figure(figsize=(full_width, full_height))
         axes = []
-        labels = self._update_Labels()
+        labels = self._update_labels()
         for r in range(self.rows):
             if self._share_axes in {"x", "both"}:
                 rel_height = 0.75 + 0.25 / self.rows
@@ -169,6 +185,7 @@ def figure_multiple_rows_columns(
     rows: int,
     columns: int,
     share_axes: Literal["x", "y", "both"],
+    *,
     columns_first: bool = False,
 ) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
     """Return a figure with axes which is appropriate for (rows, columns) subfigures.
@@ -259,7 +276,8 @@ def name_translator(name: re.Match) -> str:
         case "double-overlap" | "tt-4sep":
             return "int-4sep"
         case _:
-            raise ValueError(f"Unknown name: {name}")
+            msg = f"Unknown name: {name}"
+            raise ValueError(msg)
 
 
 @overload
@@ -286,7 +304,7 @@ def name_swap(name: str | pathlib.Path) -> str | pathlib.Path:
                     regex,
                     name_translator,
                     str(name),
-                )
+                ),
             )
 
 
@@ -296,7 +314,8 @@ def never_called(value: Never) -> NoReturn:
     # match/case, a variable is not fully handled, mypy will complain and say that the
     # variable is of the wrong type when this function is called in the final `else`
     # clause.
-    raise AssertionError("Code is unreachable.")
+    msg = "Code is unreachable."
+    raise AssertionError(msg, value)
 
 
 def clean_filename(filename: str) -> pathlib.Path:
@@ -312,14 +331,16 @@ def clean_filename(filename: str) -> pathlib.Path:
 
 
 @overload
-def normalise(arr: np.ndarray) -> np.ndarray: ...
+def normalise(arr: NDArray[np.float64]) -> NDArray[np.float64]: ...
 
 
 @overload
 def normalise(arr: xr.DataArray) -> xr.DataArray: ...
 
 
-def normalise(arr: xr.DataArray | np.ndarray) -> xr.DataArray | np.ndarray:
+def normalise(
+    arr: xr.DataArray | NDArray[np.float64],
+) -> xr.DataArray | NDArray[np.float64]:
     """Normalise the array to the maximum or minimum value."""
     if abs(np.nanmax(arr)) > abs(np.nanmin(arr)):
         return arr / np.nanmax(arr)
@@ -351,7 +372,7 @@ def weighted_monthly_avg(da: xr.DataArray) -> xr.DataArray:
     # Make sure the weights in each year add up to 1
     np.testing.assert_allclose(wgts.groupby("time.month").sum(xr.ALL_DIMS), np.ones(12))
     # Setup our masking for nan values
-    cond = da.isnull()
+    cond = da.isna()
     ones = xr.where(cond, 0.0, 1.0)
     # Calculate the numerator
     obs_sum = (da * wgts).resample(time="MS").sum(dim="time")
@@ -388,14 +409,23 @@ def pad_before_convolution(
     -------
     xr.DataArray
         The padded array.
+
+    Raises
+    ------
+    ValueError
+        If the new time does not start with a zero or the length is not divisible by 2.
+    IndexError
+        If the padding length is not equal to the difference in length between the new
+        and original array.
     """
     n = len(arr.time) - 1
     arr_ = arr.pad(time=(n, 0), mode="constant", constant_values=0)
     if pad_values is None:
         pad_values_ = np.zeros(len(arr_) - len(arr))
-    else:
-        assert len(pad_values) == len(arr_) - len(arr)
+    elif len(pad_values) == len(arr_) - len(arr):
         pad_values_ = pad_values
+    else:
+        raise IndexError
     arr_.data[: len(pad_values_)] = pad_values_
     match arr.time.data[0]:
         case float():
@@ -403,11 +433,10 @@ def pad_before_convolution(
         case _:
             time_ = volcano_base.manipulate.dt2float(arr.time.data)
             time_ -= time_[0]
-    assert time_[0] == 0
-    assert len(arr_) % 2 != 0
+    if time_[0] != 0 or len(arr_) % 2 == 0:
+        raise ValueError
     # Assign new time values to the padded array that is twice the length of the
     # original, and that goes from -n*dt to n*dt.
-    arr_ = arr_.assign_coords(
+    return arr_.assign_coords(
         time=np.concatenate((time_[1:] - time_[-1] - diff_before_zero, time_)),
     )
-    return arr_

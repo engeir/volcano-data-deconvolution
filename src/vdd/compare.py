@@ -1,6 +1,7 @@
 """Implementation of comparisons between OB16 and CESM2 data."""
 
 from functools import cached_property
+from typing import Self
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ class CompareOB16WithCESM:
     """Class for comparing data from Otto-Bliesner et at. (2016) with my CESM2 data."""
 
     @cached_property
-    def dec_ob16(self) -> vdd.load.DeconvolveOB16:
+    def dec_ob16(self: Self) -> vdd.load.DeconvolveOB16:
         """Get the deconvolved OB16 data.
 
         Returns
@@ -24,7 +25,7 @@ class CompareOB16WithCESM:
         return vdd.load.DeconvolveOB16()
 
     @cached_property
-    def dec_cesm(self) -> vdd.load.DeconvolveCESM:
+    def dec_cesm(self: Self) -> vdd.load.DeconvolveCESM:
         """Get the deconvolved CESM2 data.
 
         Returns
@@ -32,9 +33,9 @@ class CompareOB16WithCESM:
         vdd.load.DeconvolveCESM
             An instance of the DeconvolveCESM class.
         """
-        return vdd.load.DeconvolveCESM(pad_before=True)
+        return vdd.load.DeconvolveCESM(pad_before=vdd.load.PaddingMethod.ZEROS)
 
-    def plot_rf(self) -> mpl.figure.Figure:
+    def plot_rf(self: Self) -> mpl.figure.Figure:
         """Plot the RF data."""
         plt.figure()
         # OB16 (CESM1)
@@ -44,7 +45,7 @@ class CompareOB16WithCESM:
         plt.plot(self.dec_cesm.tau, self.dec_cesm.response_rf_so2)
         return plt.gcf()
 
-    def plot_temp(self) -> mpl.figure.Figure:
+    def plot_temp(self: Self) -> mpl.figure.Figure:
         """Plot the temperature data."""
         plt.figure()
         # OB16 (CESM1)

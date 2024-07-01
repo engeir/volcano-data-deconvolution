@@ -8,15 +8,15 @@ import xarray as xr
 ob16 = volcano_base.load.OttoBliesner(freq="h0", progress=True)
 eruption_distances = np.asarray(
     volcano_base.manipulate.dt2float(
-        ob16.so2_delta.where(ob16.so2_delta > 0, drop=True).time.data
+        ob16.so2_delta.where(ob16.so2_delta > 0, drop=True).time.data,
     )
     .diff()
-    .dropna()
+    .dropna(),
 )
 arr = (
     xr.DataArray(
         volcano_base.manipulate.dt2float(
-            ob16.so2_delta.where(ob16.so2_delta > 0, drop=True).time.data
+            ob16.so2_delta.where(ob16.so2_delta > 0, drop=True).time.data,
         ),
         dims=("time",),
     )
@@ -27,7 +27,7 @@ print(arr.mean().data)
 for call in ["min", "max"]:
     # Print the statistic as well as the index and value of the eruption that caused it
     print(
-        f"{call}: a {getattr(arr, call)().data} year gap ended in the decimal year {getattr(arr, f"idx{call}")().data}"
+        f"{call}: a {getattr(arr, call)().data} year gap ended in the decimal year {getattr(arr, f"idx{call}")().data}",
     )
 
 ob16.so2_delta.plot()

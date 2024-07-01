@@ -1,14 +1,22 @@
-"""Alternative deconvolution methods for the deconvolution of the forcing signal from the observed signal."""
+"""Alternative deconvolution methods for a forcing signal and a observed signal."""
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.optimize import OptimizeResult, minimize
 
 
-def deconv_mean_2(signal, forcing) -> OptimizeResult:
+def deconv_mean_2(
+    signal: NDArray[np.float64], forcing: NDArray[np.float64]
+) -> OptimizeResult:
     """Deconvolution with mean value and an unknown finite mean."""
 
-    # This uses the last term in expression (24) with the mean value as an additional unknown.
-    def costfun(x, signal, forcing):
+    # This uses the last term in expression (24) with the mean value as an additional
+    # unknown.
+    def costfun(
+        x: NDArray[np.float64],
+        signal: NDArray[np.float64],
+        forcing: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         # Here, the last member of x is the unknown mean value.
         x_tmp = x[:-1]
         mu = x[-1]
@@ -20,16 +28,21 @@ def deconv_mean_2(signal, forcing) -> OptimizeResult:
     bounds += bounds_mu
 
     return minimize(
-        costfun, np.ones(signal.size + 1), args=(signal, forcing), bounds=bounds
+        costfun,
+        np.ones(signal.size + 1),
+        args=(signal, forcing),
+        bounds=bounds,
     )
 
 
 def alternative_deconv(
-    signal: np.ndarray, forcing: np.ndarray
+    signal: np.ndarray,
+    forcing: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Alternative deconvolution method.
 
-    This method uses the last term in expression (24) with the mean value as an additional unknown.
+    This method uses the last term in expression (24) with the mean value as an
+    additional unknown.
 
     Parameters
     ----------

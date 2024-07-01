@@ -1,9 +1,12 @@
 """Plot the deconvolution comparison between OB16 and CESM2."""
 
+from typing import Self
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
+from numpy.typing import NDArray
 from rich.console import Console
 
 import vdd.deconvolve_methods
@@ -15,11 +18,13 @@ _SAVE_DIR = volcano_base.config.SAVE_PATH / "deconv_ob16_cesm2"
 if not _SAVE_DIR.exists():
     _SAVE_DIR.mkdir(parents=False)
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-    {"text.latex.preamble": r"\usepackage{amsmath,siunitx}"},
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+        {"text.latex.preamble": r"\usepackage{amsmath,siunitx}"},
+    ],
+)
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
@@ -28,21 +33,23 @@ console = Console()
 _USE_NEW_DECONV = False
 
 
-def _new_deconv(signal, forcing):
+def _new_deconv(
+    signal: NDArray[np.float64], forcing: NDArray[np.float64]
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     with console.status("Deconvolving with new method"):
         res, err = vdd.deconvolve_methods.alternative_deconv(signal, forcing)
     return res, err
 
 
-use_padding: vdd.load.T_Padding = "noise"
-dec_cesm_int4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_int2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
-dec_cesm_med4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-4sep"))
-dec_cesm_med2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-2sep"))
-dec_cesm_e = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="size5000"))
-dec_cesm_s = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="strong"))
-dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus"))
-dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
+padding = vdd.load.PaddingMethod.NOISE
+dec_cesm_int4 = DecCESM(pad_before=padding, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_int2 = DecCESM(pad_before=padding, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_med4 = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium-4sep"))
+dec_cesm_med2 = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium-2sep"))
+dec_cesm_e = DecCESM(pad_before=padding, cesm=DataCESM(strength="size5000"))
+dec_cesm_s = DecCESM(pad_before=padding, cesm=DataCESM(strength="strong"))
+dec_cesm_p = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium-plus"))
+dec_cesm_m = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium"))
 # Original
 dec_ob16 = vdd.load.DeconvolveOB16(data="h0", length=int(12 * 1000) + 1)
 dec_ob16.name = "OB16"
@@ -80,12 +87,14 @@ class PlotResponseFunctions:
         Whether to normalise the response functions, by default False.
     """
 
-    def __init__(self, *decs: vdd.load.Deconvolve, norm: bool = False):
+    def __init__(self: Self, *decs: vdd.load.Deconvolve, norm: bool = False) -> None:
         self.decs = decs
         self.norm = norm
 
     def plot_rf_so2(
-        self, fig: mpl.figure.Figure | None = None, save_as: str = "rf-so2"
+        self: Self,
+        fig: mpl.figure.Figure | None = None,
+        save_as: str = "rf-so2",  # noqa: ARG002
     ) -> mpl.figure.Figure:
         """Plot the radiative forcing to SO2 response functions."""
         match fig:
@@ -97,16 +106,18 @@ class PlotResponseFunctions:
                 ax.set_xlim(rf_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]"
+                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
-                raise ValueError("rf must be a mpl.figure.Figure or None")
+                raise ValueError
 
     def plot_rf_so2_decay(
-        self, fig: mpl.figure.Figure | None = None, save_as: str = "rf-so2_decay"
+        self: Self,
+        fig: mpl.figure.Figure | None = None,
+        save_as: str = "rf-so2_decay",  # noqa: ARG002
     ) -> mpl.figure.Figure:
         """Plot the radiative forcing to SO2 decay response functions."""
         match fig:
@@ -118,16 +129,18 @@ class PlotResponseFunctions:
                 ax.set_xlim(rf_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 burden response [1]"
+                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 burden response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
-                raise ValueError("rf must be a mpl.figure.Figure or None")
+                raise ValueError
 
     def plot_temp_so2(
-        self, fig: mpl.figure.Figure | None = None, save_as: str = "temp-so2"
+        self: Self,
+        fig: mpl.figure.Figure | None = None,
+        save_as: str = "temp-so2",  # noqa: ARG002
     ) -> mpl.figure.Figure:
         """Plot the temperature to SO2 response functions."""
         match fig:
@@ -139,16 +152,18 @@ class PlotResponseFunctions:
                 ax.set_xlim(temp_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]"
+                    f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
-                raise ValueError("temp must be a mpl.figure.Figure or None")
+                raise ValueError
 
     def plot_temp_rf(
-        self, fig: mpl.figure.Figure | None = None, save_as: str = "temp-rf"
+        self: Self,
+        fig: mpl.figure.Figure | None = None,
+        save_as: str = "temp-rf",  # noqa: ARG002
     ) -> mpl.figure.Figure:
         """Plot the temperature to radiative forcing response functions."""
         match fig:
@@ -160,17 +175,18 @@ class PlotResponseFunctions:
                 ax.set_xlim(temp_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]"
+                    f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
                 return fig
             case _:
-                raise ValueError("temp must be a mpl.figure.Figure or None")
+                raise ValueError
 
     @staticmethod
     def plot_grayscale_highlight(
-        fig: mpl.figure.Figure | None = None, save_as: str = "temp-so2-gs"
+        fig: mpl.figure.Figure | None = None,
+        save_as: str = "temp-so2-gs",
     ) -> mpl.figure.Figure:
         """Plot the temperature to SO2 response functions with a grayscale highlight."""
         rows = 4
@@ -178,7 +194,9 @@ class PlotResponseFunctions:
         match fig:
             case None:
                 fig, _ = vdd.utils.figure_multiple_rows_columns(
-                    rows, cols, share_axes="x"
+                    rows,
+                    cols,
+                    share_axes="x",
                 )
                 return fig
             case mpl.figure.Figure():
@@ -194,17 +212,21 @@ class PlotResponseFunctions:
                 fig.savefig(_SAVE_DIR / f"{save_as}{new_deconv}")
                 return fig
             case _:
-                raise ValueError("temp must be a mpl.figure.Figure or None")
+                raise ValueError
 
-    def _norm_plot(self, temp_so2_gs_a, rf_so2_gs_a) -> None:
+    def _norm_plot(
+        self: Self, temp_so2_gs_a: list[mpl.axes.Axes], rf_so2_gs_a: list[mpl.axes.Axes]
+    ) -> None:
         for ax_list, res_name in zip(
-            [temp_so2_gs_a, rf_so2_gs_a], ["temp", "rf"], strict=True
+            [temp_so2_gs_a, rf_so2_gs_a],
+            ["temp", "rf"],
+            strict=True,
         ):
             for i, ax in enumerate(ax_list):
                 i_ = i
                 self._grayscale_plot(ax, res_name, i_)
 
-    def _grayscale_plot(self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:
+    def _grayscale_plot(self: Self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:
         for dec in self.decs:
             name = ns(dec.name)
             clr = "r"
@@ -236,7 +258,7 @@ class PlotResponseFunctions:
                 case _:
                     ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
 
-    def run(self, save_as: list[str] | None = None) -> None:
+    def run(self: Self, save_as: list[str] | None = None) -> None:
         """Run the class."""
         # rf_so2 = self.plot_rf_so2()
         # rf_so2_decay = self.plot_rf_so2_decay()
@@ -260,7 +282,7 @@ class PlotResponseFunctions:
         #         if self.norm
         #         else dec.response_temp_so2
         #     )
-        #     _temp_rf_resp = dec._deconv_method(
+        #     _temp_rf_resp = dec.deconvolve(
         #         dec.response_temp_so2, dec.response_rf_so2
         #     )[0].flatten()
         #     temp_rf_resp = (

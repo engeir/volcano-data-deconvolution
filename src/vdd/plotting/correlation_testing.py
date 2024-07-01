@@ -4,17 +4,21 @@ import fppanalysis
 import matplotlib.pyplot as plt
 import numpy as np
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+    ],
+)
 
 
 def shapes_different_timescales() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create two shapes with different time scales."""
     t1 = np.linspace(0, 100, 1000)
     shape1 = np.linspace(
-        -50, 50, 1000
+        -50,
+        50,
+        1000,
     )  # + np.random.default_rng().normal(0, 0.5, size=1000)
     shape2 = np.linspace(-50, 50, 1000)
     zero_time_idx = 50
@@ -32,7 +36,9 @@ def shapes_different_rise() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create two shapes with different rise times."""
     t1 = np.linspace(0, 100, 1000)
     shape2 = np.linspace(
-        -50, 50, 1000
+        -50,
+        50,
+        1000,
     )  # + np.random.default_rng().normal(0, 0.5, size=1000)
     shape1 = np.linspace(-50, 50, 1000)
     zero_time_idx = 50

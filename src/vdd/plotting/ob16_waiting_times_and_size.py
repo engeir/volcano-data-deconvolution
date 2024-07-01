@@ -44,26 +44,28 @@ for val in so2_peaks:
 peaks_normal = so2_peaks.where(isolated_normal).dropna("time")
 peaks_normal_series = peaks_normal.to_series()
 print(so2_peaks_close_series)
-df = pd.DataFrame({
-    # "peaks": so2_peaks_series,
-    "close": so2_peaks_close_series,
-    "big": so2_peaks_big_series,
-    "small": so2_peaks_small_series,
-    "normal": peaks_normal_series,
-})
+peak_series = pd.DataFrame(
+    {
+        # "peaks": so2_peaks_series,
+        "close": so2_peaks_close_series,
+        "big": so2_peaks_big_series,
+        "small": so2_peaks_small_series,
+        "normal": peaks_normal_series,
+    },
+)
 print(
     f"There are {len(so2_peaks)} peaks, of which {len(so2_peaks_close)} are close,"
     f" {len(so2_peaks_big)} are big, and {len(so2_peaks_small)} are small. Overlapping"
     f" traits happen"
     f" {len(peaks_normal) - (len(so2_peaks) - len(so2_peaks_close) - len(so2_peaks_big) - len(so2_peaks_small))}"
-    f" times. This leaves {len(peaks_normal)} normal peaks."
+    f" times. This leaves {len(peaks_normal)} normal peaks.",
 )
 # There are 71 peaks, of which 3 are close, 5 are big, and 47 are small. Overlapping
 # traits happen 2 times. This leaves 18 normal peaks.
 
 plt.figure()
 plt.semilogy()
-df.plot.bar(ax=plt.gca(), fontsize=3, stacked=True)
+peak_series.plot.bar(ax=plt.gca(), fontsize=3, stacked=True)
 plt.xlabel("Time [yr]")
 plt.ylabel("SO2 [Tg]")
 plt.show()

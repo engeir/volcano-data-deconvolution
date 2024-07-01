@@ -1,11 +1,13 @@
 """Functions that fetches data from files and returns it as an xarray.DataArray."""
 
+import contextlib
 import datetime
 import warnings
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
+from enum import Enum
 from functools import cached_property
-from typing import Any, Literal, Self
+from typing import Literal, Self
 
 import cftime
 import cosmoplots
@@ -13,10 +15,11 @@ import fppanalysis
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
+import scipy as sp
 import scipy.signal as ssi
 import volcano_base
 import xarray as xr
+from numpy.typing import NDArray
 from pydantic import BaseModel, Field
 from rich import print as rprint
 from rich.console import Console
@@ -38,7 +41,8 @@ type T_Strengths = Literal[  # type: ignore[valid-type]
     "tt-2sep",
     "tt-4sep",
 ]
-type T_Padding = Literal[True, False, "noise"]  # type: ignore[valid-type]
+
+console = Console()
 
 
 def _convert_time_start_zero(arr: xr.DataArray) -> xr.DataArray:
@@ -49,13 +53,57 @@ def _convert_time_start_zero(arr: xr.DataArray) -> xr.DataArray:
     return arr
 
 
+class DataAttributeNotFoundError(FileNotFoundError):
+    """Data is not found in the file."""
+
+    def __init__(self: Self) -> None:
+        super().__init__("Control data not found.")
+
+
+class PaddingMethod(Enum):
+    """Specify how the data should be padded.
+
+    Attributes
+    ----------
+    NO : bool
+        False, the data should not be padded.
+    ZEROS : bool
+        True, the data should be zero padded.
+    NOISE : str
+        The data should be padded using it control counterpart.
+    """
+
+    NO: bool = False
+    ZEROS: bool = True
+    NOISE: str = "noise"
+
+
+class Normalise(Enum):
+    """Specify how the data should be normalised.
+
+    Attributes
+    ----------
+    AMPLITUDE : str
+        Normalise the data to within 0 and 1.
+    MEAN_STD : str
+        Normalise the statistics of the data to have zero-mean and unit standard
+        deviation.
+    NO : bool
+        Do not normalise or otherwise alter the data.
+    """
+
+    AMPLITUDE: str = "minmax"
+    MEAN_STD: str = "mean-std"
+    NO: bool = False
+
+
 class Reconstructor(BaseModel):
     """Class that keeps a static set of arrays.
 
     The arrays represent time series that have already been deconvolved completely, thus
     we assume no further deconvolution analysis is needed.
 
-    Parameters
+    Attributes
     ----------
     tau : np.ndarray
         The time axis for the deconvolution.
@@ -71,16 +119,26 @@ class Reconstructor(BaseModel):
         The signal time series.
     name : str
         The name of the reconstructor.
-    normalise : bool
+    normalise : Normalise
         Whether the data is normalised.
     """
 
     class Config:
-        """Configuration for the Reconstructor BaseModel object."""
+        """Configuration for the Reconstructor BaseModel object.
 
-        validate_assignment = True
-        strict = True
-        arbitrary_types_allowed = True
+        Attributes
+        ----------
+        validate_assignment : bool
+            Validate all assignments of the base class.
+        strict : bool
+            Be strict.
+        arbitrary_types_allowed : bool
+            Any types can be used.
+        """
+
+        validate_assignment: bool = True
+        strict: bool = True
+        arbitrary_types_allowed: bool = True
 
     tau: np.ndarray = Field(..., alias="tau", frozen=True)
     time: xr.DataArray = Field(..., alias="time", frozen=True)
@@ -89,15 +147,15 @@ class Reconstructor(BaseModel):
     forcing: xr.DataArray = Field(..., alias="forcing", frozen=True)
     signal: xr.DataArray = Field(..., alias="signal", frozen=True)
     name: str = Field(..., frozen=False)
-    normalise: bool = Field(..., frozen=True)
+    normalise: Normalise = Field(..., frozen=True)
 
 
 class CESMData(BaseModel):
     """Class to store the CESM2 data.
 
-    Parameters
+    Attributes
     ----------
-    strength : Literal["strong", "medium", "medium-2sep", "medium-4sep", "medium-plus", "size5000", "tt-2sep", "tt-4sep"], optional
+    strength : T_Strengths
         The strength of the eruption, by default "strong".
     dims : list[str], optional
         The dimensions of the data to average over, by default ["lat", "lon"]. An empty
@@ -108,15 +166,27 @@ class CESMData(BaseModel):
     dims: list[str] = Field(default=["lat", "lon"], frozen=True)
 
     class Config:
-        """Configuration for the CESMData BaseModel object."""
+        """Configuration for the CESMData BaseModel object.
 
-        validate_assignment = True
-        frozen = True
-        extra = "forbid"
-        strict = True
+        Attributes
+        ----------
+        validate_assignment : bool
+            Validate all assignments of the base class.
+        frozen : bool
+            Do not allow attributes to change.
+        extra : str
+            Do not enable extra features.
+        strict : bool
+            Be strict.
+        """
+
+        validate_assignment: bool = True
+        frozen: bool = True
+        extra: str = "forbid"
+        strict: bool = True
 
     @cached_property
-    def so2(self) -> xr.DataArray:
+    def so2(self: Self) -> xr.DataArray:  # noqa: C901
         """Get the CESM2 SO2 data.
 
         Returns
@@ -138,7 +208,8 @@ class CESMData(BaseModel):
             try:
                 x = self._get_trefht_cesm().time.data
             except AttributeError as e:
-                raise AttributeError("No data found.") from e
+                msg = "No data found."
+                raise AttributeError(msg) from e
         y = np.zeros_like(x)
         match self.strength:
             case "strong":
@@ -168,7 +239,7 @@ class CESMData(BaseModel):
         return self._align_arrays("so2", out)
 
     @cached_property
-    def tmso2(self) -> xr.DataArray:
+    def tmso2(self: Self) -> xr.DataArray:
         """Get the CESM2 TMSO2 data.
 
         Returns
@@ -181,7 +252,7 @@ class CESMData(BaseModel):
         return self._align_arrays("tmso2", out)
 
     @cached_property
-    def tmso2_control(self) -> xr.DataArray:
+    def tmso2_control(self: Self) -> xr.DataArray:
         """Get the CESM2 control TMSO2 data.
 
         Returns
@@ -196,7 +267,7 @@ class CESMData(BaseModel):
         return self._align_arrays("tmso2_control", out)
 
     @cached_property
-    def aod(self) -> xr.DataArray:
+    def aod(self: Self) -> xr.DataArray:
         """Get the CESM2 AOD data.
 
         Returns
@@ -209,7 +280,7 @@ class CESMData(BaseModel):
         return self._align_arrays("aod", out)
 
     @cached_property
-    def aod_control(self) -> xr.DataArray:
+    def aod_control(self: Self) -> xr.DataArray:
         """Get the CESM2 control AOD data.
 
         Returns
@@ -224,7 +295,7 @@ class CESMData(BaseModel):
         return self._align_arrays("aod_control", out)
 
     @cached_property
-    def rf(self) -> xr.DataArray:
+    def rf(self: Self) -> xr.DataArray:
         """Get the CESM2 RF data.
 
         Returns
@@ -237,7 +308,7 @@ class CESMData(BaseModel):
         return self._align_arrays("rf", out)
 
     @cached_property
-    def rf_control(self) -> xr.DataArray:
+    def rf_control(self: Self) -> xr.DataArray:
         """Get the CESM2 control RF data.
 
         Returns
@@ -252,7 +323,7 @@ class CESMData(BaseModel):
         return self._align_arrays("rf_control", out)
 
     @cached_property
-    def temp(self) -> xr.DataArray:
+    def temp(self: Self) -> xr.DataArray:
         """Get the CESM2 temperature data.
 
         Returns
@@ -265,7 +336,7 @@ class CESMData(BaseModel):
         return self._align_arrays("temp", out)
 
     @cached_property
-    def temperature_control(self) -> xr.DataArray:
+    def temperature_control(self: Self) -> xr.DataArray:
         """Get the CESM2 control temperature data.
 
         Returns
@@ -279,7 +350,7 @@ class CESMData(BaseModel):
         out = out if len(out) % 2 else out[:-1]
         return self._align_arrays("temperature_control", out)
 
-    def initialise_data(self) -> None:
+    def initialise_data(self: Self) -> None:
         """Initialise the data, ensuring that it is loaded and aligned."""
         _ = (
             self.so2,
@@ -293,7 +364,7 @@ class CESMData(BaseModel):
             self.tmso2_control,
         )
 
-    def _align_arrays(self, new: str, new_obj: xr.DataArray) -> xr.DataArray:
+    def _align_arrays(self: Self, new: str, new_obj: xr.DataArray) -> xr.DataArray:  # noqa: ARG002
         if out := list(
             set(self.__dict__.keys())
             & {
@@ -306,7 +377,7 @@ class CESMData(BaseModel):
                 "so2",
                 "rf",
                 "aod",
-            }
+            },
         ):
             aligned = xr.align(new_obj, *[getattr(self, o) for o in out])
             self.__dict__.update(dict(zip(out, aligned[1:], strict=True)))
@@ -314,7 +385,7 @@ class CESMData(BaseModel):
             aligned = (new_obj,)
         return aligned[0]
 
-    def _get_tmso2_cesm(self, plot_example: bool = False) -> xr.DataArray:
+    def _get_tmso2_cesm(self: Self, *, plot_example: bool = False) -> xr.DataArray:
         """Get the CESM2 TMSO2 data."""
         data = (
             volcano_base.load.FindFiles()
@@ -323,7 +394,7 @@ class CESMData(BaseModel):
                 "ens1"
                 if self.strength
                 not in {"tt-2sep", "tt-4sep", "medium-2sep", "medium-4sep"}
-                else "ens0"
+                else "ens0",
             )
             .keep_most_recent()
         )
@@ -333,7 +404,8 @@ class CESMData(BaseModel):
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
         files = volcano_base.manipulate.subtract_mean_of_tail(files)
         files = volcano_base.manipulate.data_array_operation(
-            files, _convert_time_start_zero
+            files,
+            _convert_time_start_zero,
         )
         files = list(xr.align(*files))
         # TMSO2 control data
@@ -343,21 +415,25 @@ class CESMData(BaseModel):
             .sort("ensemble", "attr")
         )
         if len(control_data) != 1:
-            raise ValueError("Control data not found.")
+            raise DataAttributeNotFoundError
         control_l = control_data.load()
         control_l = volcano_base.manipulate.mean_flatten(control_l, dims=self.dims)
         control_l = volcano_base.manipulate.data_array_operation(
-            control_l, _convert_time_start_zero
+            control_l,
+            _convert_time_start_zero,
         )
         # Climatology
         control_float = volcano_base.manipulate.get_median(
-            control_l, xarray=True
+            control_l,
+            xarray=True,
         ).dropna("time")
         control_dt = control_float.assign_coords(
-            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS")
+            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS"),
         )
         control_dt = volcano_base.manipulate.subtract_climatology(
-            control_dt, control_dt, "time.month"
+            control_dt,
+            control_dt,
+            "time.month",
         )[0]
         self._tmso2_control = control_dt.assign_coords(time=control_float.time)
         if plot_example:
@@ -371,7 +447,7 @@ class CESMData(BaseModel):
             plt.show()
         return mean_array.dropna("time")
 
-    def _get_aod_cesm(self, plot_example: bool = False) -> xr.DataArray:
+    def _get_aod_cesm(self: Self, *, plot_example: bool = False) -> xr.DataArray:
         """Get the CESM2 AOD data."""
         data = (
             volcano_base.load.FindFiles()
@@ -380,7 +456,7 @@ class CESMData(BaseModel):
                 "ens1"
                 if self.strength
                 not in {"tt-2sep", "tt-4sep", "medium-2sep", "medium-4sep"}
-                else "ens0"
+                else "ens0",
             )
             .keep_most_recent()
         )
@@ -390,7 +466,8 @@ class CESMData(BaseModel):
         files = volcano_base.manipulate.shift_arrays(files, custom=1)
         files = volcano_base.manipulate.subtract_mean_of_tail(files)
         files = volcano_base.manipulate.data_array_operation(
-            files, _convert_time_start_zero
+            files,
+            _convert_time_start_zero,
         )
         files = list(xr.align(*files))
         # AOD control data
@@ -400,21 +477,25 @@ class CESMData(BaseModel):
             .sort("ensemble", "attr")
         )
         if len(control_data) != 1:
-            raise ValueError("Control data not found.")
+            raise DataAttributeNotFoundError
         control_l = control_data.load()
         control_l = volcano_base.manipulate.mean_flatten(control_l, dims=self.dims)
         control_l = volcano_base.manipulate.data_array_operation(
-            control_l, _convert_time_start_zero
+            control_l,
+            _convert_time_start_zero,
         )
         # Climatology
         control_float = volcano_base.manipulate.get_median(
-            control_l, xarray=True
+            control_l,
+            xarray=True,
         ).dropna("time")
         control_dt = control_float.assign_coords(
-            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS")
+            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS"),
         )
         control_dt = volcano_base.manipulate.subtract_climatology(
-            control_dt, control_dt, "time.month"
+            control_dt,
+            control_dt,
+            "time.month",
         )[0]
         self._aod_control = control_dt.assign_coords(time=control_float.time)
         if plot_example:
@@ -429,7 +510,7 @@ class CESMData(BaseModel):
         return mean_array.dropna("time")
 
     def _load_rf_cesm(
-        self,
+        self: Self,
     ) -> tuple[xr.DataArray, xr.DataArray, list[xr.DataArray], list[xr.DataArray]]:
         control_data: volcano_base.load.FindFiles = (
             volcano_base.load.FindFiles()
@@ -443,7 +524,7 @@ class CESMData(BaseModel):
                 "ens1"
                 if self.strength
                 not in {"tt-2sep", "tt-4sep", "medium-2sep", "medium-4sep"}
-                else "ens0"
+                else "ens0",
             )
             .keep_most_recent()
             .sort("ensemble", "attr")
@@ -454,7 +535,7 @@ class CESMData(BaseModel):
                 c_flnt_xr = c_flnt.load()[0]
                 c_fsnt_xr = c_fsnt.load()[0]
             case _:
-                raise ValueError("Control data not found.")
+                raise DataAttributeNotFoundError
         match self.strength:
             case "size5000" | "tt-2sep" | "tt-4sep" | "medium-2sep" | "medium-4sep":
                 d_size = 2
@@ -465,15 +546,17 @@ class CESMData(BaseModel):
                 flnt_xr = flnt.load()
                 fsnt_xr = fsnt.load()
             case _:
-                raise ValueError(f"Data for {self.strength} not found.")
+                msg = f"Data for {self.strength} not found."
+                raise ValueError(msg)
         c_fsnt_xr, c_flnt_xr = volcano_base.manipulate.mean_flatten(
-            [c_fsnt_xr, c_flnt_xr], dims=self.dims
+            [c_fsnt_xr, c_flnt_xr],
+            dims=self.dims,
         )
         fsnt_xr = volcano_base.manipulate.mean_flatten(fsnt_xr, dims=self.dims)
         flnt_xr = volcano_base.manipulate.mean_flatten(flnt_xr, dims=self.dims)
         return c_fsnt_xr, c_flnt_xr, fsnt_xr, flnt_xr
 
-    def _get_rf_cesm(self, plot_example: bool = False) -> xr.DataArray:
+    def _get_rf_cesm(self: Self, *, plot_example: bool = False) -> xr.DataArray:
         """Get the CESM2 RF data."""
         c_fsnt_xr, c_flnt_xr, fsnt_xr, flnt_xr = self._load_rf_cesm()
 
@@ -490,7 +573,8 @@ class CESMData(BaseModel):
             return rf.assign_attrs(**combined_attrs).rename("RESTOM")
 
         def difference(
-            short: list[xr.DataArray], long: list[xr.DataArray]
+            short: list[xr.DataArray],
+            long: list[xr.DataArray],
         ) -> list[xr.DataArray]:
             rf_: list[xr.DataArray] = []
             rf_ap = rf_.append
@@ -512,7 +596,8 @@ class CESMData(BaseModel):
         c_total = c_total.assign_attrs(attr="RF")
         c_total = volcano_base.manipulate.subtract_mean_of_tail([c_total])[0]
         c_total = volcano_base.manipulate.data_array_operation(
-            [c_total], _convert_time_start_zero
+            [c_total],
+            _convert_time_start_zero,
         )[0]
         c_total.data = np.asarray(c_total.data)
         # Fourier
@@ -522,10 +607,12 @@ class CESMData(BaseModel):
         # Climatology
         c_total_float = c_total.dropna("time")
         c_total_dt = c_total_float.assign_coords(
-            time=volcano_base.manipulate.float2dt(c_total_float.time, freq="MS")
+            time=volcano_base.manipulate.float2dt(c_total_float.time, freq="MS"),
         )
         c_total_dt = volcano_base.manipulate.subtract_climatology(
-            c_total_dt, c_total_dt, "time.month"
+            c_total_dt,
+            c_total_dt,
+            "time.month",
         )[0]
         self._rf_control = c_total_dt.assign_coords(time=c_total_float.time)
         if plot_example:
@@ -539,7 +626,7 @@ class CESMData(BaseModel):
             plt.show()
         return mean_array.dropna("time")
 
-    def _get_trefht_cesm(self, plot_example: bool = False) -> xr.DataArray:
+    def _get_trefht_cesm(self: Self, *, plot_example: bool = False) -> xr.DataArray:
         """Get the CESM2 temperature data."""
         control_data: volcano_base.load.FindFiles = (
             volcano_base.load.FindFiles()
@@ -547,7 +634,7 @@ class CESMData(BaseModel):
             .sort("ensemble", "attr")
         )
         if len(control_data) != 1:
-            raise ValueError("Control data not found.")
+            raise DataAttributeNotFoundError
         control_l = control_data.load()
         control_l = volcano_base.manipulate.mean_flatten(control_l, dims=self.dims)
         data = (
@@ -557,7 +644,7 @@ class CESMData(BaseModel):
                 "ens1"
                 if self.strength
                 not in {"tt-2sep", "tt-4sep", "medium-2sep", "medium-4sep"}
-                else "ens0"
+                else "ens0",
             )
             .keep_most_recent()
         )
@@ -577,7 +664,8 @@ class CESMData(BaseModel):
             return arr - volcano_base.config.MEANS["TREFHT"]
 
         control_l = volcano_base.manipulate.data_array_operation(
-            control_l, _convert_time_start_zero
+            control_l,
+            _convert_time_start_zero,
         )
         # Fourier
         # self._temperature_control = volcano_base.manipulate.remove_seasonality(
@@ -588,13 +676,16 @@ class CESMData(BaseModel):
         # )
         # Climatology
         control_float = volcano_base.manipulate.get_median(
-            control_l, xarray=True
+            control_l,
+            xarray=True,
         ).dropna("time")
         control_dt = control_float.assign_coords(
-            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS")
+            time=volcano_base.manipulate.float2dt(control_float.time, freq="MS"),
         )
         control_dt = volcano_base.manipulate.subtract_climatology(
-            control_dt, control_dt, "time.month"
+            control_dt,
+            control_dt,
+            "time.month",
         )[0]
         self._temperature_control = control_dt.assign_coords(time=control_float.time)
         subtract_control = (
@@ -602,7 +693,8 @@ class CESMData(BaseModel):
         )
         files = volcano_base.manipulate.data_array_operation(files, subtract_control)
         files = volcano_base.manipulate.data_array_operation(
-            files, _convert_time_start_zero
+            files,
+            _convert_time_start_zero,
         )
         files = list(xr.align(*files))
         if plot_example:
@@ -617,9 +709,9 @@ class CESMData(BaseModel):
         return mean_array.dropna("time").assign_attrs(**orig_attrs)
 
 
-class _PostInitCaller(ABC, type):
-    def __call__(cls, *args, **kwargs):
-        obj = type.__call__(cls, *args, **kwargs)
+class _PostInitCaller[T](ABC, type):  # type: ignore[valid-type]
+    def __call__(cls, *args, **kwargs) -> T:  # type: ignore[name-defined] # noqa: ANN002,ANN003
+        obj: T = type.__call__(cls, *args, **kwargs)  # type: ignore[name-defined]
         obj.__post_init__()
         return obj
 
@@ -627,68 +719,101 @@ class _PostInitCaller(ABC, type):
 class EvenLengthError(Exception):
     """Exception raised for even length arrays."""
 
-    def __init__(self, message: str = "The arrays must have an odd length.") -> None:
+    def __init__(
+        self: Self, message: str = "The arrays must have an odd length."
+    ) -> None:
         self.message = message
         super().__init__(self.message)
 
 
 class Deconvolve(metaclass=_PostInitCaller):
-    """Class for deconvolving data."""
+    """Class for deconvolving data.
+
+    Attributes
+    ----------
+    name : str
+        The name of the class.
+    """
 
     name: str = "Deconvolve"
 
-    def __init__(self, normalise: bool = False) -> None:
-        def _deconv(signal, forcing) -> tuple[np.ndarray, np.ndarray]:
+    def __init__(self: Self, normalise: Normalise = Normalise.NO) -> None:
+        def _deconv(
+            signal: NDArray[np.float64],
+            forcing: NDArray[np.float64],
+        ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
             if not len(signal) % 2 or not len(forcing) % 2:
                 raise EvenLengthError
             guess = np.heaviside(np.arange(len(signal)) - len(signal) // 2, 1)
-            kwargs = {"initial_guess": guess, "iteration_list": 1000}
-            return fppanalysis.RL_gauss_deconvolve(signal, forcing, **kwargs)
+            with (
+                console.status("[bold yellow]Deconvolving ...", spinner="point"),
+                contextlib.redirect_stdout(None),
+            ):
+                out, err = fppanalysis.RL_gauss_deconvolve(
+                    signal,
+                    forcing,
+                    initial_guess=guess,
+                    iteration_list=1000,
+                )
+            return out, err
 
-        self._deconv_method: Callable[
-            [np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]
+        self._deconvolve: Callable[
+            [NDArray[np.float64], NDArray[np.float64]],
+            tuple[NDArray[np.float64], NDArray[np.float64]],
         ] = _deconv
         self.normalise = normalise
 
-    def __post_init__(self) -> None:
+    def __post_init__(self: Self) -> None:
         """Run the normalisation if needed."""
         if self.normalise:
             self._update_if_normalise()
 
     @abstractmethod
-    def _update_if_normalise(self) -> None: ...
+    def _update_if_normalise(self: Self) -> None: ...
 
-    @abstractproperty
-    def tau(self) -> np.ndarray:
+    @property
+    @abstractmethod
+    def tau(self: Self) -> NDArray[np.float64]:
         """Time axis for the deconvolution."""
         raise NotImplementedError
 
-    @abstractproperty
-    def so2(self) -> xr.DataArray:
+    @property
+    @abstractmethod
+    def so2(self: Self) -> xr.DataArray:
         """SO2 time series data."""
         raise NotImplementedError
 
-    @abstractproperty
-    def so2_decay(self) -> xr.DataArray:
+    @property
+    @abstractmethod
+    def so2_decay(self: Self) -> xr.DataArray:
         """SO2 time series data."""
         raise NotImplementedError
 
-    @abstractproperty
-    def rf(self) -> xr.DataArray:
+    @property
+    @abstractmethod
+    def rf(self: Self) -> xr.DataArray:
         """Radiative forcing time series data."""
         raise NotImplementedError
 
-    @abstractproperty
-    def temp(self) -> xr.DataArray:
+    @property
+    @abstractmethod
+    def temp(self: Self) -> xr.DataArray:
         """Temperature time series data."""
         raise NotImplementedError
 
-    @abstractproperty
-    def temp_control(self) -> xr.DataArray:
+    @property
+    @abstractmethod
+    def temp_control(self: Self) -> xr.DataArray:
         """Temperature control time series data."""
         raise NotImplementedError
 
-    def dump_reconstructor(self) -> Reconstructor:
+    def deconvolve(
+        self: Self, signal: NDArray[np.float64], forcing: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Deconvolve the signal with the forcing."""
+        return self._deconvolve(signal, forcing)
+
+    def dump_reconstructor(self: Self) -> Reconstructor:
         """Dump the current deconvolution object into a reconstructor object."""
         return Reconstructor(
             tau=self.tau,
@@ -702,10 +827,10 @@ class Deconvolve(metaclass=_PostInitCaller):
         )
 
     def change_deconvolution_method(
-        self,
+        self: Self,
         method: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
-        *args: Any,
-        **kwargs: Any,
+        method_args: list | None = None,
+        method_kwargs: dict | None = None,
     ) -> None:
         """Change the deconvolution method.
 
@@ -713,10 +838,10 @@ class Deconvolve(metaclass=_PostInitCaller):
         ----------
         method : Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
             The new deconvolution method.
-        *args : Any
+        method_args : list | None
             The positional arguments to pass to the method, if any. Not including the
             signal and forcing.
-        **kwargs : Any
+        method_kwargs : dict | None
             The keyword arguments to pass to the method, if any.
 
         Examples
@@ -731,31 +856,44 @@ class Deconvolve(metaclass=_PostInitCaller):
 
         Or if the heaviside function is not needed, one could use the following:
         >>> kwargs = {"iteration_list": 1000}
-        >>> dec.change_deconvolution_method(fppanalysis.RL_gauss_deconvolve, **kwargs)
+        >>> dec.change_deconvolution_method(fppanalysis.RL_gauss_deconvolve, method_kwargs=kwargs)
 
         Or even
-        >>> dec.change_deconvolution_method(fppanalysis.RL_gauss_deconvolve, iteration_list=1000)
+        >>> dec.change_deconvolution_method(
+        ...     fppanalysis.RL_gauss_deconvolve, {"iteration_list": 1000}
+        ... )
         """
 
         def method_(
-            signal: np.ndarray, forcing: np.ndarray
+            signal: np.ndarray,
+            forcing: np.ndarray,
         ) -> tuple[np.ndarray, np.ndarray]:
-            return method(signal, forcing, *args, **kwargs)
+            match method_args, method_kwargs:
+                case None, None:
+                    return method(signal, forcing)
+                case _, None:
+                    return method(signal, forcing, *method_args)
+                case None, _:
+                    return method(signal, forcing, **method_kwargs)
+                case _:
+                    raise ValueError
 
-        self._deconv_method = method_
+        self._deconvolve = method_
 
     @cached_property
-    def _response_rf_so2_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_rf_so2_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the RF signal with the SO2 signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.rf.data, self.so2.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.rf.data, self.so2.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_rf_so2(self) -> np.ndarray:
+    def response_rf_so2(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 delta signal.
 
         Returns
@@ -766,22 +904,24 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_rf_so2_tup[0].flatten()
 
     @property
-    def _response_rf_so2_err(self) -> np.ndarray:
+    def _response_rf_so2_err(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 signal."""
         return self._response_rf_so2_tup[1]
 
     @cached_property
-    def _response_temp_so2_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_temp_so2_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the temperature signal with the SO2 signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.temp.data, self.so2.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.temp.data, self.so2.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_temp_so2(self) -> np.ndarray:
+    def response_temp_so2(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 signal.
 
         Returns
@@ -792,22 +932,24 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_so2_tup[0].flatten()
 
     @property
-    def _response_temp_so2_err(self) -> np.ndarray:
+    def _response_temp_so2_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 signal."""
         return self._response_temp_so2_tup[1]
 
     @cached_property
-    def _response_rf_so2_decay_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_rf_so2_decay_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the RF signal with the SO2 decay signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.rf.data, self.so2_decay.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.rf.data, self.so2_decay.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_rf_so2_decay(self) -> np.ndarray:
+    def response_rf_so2_decay(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 decay signal.
 
         Returns
@@ -818,22 +960,24 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_rf_so2_decay_tup[0].flatten()
 
     @property
-    def _response_rf_so2_decay_err(self) -> np.ndarray:
+    def _response_rf_so2_decay_err(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 decay signal."""
         return self._response_rf_so2_decay_tup[1]
 
     @cached_property
-    def _response_temp_so2_decay_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_temp_so2_decay_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the temperature signal with the SO2 decay signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.temp.data, self.so2_decay.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.temp.data, self.so2_decay.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_temp_so2_decay(self) -> np.ndarray:
+    def response_temp_so2_decay(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 decay signal.
 
         Returns
@@ -844,22 +988,24 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_so2_decay_tup[0].flatten()
 
     @property
-    def _response_temp_so2_decay_err(self) -> np.ndarray:
+    def _response_temp_so2_decay_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 decay signal."""
         return self._response_temp_so2_decay_tup[1]
 
     @cached_property
-    def _response_temp_rf_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_temp_rf_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the temperature signal with the RF signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.temp.data, self.rf.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.temp.data, self.rf.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_temp_rf(self) -> np.ndarray:
+    def response_temp_rf(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the RF signal.
 
         Returns
@@ -870,11 +1016,11 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_rf_tup[0].flatten()
 
     @property
-    def _response_temp_rf_err(self) -> np.ndarray:
+    def _response_temp_rf_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the RF signal."""
         return self._response_temp_rf_tup[1]
 
-    def plot_dec_rf_with_so2(self) -> None:
+    def plot_dec_rf_with_so2(self: Self) -> None:
         """Deconvolve the RF signal with the SO2 signal."""
         # Quick comparison
         plt.figure()
@@ -885,7 +1031,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.semilogy(self._response_rf_so2_err)
 
-    def plot_dec_temp_with_so2(self) -> None:
+    def plot_dec_temp_with_so2(self: Self) -> None:
         """Deconvolve the temperature signal with the SO2 signal."""
         # Quick comparison
         plt.figure()
@@ -896,7 +1042,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.semilogy(self._response_temp_so2_err)
 
-    def plot_dec_temp_with_rf(self) -> None:
+    def plot_dec_temp_with_rf(self: Self) -> None:
         """Deconvolve the temperature signal with the SO2 signal."""
         # Quick comparison
         plt.figure()
@@ -913,9 +1059,9 @@ class DeconvolveCESM(Deconvolve):
 
     Parameters
     ----------
-    normalise : bool, optional
-        Whether to normalise the data, by default False.
-    pad_before : T_Padding, optional
+    normalise : Normalise, optional
+        Whether to normalise the data, by default false.
+    pad_before : PaddingMethod, optional
         Whether to pad with zeros all time series before the convolution, by default
         False.
     cesm : CESMData | None, optional
@@ -923,9 +1069,9 @@ class DeconvolveCESM(Deconvolve):
     """
 
     def __init__(
-        self,
-        normalise: bool = False,
-        pad_before: T_Padding = False,
+        self: Self,
+        normalise: Normalise = Normalise.NO,
+        pad_before: PaddingMethod = PaddingMethod.NO,
         cesm: CESMData | None = None,
     ) -> None:
         super().__init__(normalise)
@@ -936,7 +1082,20 @@ class DeconvolveCESM(Deconvolve):
         self.pad_before = pad_before
         self.name = f"CESM2 {self._data.strength}"
 
-    def _update_if_normalise(self) -> None:
+    def _update_if_normalise(self: Self) -> None:
+        match self.normalise:
+            case Normalise.MEAN_STD:
+                self._normalise_mean_std()
+            case Normalise.AMPLITUDE:
+                self._normalise_amplitude()
+
+    def _normalise_amplitude(self: Self) -> None:
+        self.so2 = vdd.utils.normalise(self.so2)
+        self.aod = vdd.utils.normalise(self.aod)
+        self.rf = vdd.utils.normalise(self.rf)
+        self.temp = vdd.utils.normalise(self.temp)
+
+    def _normalise_mean_std(self: Self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
         self.tmso2 = (self.tmso2 - self.tmso2.mean()) / self.tmso2.std()
         self.aod = (self.aod - self.aod.mean()) / self.aod.std()
@@ -945,15 +1104,10 @@ class DeconvolveCESM(Deconvolve):
         self.temp_control = (
             self.temp_control - self.temp_control.mean()
         ) / self.temp_control.std()
-        # self.so2 = vdd.utils.normalise(self.so2)
-        # self.aod = vdd.utils.normalise(self.aod)
-        # self.rf = vdd.utils.normalise(self.rf)
-        # self.temp = vdd.utils.normalise(self.temp)
 
     @cached_property
-    def so2(self) -> xr.DataArray:
+    def so2(self: Self) -> xr.DataArray:
         """SO2 time series data."""
-        # self._data.initialise_data()
         return (
             vdd.utils.pad_before_convolution(self._data.so2)
             if self.pad_before
@@ -961,9 +1115,8 @@ class DeconvolveCESM(Deconvolve):
         )
 
     @cached_property
-    def so2_decay(self) -> xr.DataArray:
+    def so2_decay(self: Self) -> xr.DataArray:
         """SO2 time series data."""
-        # self._data.initialise_data()
         return (
             vdd.utils.pad_before_convolution(self._data.tmso2)
             if self.pad_before
@@ -971,9 +1124,8 @@ class DeconvolveCESM(Deconvolve):
         )
 
     @cached_property
-    def tau(self) -> np.ndarray:
+    def tau(self: Self) -> np.ndarray:
         """Time axis for the deconvolution."""
-        # self._data.initialise_data()
         return (
             self.so2.time.data
             if self.pad_before
@@ -981,11 +1133,12 @@ class DeconvolveCESM(Deconvolve):
         )
 
     @cached_property
-    def tmso2(self) -> xr.DataArray:
+    def tmso2(self: Self) -> xr.DataArray:
         """SO2 column burden."""
-        # self._data.initialise_data()
         pad_values = (
-            self._data.tmso2_control.data[:-1] if self.pad_before == "noise" else None
+            self._data.tmso2_control.data[:-1]
+            if self.pad_before == PaddingMethod.NOISE
+            else None
         )
         return (
             vdd.utils.pad_before_convolution(self._data.tmso2, pad_values=pad_values)
@@ -994,26 +1147,29 @@ class DeconvolveCESM(Deconvolve):
         )
 
     @cached_property
-    def tmso2_control(self) -> xr.DataArray:
+    def tmso2_control(self: Self) -> xr.DataArray:
         """TMSO2 time series data."""
-        # self._data.initialise_data()
         pad_values = (
-            self._data.tmso2_control.data[:-1] if self.pad_before == "noise" else None
+            self._data.tmso2_control.data[:-1]
+            if self.pad_before == PaddingMethod.NOISE
+            else None
         )
         return (
             vdd.utils.pad_before_convolution(
-                self._data.tmso2_control, pad_values=pad_values
+                self._data.tmso2_control,
+                pad_values=pad_values,
             )
             if self.pad_before
             else self._data.tmso2_control
         )
 
     @cached_property
-    def aod(self) -> xr.DataArray:
+    def aod(self: Self) -> xr.DataArray:
         """Aerosol optical depth time series data."""
-        # self._data.initialise_data()
         pad_values = (
-            self._data.aod_control.data[:-1] if self.pad_before == "noise" else None
+            self._data.aod_control.data[:-1]
+            if self.pad_before == PaddingMethod.NOISE
+            else None
         )
         return (
             vdd.utils.pad_before_convolution(self._data.aod, pad_values=pad_values)
@@ -1022,26 +1178,29 @@ class DeconvolveCESM(Deconvolve):
         )
 
     @cached_property
-    def aod_control(self) -> xr.DataArray:
+    def aod_control(self: Self) -> xr.DataArray:
         """AOD time series data."""
-        # self._data.initialise_data()
         pad_values = (
-            self._data.aod_control.data[:-1] if self.pad_before == "noise" else None
+            self._data.aod_control.data[:-1]
+            if self.pad_before == PaddingMethod.NOISE
+            else None
         )
         return (
             vdd.utils.pad_before_convolution(
-                self._data.aod_control, pad_values=pad_values
+                self._data.aod_control,
+                pad_values=pad_values,
             )
             if self.pad_before
             else self._data.aod_control
         )
 
     @cached_property
-    def rf(self) -> xr.DataArray:
+    def rf(self: Self) -> xr.DataArray:
         """Radiative forcing time series data."""
-        # self._data.initialise_data()
         pad_values = (
-            self._data.rf_control.data[:-1] if self.pad_before == "noise" else None
+            self._data.rf_control.data[:-1]
+            if self.pad_before == PaddingMethod.NOISE
+            else None
         )
         attrs = self._data.rf.attrs
         return (
@@ -1051,69 +1210,73 @@ class DeconvolveCESM(Deconvolve):
         ).assign_attrs(**attrs)
 
     @cached_property
-    def rf_control(self) -> xr.DataArray:
+    def rf_control(self: Self) -> xr.DataArray:
         """RF time series data."""
-        # self._data.initialise_data()
         pad_values = (
-            self._data.rf_control.data[:-1] if self.pad_before == "noise" else None
+            self._data.rf_control.data[:-1]
+            if self.pad_before == PaddingMethod.NOISE
+            else None
         )
         attrs = self._data.rf.attrs
         return (
             vdd.utils.pad_before_convolution(
-                self._data.rf_control * -1, pad_values=pad_values
+                self._data.rf_control * -1,
+                pad_values=pad_values,
             )
             if self.pad_before
             else self._data.rf_control * -1
         ).assign_attrs(**attrs)
 
     @cached_property
-    def temp(self) -> xr.DataArray:
+    def temp(self: Self) -> xr.DataArray:
         """Temperature time series data."""
-        # self._data.initialise_data()
         pad_values = (
             self._data.temperature_control.data[:-1]
-            if self.pad_before == "noise"
+            if self.pad_before == PaddingMethod.NOISE
             else None
         )
         attrs = self._data.temp.attrs
         return (
             vdd.utils.pad_before_convolution(
-                self._data.temp * -1, pad_values=pad_values
+                self._data.temp * -1,
+                pad_values=pad_values,
             )
             if self.pad_before
             else self._data.temp * -1
         ).assign_attrs(**attrs)
 
     @cached_property
-    def temp_control(self) -> xr.DataArray:
+    def temp_control(self: Self) -> xr.DataArray:
         """Temperature control time series data."""
-        # self._data.initialise_data()
         pad_values = (
             self._data.temperature_control.data[:-1]
-            if self.pad_before == "noise"
+            if self.pad_before == PaddingMethod.NOISE
             else None
         )
         attrs = self._data.temp.attrs
         return (
             vdd.utils.pad_before_convolution(
-                self._data.temperature_control * -1, pad_values=pad_values
+                self._data.temperature_control * -1,
+                pad_values=pad_values,
             )
             if self.pad_before
             else self._data.temperature_control * -1
         ).assign_attrs(**attrs)
 
     @cached_property
-    def _response_aod_so2_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_aod_so2_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the AOD signal with the SO2 signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.aod.data, self.so2.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.aod.data, self.so2.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_aod_so2(self) -> np.ndarray:
+    def response_aod_so2(self: Self) -> np.ndarray:
         """Deconvolve the AOD signal with the SO2 signal.
 
         Returns
@@ -1124,22 +1287,24 @@ class DeconvolveCESM(Deconvolve):
         return self._response_aod_so2_tup[0].flatten()
 
     @property
-    def _response_aod_so2_err(self) -> np.ndarray:
+    def _response_aod_so2_err(self: Self) -> np.ndarray:
         """Deconvolve the AOD signal with the SO2 signal."""
         return self._response_aod_so2_tup[1]
 
     @cached_property
-    def _response_rf_aod_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_rf_aod_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the RF signal with the AOD signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.rf.data, self.aod.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.rf.data, self.aod.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_rf_aod(self) -> np.ndarray:
+    def response_rf_aod(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the AOD signal.
 
         Returns
@@ -1150,22 +1315,24 @@ class DeconvolveCESM(Deconvolve):
         return self._response_rf_aod_tup[0].flatten()
 
     @property
-    def _response_rf_aod_err(self) -> np.ndarray:
+    def _response_rf_aod_err(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the AOD signal."""
         return self._response_rf_aod_tup[1]
 
     @cached_property
-    def _response_temp_aod_tup(self) -> tuple[np.ndarray, np.ndarray]:
+    def _response_temp_aod_tup(self: Self) -> tuple[np.ndarray, np.ndarray]:
         """Deconvolve the temperature signal with the AOD signal."""
         _ = self.tau
-        signal, err = self._deconv_method(self.temp.data, self.aod.data)
-        if self.normalise:
-            # signal = vdd.utils.normalise(signal)
-            signal = (signal - signal.mean()) / signal.std()
+        signal, err = self.deconvolve(self.temp.data, self.aod.data)
+        match self.normalise:
+            case Normalise.AMPLITUDE:
+                signal = vdd.utils.normalise(signal)
+            case Normalise.MEAN_STD:
+                signal = (signal - signal.mean()) / signal.std()
         return signal, err
 
     @property
-    def response_temp_aod(self) -> np.ndarray:
+    def response_temp_aod(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the AOD signal.
 
         Returns
@@ -1176,7 +1343,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_temp_aod_tup[0].flatten()
 
     @property
-    def _response_temp_aod_err(self) -> np.ndarray:
+    def _response_temp_aod_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the AOD signal."""
         return self._response_temp_aod_tup[1]
 
@@ -1188,62 +1355,36 @@ class DeconvolveOB16(Deconvolve):
     ----------
     data : volcano_base.load.OttoBliesner | Literal["h0", "h1"], optional
         The OB16 data class to use. If not given, the h1 (daily) data will be loaded.
-    normalise : bool, optional
+    normalise : Normalise, optional
         Whether to normalise the data, by default False.
-    length : int, optional
+    length : int | None, optional
         After 1850, the SO2 dataset mismatches with the simulation output. This
         parameter specifies how many items should be included in all the arrays. Default
-        is 0, which means all the data will be included.
-
-    Raises
-    ------
-    ValueError
-        If the data is invalid.
+        is 12001, which means data up to 1000 years will be used.
     """
 
     def __init__(
-        self,
+        self: Self,
         data: volcano_base.load.OttoBliesner | Literal["h0", "h1"] = "h1",
-        normalise: bool = False,
-        length: int = 12001,
+        normalise: Normalise = Normalise.NO,
+        length: int | None = None,
     ) -> None:
         super().__init__(normalise)
         match data:
             case "h0":
                 self.data = volcano_base.load.OttoBliesner(freq="h0", progress=True)
+                length = 12001 if length is None else length
             case "h1":
                 self.data = volcano_base.load.OttoBliesner(freq="h1", progress=True)
+                length = 365001 if length is None else length
             case volcano_base.load.OttoBliesner():
                 self.data = data
             case _:
-                raise ValueError(f"Invalid data: {data}")
-        self._start_pt = 0
-        self._end_pt: int | None = None
+                vdd.utils.never_called(data)
+        self.start_pt = 0
+        self.end_pt: int | None = None
         if length:
-            self._end_pt = length if (length - self._start_pt) % 2 else length + 1
-            # self.so2 = self._find_good_endpoints(self.so2)
-            # self.so2_decay = self._find_good_endpoints(self.so2_decay)
-            # self.rf = self._find_good_endpoints(self.rf)
-            # self.rf_control = self._find_good_endpoints(self.rf_control)
-            # self.temp = self._find_good_endpoints(self.temp)
-            # self.temp_control = self._find_good_endpoints(self.temp_control)
-            # print(len(self.so2))
-            # min_ = min(
-            #     len(self.so2.data),
-            #     len(self.so2_decay.data),
-            #     len(self.rf.data),
-            #     len(self.rf_control.data),
-            #     len(self.temp.data),
-            #     len(self.temp_control.data),
-            # )
-            # min_ = min_ if min_ % 2 else min_ + 1
-            # print(min_)
-            # self.so2 = self.so2[:min_]
-            # self.so2_decay = self.so2_decay[:min_]
-            # self.rf = self.rf[:min_]
-            # self.rf_control = self.rf_control[:min_]
-            # self.temp = self.temp[:min_]
-            # self.temp_control = self.temp_control[:min_]
+            self.end_pt = length if (length - self.start_pt) % 2 else length + 1
 
     @staticmethod
     def _find_good_endpoints(arr: xr.DataArray) -> xr.DataArray:
@@ -1258,7 +1399,19 @@ class DeconvolveOB16(Deconvolve):
                 break
         return arr[: len(arr) - i_]
 
-    def _update_if_normalise(self) -> None:
+    def _update_if_normalise(self: Self) -> None:
+        match self.normalise:
+            case Normalise.MEAN_STD:
+                self._normalise_mean_std()
+            case Normalise.AMPLITUDE:
+                self._normalise_amplitude()
+
+    def _normalise_amplitude(self: Self) -> None:
+        self.so2 = vdd.utils.normalise(self.so2)
+        self.rf = vdd.utils.normalise(self.rf)
+        self.temp = vdd.utils.normalise(self.temp)
+
+    def _normalise_mean_std(self: Self) -> None:
         self.so2 = (self.so2 - self.so2.mean()) / self.so2.std()
         self.so2_decay = (self.so2_decay - self.so2_decay.mean()) / self.so2_decay.std()
         self.rf = (self.rf - self.rf.mean()) / self.rf.std()
@@ -1269,25 +1422,22 @@ class DeconvolveOB16(Deconvolve):
         self.temp_control = (
             self.temp_control - self.temp_control.mean()
         ) / self.temp_control.std()
-        # self.so2 = vdd.utils.normalise(self.so2)
-        # self.rf = vdd.utils.normalise(self.rf)
-        # self.temp = vdd.utils.normalise(self.temp)
 
     @cached_property
-    def so2(self) -> xr.DataArray:
+    def so2(self: Self) -> xr.DataArray:
         """SO2 time series data."""
-        return self.data.aligned_arrays["so2-start"][self._start_pt : self._end_pt]
+        return self.data.aligned_arrays["so2-start"][self.start_pt : self.end_pt]
 
     @cached_property
-    def so2_decay(self) -> xr.DataArray:
+    def so2_decay(self: Self) -> xr.DataArray:
         """SO2 time series data."""
         return (
-            self.data.aligned_arrays["so2-decay-start"][self._start_pt : self._end_pt]
+            self.data.aligned_arrays["so2-decay-start"][self.start_pt : self.end_pt]
             / 510e3
         )
 
     @cached_property
-    def tau(self) -> np.ndarray:
+    def tau(self: Self) -> np.ndarray:
         """Time axis for the deconvolution."""
         tau = self.so2.time.data - (
             self.so2.time.data[len(self.so2.time.data) // 2]
@@ -1296,39 +1446,39 @@ class DeconvolveOB16(Deconvolve):
         return np.asarray(volcano_base.manipulate.dt2float(tau))
 
     @cached_property
-    def rf(self) -> xr.DataArray:
+    def rf(self: Self) -> xr.DataArray:
         """Radiative forcing time series data."""
-        return self.data.aligned_arrays["rf"][self._start_pt : self._end_pt]
+        return self.data.aligned_arrays["rf"][self.start_pt : self.end_pt]
 
     @cached_property
-    def rf_control(self) -> xr.DataArray:
+    def rf_control(self: Self) -> xr.DataArray:
         """RF time series data."""
-        return xr.align(self.data.rf_control, self.rf)[0][self._start_pt : self._end_pt]
+        return xr.align(self.data.rf_control, self.rf)[0][self.start_pt : self.end_pt]
 
     @cached_property
-    def temp(self) -> xr.DataArray:
+    def temp(self: Self) -> xr.DataArray:
         """Temperature time series data."""
-        return self.data.aligned_arrays["temperature"][self._start_pt : self._end_pt]
+        return self.data.aligned_arrays["temperature"][self.start_pt : self.end_pt]
 
     @cached_property
-    def temp_control(self) -> xr.DataArray:
+    def temp_control(self: Self) -> xr.DataArray:
         """Temperature time series data."""
         return xr.align(self.data.temperature_control, self.temp)[0][
-            self._start_pt : self._end_pt
+            self.start_pt : self.end_pt
         ]
 
 
 class CutOff:
     """Cut off the response functions of a deconvolution object."""
 
-    def __init__(self, dec: Deconvolve, arrays: T_RF | T_SO2 | RF_SO2) -> None:
+    def __init__(self: Self, dec: Deconvolve, arrays: T_RF | T_SO2 | RF_SO2) -> None:
         self.dec = dec
         self.ts_specifier: T_RF | T_SO2 | RF_SO2 = arrays
         self.cuts: dict[str, xr.Dataset] = {}
         self.ensembles: dict[str, xr.Dataset] = {}
 
     def dump_reconstructor(
-        self,
+        self: Self,
         cut: int,
         temp_so2: np.ndarray | None = None,
         temp_rf: np.ndarray | None = None,
@@ -1364,7 +1514,8 @@ class CutOff:
         }
         match temp_so2, temp_rf:
             case (None, None) | (np.ndarray(), np.ndarray()):
-                raise ValueError("Exactly one of temp_so2 or temp_rf must be given.")
+                msg = "Exactly one of temp_so2 or temp_rf must be given."
+                raise ValueError(msg)
             case np.ndarray(), None:
                 kwargs["response_temp_so2"] = temp_so2
                 kwargs["response_temp_rf"] = self.cuts[str(cut)].response.data
@@ -1372,36 +1523,35 @@ class CutOff:
                 kwargs["response_temp_so2"] = self.cuts[str(cut)].response.data
                 kwargs["response_temp_rf"] = temp_rf
             case _:
-                raise ValueError(
-                    f"I do not recognise the types of the response functions. Got: {temp_so2}, {temp_rf}"
-                )
+                raise ValueError
         return Reconstructor(**kwargs)
 
     @cached_property
-    def response(self) -> np.ndarray:
+    def response(self: Self) -> np.ndarray:
         """The response function in the convolution."""
         out = getattr(
-            self.dec, f"response_{self.ts_specifier[0]}_{self.ts_specifier[1]}"
+            self.dec,
+            f"response_{self.ts_specifier[0]}_{self.ts_specifier[1]}",
         )
         out[self.dec.tau <= 0] = 0
         return out
 
     @cached_property
-    def forcing(self) -> xr.DataArray:
+    def forcing(self: Self) -> xr.DataArray:
         """The forcing time series in the convolution."""
         return getattr(self.dec, self.ts_specifier[1])
 
     @cached_property
-    def output(self) -> xr.DataArray:
+    def output(self: Self) -> xr.DataArray:
         """The final output time series of the convolution."""
         return getattr(self.dec, self.ts_specifier[0])
 
     @cached_property
-    def control(self) -> xr.DataArray:
+    def control(self: Self) -> xr.DataArray:
         """The control time series in the convolution."""
         return getattr(self.dec, f"{self.ts_specifier[0]}_control")
 
-    def cut_off(self, cutoff: int | Iterable[int]) -> Self:
+    def cut_off(self: Self, cutoff: int | Iterable[int]) -> Self:
         """Cut off the response function at a given time lag."""
         match cutoff:
             case int():
@@ -1410,12 +1560,10 @@ class CutOff:
                 self._check_for_duplicates(cutoff)
                 for c in cutoff:
                     if not isinstance(c, int):
-                        raise ValueError(
-                            "cutoff must be an integer or a sequence of integers."
-                        )
+                        raise TypeError
                     self._single_cut_off(c)
             case _:
-                raise ValueError("cutoff must be an integer or a sequence of integers.")
+                raise TypeError
         return self
 
     @staticmethod
@@ -1426,7 +1574,7 @@ class CutOff:
         except ValueError:
             warnings.warn("There are duplicates in the cut-off sequence.", stacklevel=1)
 
-    def _single_cut_off(self, cutoff: int) -> None:
+    def _single_cut_off(self: Self, cutoff: int) -> None:
         if str(cutoff) in self.cuts:
             return
         r_cut = self.response.copy()
@@ -1443,10 +1591,11 @@ class CutOff:
         )
         self.cuts[str(cutoff)] = ds
 
-    def generate_ensembles(self, n: int) -> None:
+    def generate_ensembles(self: Self, n: int) -> None:
         """Generate an ensemble of response function estimates."""
         if not self.cuts:
-            raise ValueError("No cuts have been made.")
+            msg = "No cuts have been made."
+            raise ValueError(msg)
         for k, v in self.cuts.items():
             if k in self.ensembles:
                 continue
@@ -1455,12 +1604,11 @@ class CutOff:
                 temp_rec = v.temp_rec.copy()
                 temp_random = fppanalysis.signal_rand_phase(self.control.data)
                 temp_rec += temp_random
-                res_rec, err = self.dec._deconv_method(temp_rec, self.forcing.data)
+                res_rec, err = self.dec.deconvolve(temp_rec, self.forcing.data)
                 r_cut_rec = res_rec.flatten()
                 r_cut_rec[self.dec.tau <= 0] = 0
                 arrays[f"response_{i}"] = ("tau", r_cut_rec, {"label": f"response {i}"})
                 arrays[f"iters_{i}"] = ("iters", err.flatten(), {"label": f"err {i}"})
-                # arrays[f"temp_{i}"] = rec
             self.ensembles[k] = xr.Dataset(
                 arrays,
                 coords={
@@ -1474,13 +1622,15 @@ class CutOff:
 class ReconstructOB16:
     """Class that reconstructs the temperature of OB16 from CESM2 simulations."""
 
-    def __init__(self, *decs: Deconvolve, base_forcing: Literal["so2", "rf"]) -> None:
+    def __init__(
+        self: Self, *decs: Deconvolve, base_forcing: Literal["so2", "rf"]
+    ) -> None:
         self.ob16 = DeconvolveOB16(data="h0")
         self.ob16.name = "OB16 month"
         self.decs = decs
         self.base = base_forcing
 
-    def plot_temperature(self) -> tuple[mpl.figure.Figure, mpl.figure.Figure]:
+    def plot_temperature(self: Self) -> tuple[mpl.figure.Figure, mpl.figure.Figure]:
         """Plot the reconstructed temperatures.
 
         Returns
@@ -1489,8 +1639,12 @@ class ReconstructOB16:
             The full and zoomed in figures.
         """
         xlim = (
-            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+            vdd.utils.d2n(
+                datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC),
+            ),
+            vdd.utils.d2n(
+                datetime.datetime(1350, 1, 1, 0, 0, tzinfo=datetime.UTC),
+            ),
         )
         all_f = plt.figure()
         all_a = all_f.gca()
@@ -1503,14 +1657,13 @@ class ReconstructOB16:
         for dec in self.decs:
             res = self._plot_temperature_single(dec, res, (all_a, all_zoom_a))
         table = Table(
-            title="Difference between reconstructed temperature from OB16 and other simulations"
+            title="Difference between reconstructed temperature from OB16 and other simulations",
         )
         table.add_column("Simulation name", justify="left", style="cyan", no_wrap=True)
         table.add_column("Raw response", justify="center", style="magenta")
         table.add_column("Scaled response", justify="center", style="magenta")
         for r_ in res:
             table.add_row(*r_)
-        console = Console()
         console.print(table)
         all_a.legend()
         # all_f.savefig(_SAVE_DIR / "reconstruct_from_all.jpg")
@@ -1519,15 +1672,19 @@ class ReconstructOB16:
         return all_f, all_zoom_f
 
     def _plot_temperature_single(
-        self,
+        self: Self,
         dec: Deconvolve,
         res: list[tuple[str, str, str]],
         axs: tuple[mpl.axes.Axes, mpl.axes.Axes],
     ) -> list[tuple[str, str, str]]:
         """Plot the reconstructed temperature for a single simulation."""
         xlim = (
-            vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0)),
-            vdd.utils.d2n(datetime.datetime(1350, 1, 1, 0, 0)),
+            vdd.utils.d2n(
+                datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC),
+            ),
+            vdd.utils.d2n(
+                datetime.datetime(1350, 1, 1, 0, 0, tzinfo=datetime.UTC),
+            ),
         )
         # fn = ns(vdd.utils.clean_filename(dec.name))
         inv_f = plt.figure()
@@ -1564,17 +1721,18 @@ class TSComparison:
     """Easily compare the statistics of two time series."""
 
     def __init__(
-        self,
+        self: Self,
         original: xr.DataArray,
         reconstructed: np.ndarray,
         peaks: np.ndarray,
     ) -> None:
         self.orig = original
         self.rec = reconstructed
-        assert original.data.shape == reconstructed.shape
+        if original.data.shape != reconstructed.shape:
+            raise EvenLengthError
         self.peaks = peaks
 
-    def _find_peaks(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _find_peaks(self: Self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute the peaks of the time series."""
         _idx = np.argwhere(self.peaks > 0)
         peak_times = self.orig.time.data[_idx].flatten()
@@ -1583,12 +1741,12 @@ class TSComparison:
         return peak_times, peaks_ts1, peaks_ts2
 
     @cached_property
-    def _peaks_tup(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _peaks_tup(self: Self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute the peaks of the residual of the SO2."""
         return self._find_peaks()
 
     @property
-    def peaks_orig(self) -> np.ndarray:
+    def peaks_orig(self: Self) -> np.ndarray:
         """Peaks of the temperature from SO2.
 
         Returns
@@ -1599,7 +1757,7 @@ class TSComparison:
         return self._peaks_tup[1]
 
     @property
-    def peaks_rec(self) -> np.ndarray:
+    def peaks_rec(self: Self) -> np.ndarray:
         """Peaks of the temperature from radiative forcing.
 
         Returns
@@ -1610,7 +1768,7 @@ class TSComparison:
         return self._peaks_tup[2]
 
     @cached_property
-    def residual(self) -> np.ndarray:
+    def residual(self: Self) -> np.ndarray:
         """Compute the residual of the SO2.
 
         Returns
@@ -1620,7 +1778,7 @@ class TSComparison:
         """
         return self.orig.data - self.rec
 
-    def correlation(self) -> None:
+    def correlation(self: Self) -> None:
         """Compute the correlation between the residuals and temperature."""
         corr_time, corr = fppanalysis.corr_fun(self.residual, self.orig.data, 1 / 12)
         # corr_ts2_time, corr_ts2 = fppanalysis.corr_fun(
@@ -1653,13 +1811,16 @@ class TSComparison:
         signal = (signal - signal.mean()) / signal.std()
         sample_frequency = 12
         frequency, power = ssi.welch(
-            signal, sample_frequency, nperseg=2**11, return_onesided=False
+            signal,
+            sample_frequency,
+            nperseg=2**11,
+            return_onesided=False,
         )
         frequency_plus = frequency[frequency > 0]
         power_plus = power[frequency > 0]
         return np.asarray(frequency_plus[1:]), np.asarray(power_plus[1:])
 
-    def spectrum(self) -> None:
+    def spectrum(self: Self) -> None:
         """Compare the spectrum of the residuals and the control temperature."""
         f_res, p_res = self._spectrum_1d(self.residual)
         f_orig, p_orig = self._spectrum_1d(self.orig.data)
@@ -1682,14 +1843,14 @@ class TSComparison:
         # Specify the value to test for symmetry
         test_value = 0
         # Perform a one-sample t-test to check for symmetry around the test value
-        result = scipy.stats.ttest_1samp(basis, popmean=test_value)
+        result = sp.stats.ttest_1samp(basis, popmean=test_value)
         t_statistic, p_value = result.statistic, result.pvalue
 
-        def info(name, p_value) -> None:
+        def info(name: str, p_value: float) -> None:
             rprint(
                 f"[blue][bold]{name}[/bold]: I can with [/blue][red]"
                 f"{(1 - p_value) * 100:.4f}% confidence[/red][blue] say that the "
-                f"distribution does not have a mean of {test_value}[/blue]"
+                f"distribution does not have a mean of {test_value}[/blue]",
             )
 
         # Check if the p-value is less than a significance level (e.g., 0.05) to
@@ -1705,15 +1866,17 @@ class TSComparison:
         info("Reconstructed", p_value)
         return p_value
 
-    def peak_difference_analysis(self) -> None:  # noqa:PLR0914
+    def peak_difference_analysis(self: Self) -> None:
         """Plot the difference between the reconstructed and the original peaks."""
         basis = self.peaks_orig.data - self.peaks_rec
         ttest_res = self._peak_difference_ttest(basis)
         pdf, cdf, bin_centers = fppanalysis.distribution(basis, 30, ccdf=False)
-        stats = scipy.stats.describe(basis)
-        fit = scipy.stats.norm.fit(basis)
-        dist = scipy.stats.skewnorm(
-            a=stats.skewness, loc=stats.mean, scale=np.sqrt(stats.variance)
+        stats = sp.stats.describe(basis)
+        fit = sp.stats.norm.fit(basis)
+        dist = sp.stats.skewnorm(
+            a=stats.skewness,
+            loc=stats.mean,
+            scale=np.sqrt(stats.variance),
         )
         self._peak_difference_plot(
             (bin_centers, pdf),
@@ -1738,7 +1901,7 @@ class TSComparison:
         norm_fit, skewnorm_fit = fits
         prop_cycle = plt.rcParams["axes.prop_cycle"]
         colors = prop_cycle.by_key()["color"]
-        norm_so2 = getattr(scipy.stats.norm, dist)(dist_data[0], *norm_fit)
+        norm_so2 = getattr(sp.stats.norm, dist)(dist_data[0], *norm_fit)
         skewnorm_so2 = getattr(skewnorm_fit, dist)(dist_data[0])
         plt.figure()
         ax = plt.gca()
@@ -1752,7 +1915,11 @@ class TSComparison:
         bar_hand, bar_lab = ax.get_legend_handles_labels()
         # Norm
         (norm,) = ax.plot(
-            dist_data[0], norm_so2, c=colors[0], label="_Norm SO2", alpha=0.5
+            dist_data[0],
+            norm_so2,
+            c=colors[0],
+            label="_Norm SO2",
+            alpha=0.5,
         )
         # Skewnorm
         (skewnorm,) = plt.plot(
@@ -1766,10 +1933,13 @@ class TSComparison:
         bar_legend = ax.legend(bar_hand, bar_lab, loc="upper left", framealpha=0.5)
         norm_loc = "center left" if dist == "cdf" else "upper right"
         norm_legend = ax.legend(
-            [norm, skewnorm], ["Norm", "Skewnorm"], loc=norm_loc, framealpha=0.5
+            [norm, skewnorm],
+            ["Norm", "Skewnorm"],
+            loc=norm_loc,
+            framealpha=0.5,
         )
-        norm_legend.legend_handles[0].set_color("black")  # type: ignore
-        norm_legend.legend_handles[1].set_color("black")  # type: ignore
+        norm_legend.legend_handles[0].set_color("black")  # type: ignore[union-attr]
+        norm_legend.legend_handles[1].set_color("black")  # type: ignore[union-attr]
         ax.add_artist(bar_legend)
         ax.add_artist(norm_legend)
         # Make the plot symmetric around 0
@@ -1779,7 +1949,7 @@ class TSComparison:
         plt.xlabel("Difference between the peaks")
         # plt.savefig(_SAVE_DIR / f"{self.sim_name}-peak-difference-{dist}.png")
 
-    def plot_reconstructions(self, fig: mpl.figure.Figure | None = None) -> None:
+    def plot_reconstructions(self: Self, fig: mpl.figure.Figure | None = None) -> None:
         """Plot the reconstruction of the data."""
         if fig is None:
             fig = plt.figure()

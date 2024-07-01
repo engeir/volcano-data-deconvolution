@@ -4,20 +4,23 @@ We also check how well we are able to recreate the double waveform time series f
 response functions of other simulations.
 """
 
-from typing import Literal
+from typing import Literal, Self
 
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
 import xarray as xr
+from numpy.typing import NDArray
 
 import vdd.load
 import vdd.utils
 
-plt.style.use([
-    "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
-    "vdd.extra",
-])
+plt.style.use(
+    [
+        "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
+        "vdd.extra",
+    ],
+)
 _COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "waveform"
@@ -27,15 +30,15 @@ if not _SAVE_DIR.exists():
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
-use_padding: vdd.load.T_Padding = "noise"
-dec_cesm_p4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-4sep"))
-dec_cesm_p2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="tt-2sep"))
-dec_cesm_m4 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-4sep"))
-dec_cesm_m2 = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-2sep"))
-dec_cesm_e = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="size5000"))
-dec_cesm_s = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="strong"))
-dec_cesm_p = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium-plus"))
-dec_cesm_m = DecCESM(pad_before=use_padding, cesm=DataCESM(strength="medium"))
+padding = vdd.load.PaddingMethod.NOISE
+dec_cesm_p4 = DecCESM(pad_before=padding, cesm=DataCESM(strength="tt-4sep"))
+dec_cesm_p2 = DecCESM(pad_before=padding, cesm=DataCESM(strength="tt-2sep"))
+dec_cesm_m4 = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium-4sep"))
+dec_cesm_m2 = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium-2sep"))
+dec_cesm_e = DecCESM(pad_before=padding, cesm=DataCESM(strength="size5000"))
+dec_cesm_s = DecCESM(pad_before=padding, cesm=DataCESM(strength="strong"))
+dec_cesm_p = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium-plus"))
+dec_cesm_m = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium"))
 
 
 def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
@@ -47,8 +50,8 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
     temp_f = plt.figure()
     temp_a = temp_f.gca()
     for dec in decs:
-        # Check how well we are able to recreate the double waveform time series from the
-        # response functions of other simulations.
+        # Check how well we are able to recreate the double waveform time series from
+        # the response functions of other simulations.
         tau = dec.tau
         name = "2sep" if "2sep" in dec.name else "4sep"
         aod_a.plot(tau, dec.response_aod_so2, label=name)
@@ -73,7 +76,9 @@ def check_waveform_responses(*decs: vdd.load.DeconvolveCESM) -> None:
     plt.show()
 
 
-def curve_fit_aod(aod, alpha, beta):
+def curve_fit_aod(
+    aod: NDArray[np.float64], alpha: float, beta: float
+) -> NDArray[np.float64]:
     """Fit values using AOD as input."""
     return alpha * np.log(beta * aod + 1)
 
@@ -82,13 +87,13 @@ class CheckRecreatedWaveforms:
     """Check how well we are able to recreate the double waveform time series."""
 
     def __init__(
-        self,
+        self: Self,
         /,
         *decs: vdd.load.DeconvolveCESM,
         single_waveform: vdd.load.DeconvolveCESM | None = None,
         scale_by_aod: Literal["log", "log-inside", "root"] | bool = False,
         keys: dict[str, tuple[int, int]] | None = None,
-    ):
+    ) -> None:
         self.single_waveform = (
             dec_cesm_p if single_waveform is None else single_waveform
         )
@@ -98,22 +103,25 @@ class CheckRecreatedWaveforms:
             {"aod": (0, 1), "rf": (2, 3), "temp": (4, 5)} if keys is None else keys
         )
         self.figs, self.axs = vdd.utils.figure_multiple_rows_columns(
-            len(self.keys), 2, share_axes="x", columns_first=True
+            len(self.keys),
+            2,
+            share_axes="x",
+            columns_first=True,
         )
 
-    def run_loop(self) -> None:
+    def run_loop(self: Self) -> None:
         """Run the main loop."""
         max_len = 3
-        for i, dec in enumerate(self.decs):
+        for _, dec in enumerate(self.decs):
             # so2_new = self._get_so2_new(dec)
             if len(self.keys) == max_len:
-                dec._data.initialise_data()
+                dec._data.initialise_data()  # noqa: SLF001
             so2 = dec.so2
             so2_new = so2.copy()
             for attr in list(self.keys.keys()):
-                self._run_attr_loop(dec, attr, so2_new, i)
+                self._run_attr_loop(dec, attr, so2_new)
         [ax.set_xlabel("Time after first eruption [yr]") for ax in self.axs]
-        if use_padding:
+        if padding:
             [ax.set_xlim((-1, 21)) for ax in self.axs]
         [ax.legend(framealpha=0.5) for ax in self.axs]
         if len(self.keys) == max_len:
@@ -131,7 +139,7 @@ class CheckRecreatedWaveforms:
         self.figs.savefig(_SAVE_DIR / f"responses_combined_{base}{corrected}")
         plt.show()
 
-    def _get_so2_new(self, dec: vdd.load.DeconvolveCESM) -> xr.DataArray:
+    def _get_so2_new(self: Self, dec: vdd.load.DeconvolveCESM) -> xr.DataArray:
         so2 = dec.so2
         so2_new = so2.copy()
         idx = so2_new > 0
@@ -158,7 +166,10 @@ class CheckRecreatedWaveforms:
         return so2_new
 
     def _prepare_plot_data(
-        self, dec: vdd.load.DeconvolveCESM, attr: str, so2_new: xr.DataArray
+        self: Self,
+        dec: vdd.load.DeconvolveCESM,
+        attr: str,
+        so2_new: xr.DataArray,
     ) -> tuple[
         tuple[xr.DataArray, np.ndarray, np.ndarray, int],
         tuple[str, str, str],
@@ -192,7 +203,10 @@ class CheckRecreatedWaveforms:
         return (arr, rec_same, rec_new, sign), (base, base_long, sep), (idx, c_idx)
 
     def _run_attr_loop(
-        self, dec: vdd.load.DeconvolveCESM, attr: str, so2_new: xr.DataArray, i: int
+        self: Self,
+        dec: vdd.load.DeconvolveCESM,
+        attr: str,
+        so2_new: xr.DataArray,
     ) -> None:
         arrs, names, idx = self._prepare_plot_data(dec, attr, so2_new)
         *_, sign = arrs
@@ -225,19 +239,15 @@ class CheckRecreatedWaveforms:
 
 def main() -> None:
     """Run the main script."""
-    # check_waveform_responses(dec_cesm_2sep, dec_cesm_4sep)
-    # CheckRecreatedWaveforms(dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log").run_loop()
-    # CheckRecreatedWaveforms(
-    #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="log-inside"
-    # ).run_loop()
-    # CheckRecreatedWaveforms(
-    #     dec_cesm_2sep, dec_cesm_4sep, scale_by_aod="root"
-    # ).run_loop()
     CheckRecreatedWaveforms(
-        dec_cesm_p2, dec_cesm_p4, single_waveform=dec_cesm_p
+        dec_cesm_p2,
+        dec_cesm_p4,
+        single_waveform=dec_cesm_p,
     ).run_loop()
     CheckRecreatedWaveforms(
-        dec_cesm_m2, dec_cesm_m4, single_waveform=dec_cesm_m
+        dec_cesm_m2,
+        dec_cesm_m4,
+        single_waveform=dec_cesm_m,
     ).run_loop()
 
 

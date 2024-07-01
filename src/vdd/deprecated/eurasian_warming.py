@@ -26,15 +26,17 @@ warnings.warn(
 
 def _main() -> None:
     d_ = vdd.load.CESMData(strength="size5000", dims=["lat", "lon"])
-    d_.temp.plot()  # type: ignore
+    d_.temp.plot()  # type: ignore[call-arg]
     plt.figure()
     d = vdd.load.CESMData(strength="medium", dims=[])
     # time_sel = np.array([11, 12, 13, 23, 24, 25]) + 12 * 5
     p1 = volcano_base.manipulate.mean_flatten(
-        d.temp.isel(time=np.array([11, 12, 13]) - 6), dims=["time"]
+        d.temp.isel(time=np.array([11, 12, 13]) - 6),
+        dims=["time"],
     )
     p2 = volcano_base.manipulate.mean_flatten(
-        d.temp.isel(time=np.array([23, 24, 25]) - 6), dims=["time"]
+        d.temp.isel(time=np.array([23, 24, 25]) - 6),
+        dims=["time"],
     )
     prat = p1 - p2
     p = prat.plot(

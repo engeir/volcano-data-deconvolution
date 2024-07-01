@@ -24,14 +24,14 @@ repos:
         stages: [commit]
         entry: check-added-large-files
         language: system
-      - id: ruff_format
-        name: ruff_format
+      - id: rye_format
+        name: Rye format
         stages: [commit]
         language: system
         entry: rye fmt
         types: [python]
-      - id: ruff
-        name: ruff_check
+      - id: rye_lint
+        name: Rye lint
         stages: [commit]
         language: system
         entry: rye lint
@@ -67,5 +67,12 @@ repos:
         stages: [commit]
         language: system
         entry: rye run pytest tests
+        types: [python]
+        pass_filenames: false
+      - id: stubgen
+        name: Generate stubfiles
+        stages: [commit]
+        language: system
+        entry: stubgen src/vdd/ -o src/
         types: [python]
         pass_filenames: false

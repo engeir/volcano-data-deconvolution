@@ -6,22 +6,24 @@ import matplotlib.pyplot as plt
 import volcano_base
 from matplotlib.axes import Axes
 
-plt.style.use([
-    "vdd.extra",
-    "vdd.jgr",
-    {
-        "text.usetex": True,
-        "font.size": 8,
-        "axes.labelsize": 8,
-        "legend.fontsize": 8,
-        "figure.dpi": 300,
-        "figure.figsize": (3.37, 2.08277),
-        "figure.subplot.left": 0.30,
-        "figure.subplot.right": 0.9,
-        "figure.subplot.bottom": 0.05,
-        "figure.subplot.top": 0.8,
-    },
-])
+plt.style.use(
+    [
+        "vdd.extra",
+        "vdd.jgr",
+        {
+            "text.usetex": True,
+            "font.size": 8,
+            "axes.labelsize": 8,
+            "legend.fontsize": 8,
+            "figure.dpi": 300,
+            "figure.figsize": (3.37, 2.08277),
+            "figure.subplot.left": 0.30,
+            "figure.subplot.right": 0.9,
+            "figure.subplot.bottom": 0.05,
+            "figure.subplot.top": 0.8,
+        },
+    ]
+)
 
 _SAVE_DIR = volcano_base.config.SAVE_PATH
 if not _SAVE_DIR.exists():
