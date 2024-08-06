@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/742292778.svg)](https://zenodo.org/badge/latestdoi/742292778)
 
-<sup>Latest version: v1.1.0</sup> <!-- x-release-please-version -->
+<sup>Latest version: v1.2.0</sup> <!-- x-release-please-version -->
 
 > [!WARNING]
 >
@@ -38,7 +38,7 @@ running
 
 ```console
 $ rye run vdd
-Hello, this is vdd at version v1.1.0!
+Hello, this is vdd at version v1.2.0!
 ```
 
 <!-- x-release-please-end -->
