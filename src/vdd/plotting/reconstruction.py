@@ -48,6 +48,7 @@ plt.style.use(
     [
         "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
         "vdd.extra",
+        "vdd.jgr",
     ],
 )
 
@@ -555,7 +556,7 @@ class PlotReconstruction:
         )
         return axpdf, axcdf
 
-    def _peak_difference_plot(  # noqa: PLR0913
+    def _peak_difference_plot(
         self: Self,
         ax: mpl.axes.Axes,
         fpp_out: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],

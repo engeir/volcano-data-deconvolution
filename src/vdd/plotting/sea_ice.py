@@ -13,21 +13,48 @@ plt.style.use(
     [
         "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
         "vdd.extra",
+        "vdd.jgr",
     ],
 )
+
+
+_COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+C = {
+    "control": "grey",
+    "medium": _COLORS[0],
+    "medium-2sep": _COLORS[0],
+    "medium-4sep": _COLORS[0],
+    "medium-plus": _COLORS[1],
+    "tt-2sep": _COLORS[1],
+    "tt-4sep": _COLORS[1],
+    "strong": _COLORS[2],
+    "size5000": _COLORS[3],
+}
+LS = {
+    "control": "-",
+    "medium": "-",
+    "medium-2sep": "dotted",
+    "medium-4sep": "--",
+    "medium-plus": "-",
+    "tt-2sep": "dotted",
+    "tt-4sep": "--",
+    "strong": "-",
+    "size5000": "-",
+}
 
 
 def plot_sea_ice() -> None:
     """Plot sea ice data."""
     sims = (
+        "control",
         "medium",
-        "medium-plus",
-        "strong",
-        "size5000",
         "medium-2sep",
         "medium-4sep",
+        "medium-plus",
         "tt-2sep",
         "tt-4sep",
+        "strong",
+        "size5000",
     )
     new: volcano_base.load.FindFiles = (
         volcano_base.load.FindFiles()
@@ -37,8 +64,9 @@ def plot_sea_ice() -> None:
     plt.figure()
     for new_ in sims:
         arrs_: volcano_base.load.FindFiles = new.copy().keep(new_)
-        large_ens = 4
-        arrs_.remove("ens1" if len(arrs_) >= large_ens else "ens0")
+        if len(arrs_) > 1:
+            large_ens = 4
+            arrs_.remove("ens1" if len(arrs_) >= large_ens else "ens0")
         print(arrs_)
         arr_ = arrs_.load()
         arr_ = volcano_base.manipulate.shift_arrays(arr_, daily=False)
@@ -51,10 +79,29 @@ def plot_sea_ice() -> None:
             },
         )
         lab = f"$I_{{\\text{{{ns(new_).upper()}}}}}$"
-        arr.plot(label=lab)
+        if "sep" in lab.lower():
+            lab = f"_{lab}"
+        if new_ == "control":
+            plt.fill_between(
+                arr.time.data,
+                arr.mean() - arr.std(),
+                arr.mean() + arr.std(),
+                color=C[new_],
+                label=lab,
+            )
+            plt.fill_between(
+                arr.time.data,
+                arr.mean() - 2 * arr.std(),
+                arr.mean() + 2 * arr.std(),
+                color=C[new_],
+                label="_hidden",
+                alpha=0.6,
+            )
+        else:
+            arr.plot(label=lab, c=C[new_], ls=LS[new_])
     plt.xlabel("Time after first eruption [yr]")
     plt.ylabel("Sea Ice Fraction [1]")
-    plt.legend()
+    plt.legend(framealpha=0.4, loc="upper right")
     plt.savefig(_SAVE_DIR / "sea-ice.pdf")
     plt.show()
 

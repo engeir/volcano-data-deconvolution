@@ -68,15 +68,15 @@ def _place_eruption(
 
 
 def _create_all_eruptions(ax: Axes) -> None:
-    _define_eruption(2 / 12, "1850-02", ax)
-    _define_eruption(5 / 12, "1850-05", ax)
-    _define_eruption(8 / 12, "1850-08", ax)
-    _define_eruption(11 / 12, "1850-11", ax)
-    _define_eruption(1 + 2 / 12, "1851-02", ax)
-    _define_eruption(2 + 2 / 12, "1852-02", ax)
-    _define_eruption(2 + 8 / 12, "1852-08", ax)
-    _define_eruption(4 + 2 / 12, "1854-02", ax)
-    _define_eruption(4 + 8 / 12, "1854-08", ax)
+    _define_eruption(2 / 12, "0-02", ax)
+    _define_eruption(5 / 12, "0-05", ax)
+    _define_eruption(8 / 12, "0-08", ax)
+    _define_eruption(11 / 12, "0-11", ax)
+    _define_eruption(1 + 2 / 12, "1-02", ax)
+    _define_eruption(2 + 2 / 12, "2-02", ax)
+    _define_eruption(2 + 8 / 12, "2-08", ax)
+    _define_eruption(4 + 2 / 12, "4-02", ax)
+    _define_eruption(4 + 8 / 12, "4-08", ax)
 
 
 def gantt() -> None:
@@ -105,8 +105,8 @@ def gantt() -> None:
         head_length=0.1,
         lw=0.5,
     )
-    ax.text(_SIM_START - 0.1, -2, "1850", ha="right", va="center")
-    ax.text(_SIM_END + 0.3, -2, "1871", ha="left", va="center")
+    ax.text(_SIM_START - 0.1, -2, "0", ha="right", va="center")
+    ax.text(_SIM_END + 0.3, -2, "21", ha="left", va="center")
     ax.vlines(_SIM_START, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
     ax.vlines(_SIM_END + 0.2, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
     _create_all_eruptions(ax)

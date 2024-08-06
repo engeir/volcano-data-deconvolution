@@ -19,6 +19,7 @@ plt.style.use(
     [
         "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
         "vdd.extra",
+        "vdd.jgr",
     ],
 )
 _COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -123,17 +124,17 @@ class CheckRecreatedWaveforms:
         [ax.set_xlabel("Time after first eruption [yr]") for ax in self.axs]
         if padding:
             [ax.set_xlim((-1, 21)) for ax in self.axs]
-        [ax.legend(framealpha=0.5) for ax in self.axs]
+        [ax.legend(framealpha=0.5, numpoints=1) for ax in self.axs]
         if len(self.keys) == max_len:
             [
-                self.axs[i].set_ylabel("Aerosol optical depth [1]")
+                self.axs[i].set_ylabel("Aerosol optical \ndepth [1]")
                 for i in self.keys["aod"]
             ]
             [
-                self.axs[i].set_ylabel("Radiative forcing [W/m$^2$]")
+                self.axs[i].set_ylabel("Radiative \nforcing [W/m$^2$]")
                 for i in self.keys["rf"]
             ]
-        [self.axs[i].set_ylabel("Temperature anomaly [K]") for i in self.keys["temp"]]
+        [self.axs[i].set_ylabel("Temperature \nanomaly [K]") for i in self.keys["temp"]]
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
         base = "small" if "medium" in self.decs[0].name else "int"
         self.figs.savefig(_SAVE_DIR / f"responses_combined_{base}{corrected}")
@@ -197,6 +198,15 @@ class CheckRecreatedWaveforms:
         else:
             dec_resp = getattr(dec, f"response_{attr}_so2")
             resp_arr = getattr(self.single_waveform, f"response_{attr}_so2")
+        print(dec.name, attr, "*" * 50)
+        print(dec.name)
+        print(getattr(dec, f"response_{attr}_so2_err")[-1])
+        print(self.single_waveform.name)
+        print(getattr(self.single_waveform, f"response_{attr}_so2_err")[-1])
+        # tmpfig = plt.figure()
+        # tmpax = tmpfig.gca()
+        # tmpax.semilogy(getattr(dec, f"response_{attr}_so2_err"))
+        # tmpax.semilogy(getattr(self.single_waveform, f"response_{attr}_so2_err"))
         rec_same = np.convolve(dec_resp, so2, "same")
         rec_new = np.convolve(resp_arr, so2_new, "same")
         sign = 1 if attr == "aod" else -1

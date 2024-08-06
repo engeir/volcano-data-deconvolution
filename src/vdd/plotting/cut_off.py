@@ -21,6 +21,7 @@ plt.style.use(
     [
         "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
         "vdd.extra",
+        "vdd.jgr",
     ],
 )
 _SAVE_DIR = volcano_base.config.SAVE_PATH / "cut_off"
@@ -90,7 +91,7 @@ class PlotCutOff:
             percs_np = np.asarray(percentiles)
             resp_a = plastik.percentiles(
                 co.dec.tau,
-                percs_np,
+                -1 * percs_np,
                 plot_median=False,
                 ax=resp_a,
                 n=1,
@@ -100,13 +101,13 @@ class PlotCutOff:
             )
             resp_a.plot(
                 co.dec.tau,
-                co.response,
+                -1 * co.response,
                 c=colors[0],
                 label=f"$\\varphi_T^{{\\text{{{name}}}}}$",
             )
             resp_a.plot(
                 v.tau,
-                v.response,
+                -1 * v.response,
                 c=colors[2],
                 label=f"$\\varphi_{{T,{int(k) // 12}}}^{{\\text{{{name}}}}}$",
             )
@@ -130,9 +131,13 @@ class PlotCutOff:
             )
             resp_a.set_xlabel("Time lag [yr]")
             resp_a.set_ylabel("$\\varphi_T$")
-            ymax = co.response.max()
-            resp_a.set_ylim((ymax * (-0.10), ymax * 1.10))
-            resp_a.legend(loc="upper right", framealpha=0.9)
+            ymax = max(-1 * co.response, key=abs)
+            match ymax:
+                case val if val > 0:
+                    resp_a.set_ylim((val * (-0.10), val * 1.10))
+                case val if val < 0:
+                    resp_a.set_ylim((val * (1.10), val * (-0.10)))
+            resp_a.legend(loc="lower right", framealpha=0.9)
             xlab = (
                 "Time [yr]"
                 if "OB16" in co.dec.name

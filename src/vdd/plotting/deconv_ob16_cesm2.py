@@ -22,6 +22,7 @@ plt.style.use(
     [
         "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
         "vdd.extra",
+        "vdd.jgr",
         {"text.latex.preamble": r"\usepackage{amsmath,siunitx}"},
     ],
 )
@@ -67,7 +68,7 @@ all_decs = (
 if _USE_NEW_DECONV:
     for dec in all_decs:
         # NOTE: The OB16 time series takes a while to deconvolve with this method.
-        # (10-20 minutes.) We skip it be default.
+        # (10-20 minutes.) We skip it by default.
         if dec.name == "OB16":
             continue
         dec.change_deconvolution_method(_new_deconv)
@@ -226,13 +227,15 @@ class PlotResponseFunctions:
                 i_ = i
                 self._grayscale_plot(ax, res_name, i_)
 
-    def _grayscale_plot(self: Self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:
+    def _grayscale_plot(self: Self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:  # noqa: C901
         for dec in self.decs:
             name = ns(dec.name)
             clr = "r"
             name = name.replace("CESM2 ", "").upper()
-            response = getattr(dec, f"response_{res_name}_so2")
-            scale = np.nanmax(response)
+            response = -1 * getattr(dec, f"response_{res_name}_so2")
+            # Effectively a min-max feature scaling
+            # https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min-max_normalization)
+            scale = max(response, key=abs)
             arr = response / scale
             lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
             kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}

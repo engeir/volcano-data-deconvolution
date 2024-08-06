@@ -15,6 +15,10 @@ import fppanalysis
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import rich.console
+import rich.live
+import rich.panel
+import rich.progress
 import scipy as sp
 import scipy.signal as ssi
 import volcano_base
@@ -41,6 +45,7 @@ type T_Strengths = Literal[  # type: ignore[valid-type]
     "tt-2sep",
     "tt-4sep",
 ]
+
 
 console = Console()
 
@@ -729,13 +734,21 @@ class EvenLengthError(Exception):
 class Deconvolve(metaclass=_PostInitCaller):
     """Class for deconvolving data.
 
+    Parameters
+    ----------
+    normalise : Normalise
+        A Normalise enum specifying how normalisation should be done.
+
     Attributes
     ----------
     name : str
         The name of the class.
+    progress : bool
+        Show progress bars.
     """
 
     name: str = "Deconvolve"
+    progress: bool = True
 
     def __init__(self: Self, normalise: Normalise = Normalise.NO) -> None:
         def _deconv(
@@ -745,15 +758,24 @@ class Deconvolve(metaclass=_PostInitCaller):
             if not len(signal) % 2 or not len(forcing) % 2:
                 raise EvenLengthError
             guess = np.heaviside(np.arange(len(signal)) - len(signal) // 2, 1)
-            with (
-                console.status("[bold yellow]Deconvolving ...", spinner="point"),
-                contextlib.redirect_stdout(None),
-            ):
+            n_iters = 2000
+            if self.progress:
+                with (
+                    console.status("[bold yellow]Deconvolving ...", spinner="point"),
+                    contextlib.redirect_stdout(None),
+                ):
+                    out, err = fppanalysis.RL_gauss_deconvolve(
+                        signal,
+                        forcing,
+                        initial_guess=guess,
+                        iteration_list=n_iters,
+                    )
+            else:
                 out, err = fppanalysis.RL_gauss_deconvolve(
                     signal,
                     forcing,
                     initial_guess=guess,
-                    iteration_list=1000,
+                    iteration_list=n_iters,
                 )
             return out, err
 
@@ -904,7 +926,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_rf_so2_tup[0].flatten()
 
     @property
-    def _response_rf_so2_err(self: Self) -> np.ndarray:
+    def response_rf_so2_err(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 signal."""
         return self._response_rf_so2_tup[1]
 
@@ -932,7 +954,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_so2_tup[0].flatten()
 
     @property
-    def _response_temp_so2_err(self: Self) -> np.ndarray:
+    def response_temp_so2_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 signal."""
         return self._response_temp_so2_tup[1]
 
@@ -960,7 +982,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_rf_so2_decay_tup[0].flatten()
 
     @property
-    def _response_rf_so2_decay_err(self: Self) -> np.ndarray:
+    def response_rf_so2_decay_err(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the SO2 decay signal."""
         return self._response_rf_so2_decay_tup[1]
 
@@ -988,7 +1010,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_so2_decay_tup[0].flatten()
 
     @property
-    def _response_temp_so2_decay_err(self: Self) -> np.ndarray:
+    def response_temp_so2_decay_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the SO2 decay signal."""
         return self._response_temp_so2_decay_tup[1]
 
@@ -1016,7 +1038,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         return self._response_temp_rf_tup[0].flatten()
 
     @property
-    def _response_temp_rf_err(self: Self) -> np.ndarray:
+    def response_temp_rf_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the RF signal."""
         return self._response_temp_rf_tup[1]
 
@@ -1029,7 +1051,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.plot(self.tau, self.response_rf_so2)
         plt.figure()
-        plt.semilogy(self._response_rf_so2_err)
+        plt.semilogy(self.response_rf_so2_err)
 
     def plot_dec_temp_with_so2(self: Self) -> None:
         """Deconvolve the temperature signal with the SO2 signal."""
@@ -1040,7 +1062,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.plot(self.tau, self.response_temp_so2)
         plt.figure()
-        plt.semilogy(self._response_temp_so2_err)
+        plt.semilogy(self.response_temp_so2_err)
 
     def plot_dec_temp_with_rf(self: Self) -> None:
         """Deconvolve the temperature signal with the SO2 signal."""
@@ -1051,7 +1073,7 @@ class Deconvolve(metaclass=_PostInitCaller):
         plt.figure()
         plt.plot(self.tau, self.response_temp_rf)
         plt.figure()
-        plt.semilogy(self._response_temp_rf_err)
+        plt.semilogy(self.response_temp_rf_err)
 
 
 class DeconvolveCESM(Deconvolve):
@@ -1287,7 +1309,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_aod_so2_tup[0].flatten()
 
     @property
-    def _response_aod_so2_err(self: Self) -> np.ndarray:
+    def response_aod_so2_err(self: Self) -> np.ndarray:
         """Deconvolve the AOD signal with the SO2 signal."""
         return self._response_aod_so2_tup[1]
 
@@ -1315,7 +1337,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_rf_aod_tup[0].flatten()
 
     @property
-    def _response_rf_aod_err(self: Self) -> np.ndarray:
+    def response_rf_aod_err(self: Self) -> np.ndarray:
         """Deconvolve the RF signal with the AOD signal."""
         return self._response_rf_aod_tup[1]
 
@@ -1343,7 +1365,7 @@ class DeconvolveCESM(Deconvolve):
         return self._response_temp_aod_tup[0].flatten()
 
     @property
-    def _response_temp_aod_err(self: Self) -> np.ndarray:
+    def response_temp_aod_err(self: Self) -> np.ndarray:
         """Deconvolve the temperature signal with the AOD signal."""
         return self._response_temp_aod_tup[1]
 
@@ -1473,6 +1495,7 @@ class CutOff:
 
     def __init__(self: Self, dec: Deconvolve, arrays: T_RF | T_SO2 | RF_SO2) -> None:
         self.dec = dec
+        self.dec.progress = False
         self.ts_specifier: T_RF | T_SO2 | RF_SO2 = arrays
         self.cuts: dict[str, xr.Dataset] = {}
         self.ensembles: dict[str, xr.Dataset] = {}
@@ -1591,32 +1614,91 @@ class CutOff:
         )
         self.cuts[str(cutoff)] = ds
 
+    @staticmethod
+    def _setup_progress_bar() -> (
+        tuple[rich.progress.Progress, rich.progress.Progress, rich.console.Group]
+    ):
+        p1 = rich.progress.Progress(
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.SpinnerColumn(),
+            rich.progress.BarColumn(),
+            rich.progress.TaskProgressColumn(),
+            rich.progress.MofNCompleteColumn(),
+            rich.progress.TimeRemainingColumn(elapsed_when_finished=True),
+            expand=True,
+            redirect_stdout=False,
+            # transient=True,
+        )
+        p2 = rich.progress.Progress(
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.SpinnerColumn(),
+            rich.progress.BarColumn(),
+            rich.progress.TaskProgressColumn(),
+            rich.progress.MofNCompleteColumn(),
+            rich.progress.TimeRemainingColumn(elapsed_when_finished=True),
+            expand=True,
+            redirect_stdout=False,
+            # transient=True,
+        )
+        return (
+            p1,
+            p2,
+            rich.console.Group(
+                rich.panel.Panel(
+                    rich.console.Group(
+                        p1,
+                        p2,
+                    )
+                )
+            ),
+        )
+
     def generate_ensembles(self: Self, n: int) -> None:
         """Generate an ensemble of response function estimates."""
         if not self.cuts:
             msg = "No cuts have been made."
             raise ValueError(msg)
-        for k, v in self.cuts.items():
-            if k in self.ensembles:
-                continue
-            arrays: dict[str, tuple] = {}
-            for i in range(n):
-                temp_rec = v.temp_rec.copy()
-                temp_random = fppanalysis.signal_rand_phase(self.control.data)
-                temp_rec += temp_random
-                res_rec, err = self.dec.deconvolve(temp_rec, self.forcing.data)
-                r_cut_rec = res_rec.flatten()
-                r_cut_rec[self.dec.tau <= 0] = 0
-                arrays[f"response_{i}"] = ("tau", r_cut_rec, {"label": f"response {i}"})
-                arrays[f"iters_{i}"] = ("iters", err.flatten(), {"label": f"err {i}"})
-            self.ensembles[k] = xr.Dataset(
-                arrays,
-                coords={
-                    "tau": self.dec.tau,
-                    "time": self.output.time,
-                    "iters": np.arange(len(err)),
-                },
-            )
+        cut_panel, ens_panel, group = self._setup_progress_bar()
+        cut_panel_id = cut_panel.add_task("", total=len(self.cuts))
+        with rich.live.Live(group, transient=True):
+            for k, v in self.cuts.items():
+                cut_panel.update(
+                    cut_panel_id,
+                    description=f"Working on cut-off at {k}",
+                )
+                if k in self.ensembles:
+                    continue
+                arrays: dict[str, tuple] = {}
+                ens_panel_id = ens_panel.add_task("", total=n)
+                for i in range(n):
+                    ens_panel.update(ens_panel_id, description=f"Creating ensemble {i}")
+                    temp_rec = v.temp_rec.copy()
+                    temp_random = fppanalysis.signal_rand_phase(self.control.data)
+                    temp_rec += temp_random
+                    res_rec, err = self.dec.deconvolve(temp_rec, self.forcing.data)
+                    r_cut_rec = res_rec.flatten()
+                    r_cut_rec[self.dec.tau <= 0] = 0
+                    arrays[f"response_{i}"] = (
+                        "tau",
+                        r_cut_rec,
+                        {"label": f"response {i}"},
+                    )
+                    arrays[f"iters_{i}"] = (
+                        "iters",
+                        err.flatten(),
+                        {"label": f"err {i}"},
+                    )
+                    ens_panel.advance(ens_panel_id)
+                ens_panel.update(ens_panel_id, visible=False)
+                self.ensembles[k] = xr.Dataset(
+                    arrays,
+                    coords={
+                        "tau": self.dec.tau,
+                        "time": self.output.time,
+                        "iters": np.arange(len(err)),
+                    },
+                )
+                cut_panel.advance(cut_panel_id)
 
 
 class ReconstructOB16:

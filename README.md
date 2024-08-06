@@ -50,7 +50,7 @@ as entry point scripts of the package. A list of all entry points can be found b
 running the command `rye run`, or for a curated list of this project's entry points, run
 
 ```bash
-rye run 2>&1 | grep vdd
+rye run | grep vdd
 ```
 
 All other useful scripts are located in the [`src/vdd/plotting/`](./src/vdd/plotting/)

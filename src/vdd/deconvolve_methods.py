@@ -54,7 +54,8 @@ def alternative_deconv(
     Returns
     -------
     tuple[np.ndarray, np.ndarray]
-        A tuple containing the deconvolved forcing signal and the mean value.
+        A tuple containing the deconvolved forcing signal and the number of iterations
+        performed by the optimizer.
     """
     res = deconv_mean_2(signal, forcing)
     return res.x[:-1], np.asarray(res.nit)
