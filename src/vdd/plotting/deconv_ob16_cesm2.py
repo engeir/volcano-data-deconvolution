@@ -242,21 +242,21 @@ class PlotResponseFunctions:
             match i_, name:
                 case _, "OB16":
                     ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
-                case 0, "SMALL":
+                case 0, "S26":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 1, "INTERMEDIATE":
+                case 1, "S400":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 2, "STRONG":
+                case 2, "S1629":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 3, "EXTREME":
+                case 3, "S3000":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 4, "SMALL-2SEP":
+                case 4, "S26-2SEP":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 5, "SMALL-4SEP":
+                case 5, "S26-4SEP":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 6, "INT-2SEP":
+                case 6, "S400-2SEP":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 7, "INT-4SEP":
+                case 7, "S400-4SEP":
                     ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
                 case _:
                     ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)

@@ -264,17 +264,17 @@ def name_translator(name: re.Match) -> str:
     """Translate the first match group from the old naming convention to the new one."""
     match name[0]:
         case "medium":
-            return "small"
+            return "S26"
         case "medium-plus":
-            return "intermediate"
+            return "S400"
         case "size5000":
-            return "extreme"
+            return "S3000"
         case "strong":
-            return name[0]
+            return "S1629"
         case "tt-2sep":
-            return "int-2sep"
+            return "S400-2sep"
         case "double-overlap" | "tt-4sep":
-            return "int-4sep"
+            return "S400-4sep"
         case _:
             msg = f"Unknown name: {name}"
             raise ValueError(msg)

@@ -1,6 +1,6 @@
 [env]
-_.python.venv = { path = ".venv", create = true }
-TQDM_DISABLE = "True"                             # Based on https://github.com/tqdm/tqdm/issues/614#issuecomment-1671126923
+_.python.venv = { path = ".venv", create = false }
+TQDM_DISABLE = "True"                              # Based on https://github.com/tqdm/tqdm/issues/614#issuecomment-1671126923
 
 [settings]
 experimental = true
@@ -30,10 +30,10 @@ run = [
   "cp -x --preserve=timestamps $OUT_DIR/deconv_ob16_cesm2/temp-so2-gs.pdf $LATEX_DIR",                                             # Fig 1
   "cp -x --preserve=timestamps $OUT_DIR/deconv_ob16_cesm2/rf-so2-gs.pdf $LATEX_DIR",                                               # Fig 2
   "cp -x --preserve=timestamps $OUT_DIR/sea-ice/sea-ice.pdf $LATEX_DIR",                                                           # Fig 3
-  "cp -x --preserve=timestamps $OUT_DIR/waveform/responses_combined_int.pdf $LATEX_DIR",                                           # Fig 4
-  "cp -x --preserve=timestamps $OUT_DIR/waveform/responses_combined_small.pdf $LATEX_DIR",                                         # Fig 5
+  "cp -x --preserve=timestamps $OUT_DIR/waveform/responses_combined_S400.pdf $LATEX_DIR",                                          # Fig 4
+  "cp -x --preserve=timestamps $OUT_DIR/waveform/responses_combined_S26.pdf $LATEX_DIR",                                           # Fig 5
   "cp -x --preserve=timestamps $OUT_DIR/cut_off/ob16-month_resp_temp-so2_combined.pdf $LATEX_DIR",                                 # Fig 6
-  "cp -x --preserve=timestamps $OUT_DIR/cut_off/cesm2-small_resp_temp-so2_combined.pdf $LATEX_DIR",                                # Fig 7
+  "cp -x --preserve=timestamps $OUT_DIR/cut_off/cesm2-S26_resp_temp-so2_combined.pdf $LATEX_DIR",                                  # Fig 7
   "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-temp-reconstructed.pdf $LATEX_DIR",                 # Fig 8
   "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-peak-difference-pdf.pdf $LATEX_DIR",                # Fig 9
   "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf $LATEX_DIR",     # Fig 10
@@ -68,8 +68,8 @@ description = "Run the double waveforms plotting"
 run = "rye run vdd-plot-double-waveform"
 sources = ["./src/vdd/plotting/check_double_waveform.py"]
 outputs = [
-  "./generated_files/waveform/responses_combined_int.pdf",   # Fig 4
-  "./generated_files/waveform/responses_combined_small.pdf", # Fig 5
+  "./generated_files/waveform/responses_combined_S400.pdf", # Fig 4
+  "./generated_files/waveform/responses_combined_S26.pdf",  # Fig 5
 ]
 
 [tasks."run:plot-cut-off"]
@@ -77,8 +77,8 @@ description = "Run the cut-off plotting"
 run = "rye run vdd-plot-cut-off"
 sources = ["./src/vdd/plotting/cut_off.py"]
 outputs = [
-  "./generated_files/cut_off/ob16-month_resp_temp-so2_combined.pdf",  # Fig 6
-  "./generated_files/cut_off/cesm2-small_resp_temp-so2_combined.pdf", # Fig 7
+  "./generated_files/cut_off/ob16-month_resp_temp-so2_combined.pdf", # Fig 6
+  "./generated_files/cut_off/cesm2-S26_resp_temp-so2_combined.pdf",  # Fig 7
 ]
 
 [tasks."run:plot-reconstruction"]

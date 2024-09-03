@@ -318,10 +318,10 @@ class PlotReconstruction:
 
     def _get_name(self: Self) -> str:
         match self.reconstruction.name:
-            case name_ if "small" in name_.lower():
-                name = "SMALL"
-            case name_ if "int" in name_.lower():
-                name = "INTERMEDIATE"
+            case name_ if "26" in name_.lower():
+                name = "S26"
+            case name_ if "400" in name_.lower():
+                name = "S400"
             case name_ if "ob16" in name_.lower():
                 name = "OB16"
             case _:
@@ -331,7 +331,7 @@ class PlotReconstruction:
     def plot_reconstruction_temp(self: Self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
         """Plot the reconstruction of the data."""
         ax.set_xlabel("Time [yr]")
-        ax.set_ylabel("Temperature anomaly [K]")
+        ax.set_ylabel("$T$ [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
         ax.plot(
@@ -382,7 +382,7 @@ class PlotReconstruction:
         ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=l_so2)
         ax.set_xlim((-100, 100))
         ax.set_xlabel("Time lag [yr]")
-        ax.set_ylabel("Correlation with \n$T_{\\text{OB16}}$ [K]")
+        ax.set_ylabel("Correlation with \n$T_{\\text{OB16}}$")
         ax.legend()
         return ax
 
@@ -594,7 +594,7 @@ class PlotReconstruction:
         xlim = np.abs(ax3.get_xlim()).max()
         ax3.set_xlim((-xlim, xlim))
         ax3.set_ylabel(dist.upper())
-        ax3.set_xlabel("Temperature anomaly [K]")
+        ax3.set_xlabel("$T$ [K]")
         lspread = f"$T_{{\\text{{OB16}}}}(\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})$"
         norm = 10
         shift_x = 0.15
@@ -635,7 +635,7 @@ class PlotReconstruction:
             alpha=0.3,
         )
         ax.annotate(
-            "Temperature difference [K]",
+            r"$\Delta T$ [K]",
             xy=(0.4 + shift_x, -0.4 + shift_x),
             xytext=(-0.45 + shift_x, 0.45 + shift_x),
             arrowprops={

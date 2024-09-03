@@ -126,17 +126,11 @@ class CheckRecreatedWaveforms:
             [ax.set_xlim((-1, 21)) for ax in self.axs]
         [ax.legend(framealpha=0.5, numpoints=1) for ax in self.axs]
         if len(self.keys) == max_len:
-            [
-                self.axs[i].set_ylabel("Aerosol optical \ndepth [1]")
-                for i in self.keys["aod"]
-            ]
-            [
-                self.axs[i].set_ylabel("Radiative \nforcing [W/m$^2$]")
-                for i in self.keys["rf"]
-            ]
-        [self.axs[i].set_ylabel("Temperature \nanomaly [K]") for i in self.keys["temp"]]
+            [self.axs[i].set_ylabel("$A$ [1]") for i in self.keys["aod"]]
+            [self.axs[i].set_ylabel("$R$ [W/m$^2$]") for i in self.keys["rf"]]
+        [self.axs[i].set_ylabel("$T$ [K]") for i in self.keys["temp"]]
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
-        base = "small" if "medium" in self.decs[0].name else "int"
+        base = "S26" if "medium" in self.decs[0].name else "S400"
         self.figs.savefig(_SAVE_DIR / f"responses_combined_{base}{corrected}")
         plt.show()
 
@@ -176,8 +170,8 @@ class CheckRecreatedWaveforms:
         tuple[str, str, str],
         tuple[int, int],
     ]:
-        base = "SMALL" if "medium" in dec.name else "INT"
-        base_long = "SMALL" if "medium" in dec.name else "INTERMEDIATE"
+        base = "S26" if "medium" in dec.name else "S400"
+        base_long = "S26" if "medium" in dec.name else "S400"
         sep = "2sep" if "2sep" in dec.name else "4sep"
         idx = 0 if sep == "2sep" else 1
         c_idx = 4 if sep == "2sep" else 5

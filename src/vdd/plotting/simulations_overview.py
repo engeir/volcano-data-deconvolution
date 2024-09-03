@@ -110,42 +110,42 @@ def gantt() -> None:
     ax.vlines(_SIM_START, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
     ax.vlines(_SIM_END + 0.2, -2 - 0.5, -2 + 0.5, lw=0.5, color="k")
     _create_all_eruptions(ax)
-    # SMALL
-    ax.text(0, 1.5, "SMALL", ha="right", va="center")
+    # S26
+    ax.text(0, 1.5, "S26", ha="right", va="center")
     _place_eruption(5 / 12, 0, small_c, ax)
     _place_eruption(8 / 12, 1, small_c, ax)
     _place_eruption(11 / 12, 2, small_c, ax)
     _place_eruption(1 + 2 / 12, 3, small_c, ax)
-    # INTERMEDIATE
-    ax.text(0, 5.5, "INTERMEDIATE", ha="right", va="center")
+    # S400
+    ax.text(0, 5.5, "S400", ha="right", va="center")
     _place_eruption(5 / 12, 4, intermediate_c, ax)
     _place_eruption(8 / 12, 5, intermediate_c, ax)
     _place_eruption(11 / 12, 6, intermediate_c, ax)
     _place_eruption(1 + 2 / 12, 7, intermediate_c, ax)
-    # STRONG
-    ax.text(0, 9.5, "STRONG", ha="right", va="center")
+    # S1629
+    ax.text(0, 9.5, "S1629", ha="right", va="center")
     _place_eruption(5 / 12, 8, strong_c, ax)
     _place_eruption(8 / 12, 9, strong_c, ax)
     _place_eruption(11 / 12, 10, strong_c, ax)
     _place_eruption(1 + 2 / 12, 11, strong_c, ax)
-    # EXTREME
-    ax.text(0, 12.5, "EXTREME", ha="right", va="center")
+    # S3000
+    ax.text(0, 12.5, "S3000", ha="right", va="center")
     _place_eruption(5 / 12, 12, extreme_c, ax)
-    _place_eruption(11 / 12, 13, strong_c, ax)
-    # SMALL-2SEP
-    ax.text(0, 14.5, "SMALL-2SEP", ha="right", va="center")
+    _place_eruption(11 / 12, 13, extreme_c, ax)
+    # S26-2SEP
+    ax.text(0, 14.5, "S26-2SEP", ha="right", va="center")
     _place_eruption([2 / 12, 2 + 2 / 12], 14, small2sep_c, ax)
     _place_eruption([8 / 12, 2 + 8 / 12], 15, small2sep_c, ax)
-    # SMALL-4SEP
-    ax.text(0, 16.5, "SMALL-4SEP", ha="right", va="center")
+    # S26-4SEP
+    ax.text(0, 16.5, "S26-4SEP", ha="right", va="center")
     _place_eruption([2 / 12, 4 + 2 / 12], 16, small4sep_c, ax)
     _place_eruption([8 / 12, 4 + 8 / 12], 17, small4sep_c, ax)
-    # INT-2SEP
-    ax.text(0, 18.5, "INT-2SEP", ha="right", va="center")
+    # S400-2SEP
+    ax.text(0, 18.5, "S400-2SEP", ha="right", va="center")
     _place_eruption([2 / 12, 2 + 2 / 12], 18, tt2sep_c, ax)
     _place_eruption([8 / 12, 2 + 8 / 12], 19, tt2sep_c, ax)
-    # INT-4SEP
-    ax.text(0, 20.5, "INT-4SEP", ha="right", va="center")
+    # S400-4SEP
+    ax.text(0, 20.5, "S400-4SEP", ha="right", va="center")
     _place_eruption([2 / 12, 4 + 2 / 12], 20, tt4sep_c, ax)
     _place_eruption([8 / 12, 4 + 8 / 12], 21, tt4sep_c, ax)
     # ax.set_ylim(-3, 21.5)

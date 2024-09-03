@@ -531,6 +531,11 @@ class CESMData(BaseModel):
                 not in {"tt-2sep", "tt-4sep", "medium-2sep", "medium-4sep"}
                 else "ens0",
             )
+            .remove(
+                *["ens2", "ens4"]
+                if self.strength in {"tt-2sep", "tt-4sep", "medium-2sep", "medium-4sep"}
+                else "ens6",
+            )
             .keep_most_recent()
             .sort("ensemble", "attr")
         )

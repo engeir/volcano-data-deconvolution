@@ -81,7 +81,7 @@ class PlotCutOff:
     def _plot_single(fig: mpl.figure.Figure, co: vdd.load.CutOff) -> mpl.figure.Figure:
         """Plot the results of the CutOff class."""
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        name = "OB16" if "OB16" in co.dec.name else "SMALL"
+        name = "OB16" if "OB16" in co.dec.name else "S26"
         for i, (k, v) in enumerate(co.cuts.items()):
             resp_a, temp_a = fig.axes[i * 2], fig.axes[i * 2 + 1]
             resp_a.axvline(int(k) / 12, c="k", ls="--")
@@ -144,7 +144,7 @@ class PlotCutOff:
                 else "Time after first eruption [yr]"
             )
             temp_a.set_xlabel(xlab)
-            temp_a.set_ylabel("Temperature anomaly [K]")
+            temp_a.set_ylabel("$T$ [K]")
             temp_a.legend(loc="lower right", framealpha=0.9)
             match v.time.data[0]:
                 case cftime._cftime.DatetimeNoLeap():  # noqa: SLF001
