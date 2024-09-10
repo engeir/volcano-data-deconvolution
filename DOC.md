@@ -304,7 +304,7 @@ $$ {#eq:label}
       \phi_{TS}\tilde\ast\phi_{RS}$
 
 We conclude that we may compute $\phi_{TR}$ in two ways, (1) either by **deconvolving
-$T$ with $R$**, or (2) by __deconvolving $\phi_{TS}$ with $\phi_{RS}$__, which in turn
+$T$ with $R$**, or (2) by **deconvolving $\phi_{TS}$ with $\phi_{RS}$**, which in turn
 are the results of two further deconvolutions. A third option is to use the
 deconvolution between $T$ and the convolution between $S$ and $\phi_{RS}$, but this is a
 reconstruction of the original $R$, and perhaps not what we are looking for.
