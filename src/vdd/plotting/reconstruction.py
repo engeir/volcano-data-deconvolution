@@ -58,7 +58,9 @@ DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
 # CESM2
 padding = PaddingMethod.NOISE
-dec_cesm_m = DecCESM(pad_before=padding, cesm=DataCESM(strength="medium"))
+dec_cesm_m = DecCESM(
+    pad_before=padding, cesm=DataCESM(dims=["lat", "lon"], strength="medium")
+)
 # OB16
 dec_ob16_month = vdd.load.DeconvolveOB16(data="h0")
 dec_ob16_month.name = "OB16 month"
@@ -334,6 +336,18 @@ class PlotReconstruction:
         ax.set_ylabel("$T$ [K]")
         time_ = self.dec_ob16.temp.time
         temp = self.dec_ob16.temp
+        aligned_arrays = self.ob16.aligned_arrays
+        s, e = self.dec_ob16.start_pt, self.dec_ob16.end_pt
+        so2_temp = aligned_arrays["so2-temperature"][s:e]
+        _idx_temp = np.argwhere(so2_temp.data > 0)
+        peaks_time = self.dec_ob16.temp.time.data[_idx_temp].flatten()
+        ax.axvline(
+            peaks_time[0],
+            lw=0.5,
+            c="k",
+            label="$s_{k,\\text{OB16}}+10\\,\\mathrm{months}$",
+        )
+        [ax.axvline(x_, c="k", lw=0.5) for x_ in peaks_time[1:]]
         ax.plot(
             time_,
             -1 * self.temp_control,
@@ -350,7 +364,8 @@ class PlotReconstruction:
             vdd.utils.d2n(datetime.datetime(1310, 1, 1, 0, 0, tzinfo=datetime.UTC)),
         )
         ax.set_xlim(xlim)
-        ax.legend(framealpha=0.5)
+        ax.set_ylim((-2.1, 0.6))
+        ax.legend(framealpha=1.0)
         return ax
 
     def correlation(self: Self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
@@ -745,7 +760,7 @@ def _plot_many_reconstructions() -> None:
     rec_ob16 = PlotReconstruction(ob16, rec_ob16_)
     rec_small = PlotReconstruction(ob16, rec_small_)
     _plot_individual(rec_ob16, rec_small)
-    _plot_all(rec_ob16, rec_small)
+    # _plot_all(rec_ob16, rec_small)
 
 
 def _plot_individual(
