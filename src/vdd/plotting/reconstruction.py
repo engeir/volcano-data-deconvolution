@@ -27,6 +27,7 @@ import fppanalysis
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import plastik
 import scipy.signal as ssi
 import scipy.stats
 import volcano_base
@@ -528,7 +529,7 @@ class PlotReconstruction:
     ) -> tuple[mpl.axes.Axes, mpl.axes.Axes]:
         """Plot the difference between the reconstructed and the original peaks."""
         self._diff_of_max_peak()
-        so2_basis = -1 * (self.peaks_so2 - self.peaks_original)
+        so2_basis = self.peaks_so2 - self.peaks_original
         ctrl_basis = -1 * self.temp_control
         so2_conf, ctrl_conf = self._peak_difference_ttest(so2_basis, ctrl_basis)  # type: ignore[arg-type]
         pdf_so2, cdf_so2, bin_centers_so2 = fppanalysis.distribution(
@@ -610,7 +611,7 @@ class PlotReconstruction:
         ax3.set_xlim((-xlim, xlim))
         ax3.set_ylabel(dist.upper())
         ax3.set_xlabel("$T$ [K]")
-        lspread = f"$T_{{\\text{{OB16}}}}(\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})$"
+        # lspread = f"$T_{{\\text{{OB16}}}}(\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})$"
         norm = 10
         shift_x = 0.15
         lims = (-1.55, 0.6)
@@ -670,21 +671,35 @@ class PlotReconstruction:
         bc_sx, bc_sy = bc_s + shift_x, bc_s - shift_x
         bs_s = b_so2 / 2
         bs_sx, bs_sy = bs_s + shift_x, bs_s - shift_x
-        ax.scatter(bc_sx + f_r / norm, f_r / norm - bc_sy, s=3, c=COLORS[1], zorder=5)
-        ax.scatter(bs_sx + f_s / norm, f_s / norm - bs_sy, s=3, c=COLORS[4], zorder=5)
+        ax.scatter(
+            bc_sx + f_r / norm,
+            f_r / norm - bc_sy,
+            s=3,
+            c=COLORS[1],
+            zorder=5,
+            label=r"$T_{\text{CONTROL}}$",
+        )
+        ax.scatter(
+            bs_sx + f_s / norm,
+            f_s / norm - bs_sy,
+            s=3,
+            c=COLORS[4],
+            zorder=5,
+            label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}-T_{{\\text{{OB16}}}}$ (peak)",
+        )
         ax.plot(bc_sx + norm_rf / norm, norm_rf / norm - bc_sy, c=COLORS[1])
         ax.plot(bs_sx + norm_so2 / norm, norm_so2 / norm - bs_sy, c=COLORS[4])
         ax.scatter(
-            -self.peaks_so2,
             -self.peaks_original,
+            -self.peaks_so2,
             marker="*",
             c=COLORS[4],
             s=12,
             zorder=10,
-            label=lspread,
+            # label=lspread,
         )
-        ax.set_ylabel("$T_{{\\text{{OB16}}}}$ peak [K]")
-        ax.set_xlabel(
+        ax.set_xlabel("$T_{{\\text{{OB16}}}}$ peak [K]")
+        ax.set_ylabel(
             f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$ peak [K]",
         )
         ax.legend(loc="lower right")
@@ -767,23 +782,23 @@ def _plot_individual(
     rec_ob16: PlotReconstruction,
     rec_small: PlotReconstruction,
 ) -> None:
-    figpdf, axspdf = cosmoplots.figure_multiple_rows_columns(1, 2)
-    figcdf, axscdf = cosmoplots.figure_multiple_rows_columns(1, 2)
+    figpdf, axspdf = plastik.figure_grid(2, 1, using={"share_axes": "x"})
+    figcdf, axscdf = plastik.figure_grid(2, 1, using={"share_axes": "x"})
     rec_ob16.peak_difference_analysis(*[axspdf[0], axscdf[0]])
     rec_small.peak_difference_analysis(*[axspdf[1], axscdf[1]])
     figpdf.savefig(_SAVE_DIR / "compare-historical-size-peak-difference-pdf")
     figcdf.savefig(_SAVE_DIR / "compare-historical-size-peak-difference-cdf")
-    figcorr, axcorr = cosmoplots.figure_multiple_rows_columns(1, 2)
+    figcorr, axcorr = plastik.figure_grid(2, 1, using={"share_axes": "x"})
     rec_ob16.correlation(axcorr[0])
     rec_small.correlation(axcorr[1])
     figcorr.savefig(
         _SAVE_DIR / "compare-historical-size-correlation-residual-reconstructed",
     )
-    figsp, axsp = cosmoplots.figure_multiple_rows_columns(1, 2)
+    figsp, axsp = plastik.figure_grid(2, 1, using={"share_axes": "x"})
     rec_ob16.spectrum(axsp[0])
     rec_small.spectrum(axsp[1])
     figsp.savefig(_SAVE_DIR / "compare-historical-size-spectrum-residual-control_temp")
-    figrec, axrec = cosmoplots.figure_multiple_rows_columns(1, 2)
+    figrec, axrec = plastik.figure_grid(2, 1, using={"share_axes": "x"})
     rec_ob16.plot_reconstruction_temp(axrec[0])
     rec_small.plot_reconstruction_temp(axrec[1])
     figrec.savefig(_SAVE_DIR / "compare-historical-size-temp-reconstructed")
@@ -791,7 +806,7 @@ def _plot_individual(
 
 def _plot_all(rec_ob16: PlotReconstruction, rec_small: PlotReconstruction) -> None:
     # All in one
-    figtot, axtot = cosmoplots.figure_multiple_rows_columns(4, 2)
+    figtot, axtot = plastik.figure_grid(4, 2, using={"share_axes": "x"})
     rec_ob16.plot_reconstruction_temp(axtot[0])
     rec_small.plot_reconstruction_temp(axtot[1])
     rec_ob16.peak_difference_analysis(*[axtot[2], plt.figure().gca()])

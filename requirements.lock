@@ -129,7 +129,7 @@ partd==1.4.2
     # via dask
 pillow==10.4.0
     # via matplotlib
-plastik==0.6.2
+plastik==0.7.2
     # via volcano-data-deconvolution
 pydantic==2.8.2
     # via volcano-base
@@ -188,6 +188,7 @@ toolz==0.12.1
 tqdm==4.66.5
     # via fppanalysis
 typing-extensions==4.12.2
+    # via plastik
     # via pydantic
     # via pydantic-core
     # via returns
