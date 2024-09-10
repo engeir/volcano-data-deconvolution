@@ -35,9 +35,9 @@ run = [
   "cp -x --preserve=timestamps $OUT_DIR/cut_off/ob16-month_resp_temp-so2_combined.pdf $LATEX_DIR",                                 # Fig 6
   "cp -x --preserve=timestamps $OUT_DIR/cut_off/cesm2-S26_resp_temp-so2_combined.pdf $LATEX_DIR",                                  # Fig 7
   "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-temp-reconstructed.pdf $LATEX_DIR",                 # Fig 8
-  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-peak-difference-pdf.pdf $LATEX_DIR",                # Fig 9
-  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf $LATEX_DIR",     # Fig 10
-  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf $LATEX_DIR", # Fig 11
+  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf $LATEX_DIR",     # Fig 9
+  "cp -x --preserve=timestamps $OUT_DIR/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf $LATEX_DIR", # Fig 10
+  "cp -x --preserve=timestamps $OUT_DIR/extra-attrs/reff.pdf $LATEX_DIR",                                                          # Fig 11
   "cp -x --preserve=timestamps $OUT_DIR/simulation_timeline.pdf $LATEX_DIR",                                                       # Fig A1
 ]
 
@@ -87,9 +87,16 @@ run = "rye run vdd-plot-reconstruction"
 sources = ["./src/vdd/plotting/reconstruction.py"]
 outputs = [
   "./generated_files/reconstruction/compare-historical-size-temp-reconstructed.pdf",                 # Fig 8
-  "./generated_files/reconstruction/compare-historical-size-peak-difference-pdf.pdf",                # Fig 9
-  "./generated_files/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf",     # Fig 10
-  "./generated_files/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf", # Fig 11
+  "./generated_files/reconstruction/compare-historical-size-spectrum-residual-control_temp.pdf",     # Fig 9
+  "./generated_files/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf", # Fig 10
+]
+
+[tasks."run:plot-extra-reff"]
+description = "Run the aerosol effective radius plotting"
+run = "rye run vdd-plot-extra-reff"
+sources = ["./src/vdd/plotting/double_eruption_reff_oh_so2.py"]
+outputs = [
+  "./generated_files/extra-attrs/reff.pdf", # Fig 11
 ]
 
 [tasks."run:plot-simulations"]

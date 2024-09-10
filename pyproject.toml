@@ -40,6 +40,7 @@ vdd-plot-sea-ice = "vdd.plotting.sea_ice:plot_sea_ice"
 vdd-plot-double-waveform = "vdd.plotting.check_double_waveform:main"
 vdd-plot-cut-off = "vdd.plotting.cut_off:_main"
 vdd-plot-reconstruction = "vdd.plotting.reconstruction:_main"
+vdd-plot-extra-reff = "vdd.plotting.double_eruption_reff_oh_so2:_main"
 
 [project.urls]
 repository = "https://github.com/engeir/volcano-data-deconvolution"
