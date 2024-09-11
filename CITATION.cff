@@ -5,7 +5,7 @@ authors:
   given-names: Eirik Rolland
   orcid: https://orcid.org/0000-0001-6709-8688
 title: Accompanying code to 'Temperature response to volcanic forcing'
-version: volcano-data-deconvolution-v1.1.0  # x-release-please-version
+version: volcano-data-deconvolution-v1.2.0  # x-release-please-version
 # date-released: 2024-06-03
 identifiers:
   - description: This is the collection of archived snapshots of all versions of My Research Software

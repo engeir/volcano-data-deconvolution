@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.2.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.1.0...volcano-data-deconvolution-v1.2.0) (2024-09-11)
+
+
+### Features
+
+* **figure:** add plots of R_eff, OH and SO2_burden ([5b0badf](https://github.com/engeir/volcano-data-deconvolution/commit/5b0badf4a9c9df639fe3f62874d006d06f1a3ed6))
+* **figure:** add vertical lines at eruption peaks ([6e93554](https://github.com/engeir/volcano-data-deconvolution/commit/6e9355401e4ce1a817bfa11501995fa8d348b8f8))
+* **figure:** change PDF plotting ([f5b222c](https://github.com/engeir/volcano-data-deconvolution/commit/f5b222c27268446c7201fa333122a876304809fb))
+* update deps and plotting style ([ee9940d](https://github.com/engeir/volcano-data-deconvolution/commit/ee9940d295ad56004ac2d0f7193bdab31d26bb83))
+
+
+### Bug Fixes
+
+* **deconv:** alternative deconvolution method returned float and not the array ([e78c941](https://github.com/engeir/volcano-data-deconvolution/commit/e78c941913c3650a522307c516c57cbea0fef2cf))
+* **figure:** update to use new figure names and labels ([dfbf27e](https://github.com/engeir/volcano-data-deconvolution/commit/dfbf27e59357cd8f1a882da14c438c682ea0d860))
+
+
+### Miscellaneous
+
+* **figure:** change how peaks are indicated in the reconstruction plot ([e3c4f64](https://github.com/engeir/volcano-data-deconvolution/commit/e3c4f64af0e7289a9991ace0c998bb801fca21c7))
+* **figure:** more compact reconstruction figures ([4f93917](https://github.com/engeir/volcano-data-deconvolution/commit/4f9391752d2dc82de7df1baf7bbc27675f29d889))
+* **figure:** update response plot script with alternative deconv ([0dd6c39](https://github.com/engeir/volcano-data-deconvolution/commit/0dd6c39d6180f4603f2f6e068992055eeee8852a))
+
+
+### Styles
+
+* **dprint:** update markdown formatter ([77b0b94](https://github.com/engeir/volcano-data-deconvolution/commit/77b0b947aa080fc407b38d24423e05460e212bd1))
+
+
+### Code Refactoring
+
+* add type hints and generate stub files ([54a5d44](https://github.com/engeir/volcano-data-deconvolution/commit/54a5d44ab3376ce99191b0276d5a9668f859bb93))
+
+
+### Build System
+
+* **mise:** turn off tqdm with env var and auto create venvs ([fcc47f1](https://github.com/engeir/volcano-data-deconvolution/commit/fcc47f18fdd91d9d25b38c899a6239d4c1ceec34))
+
 ## [1.1.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.0.5...volcano-data-deconvolution-v1.1.0) (2024-06-19)
 
 
