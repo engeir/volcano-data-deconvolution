@@ -685,7 +685,7 @@ class PlotReconstruction:
             s=3,
             c=COLORS[4],
             zorder=5,
-            label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}-T_{{\\text{{OB16}}}}$ (peak)",
+            label=f"$(\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})^{{\\dagger}}-T_{{\\text{{OB16}}}}^{{\\dagger}}$",
         )
         ax.plot(bc_sx + norm_rf / norm, norm_rf / norm - bc_sy, c=COLORS[1])
         ax.plot(bs_sx + norm_so2 / norm, norm_so2 / norm - bs_sy, c=COLORS[4])
@@ -698,9 +698,9 @@ class PlotReconstruction:
             zorder=10,
             # label=lspread,
         )
-        ax.set_xlabel("$T_{{\\text{{OB16}}}}$ peak [K]")
+        ax.set_xlabel(r"$T_{\text{OB16}}^{\dagger}$ [K]")
         ax.set_ylabel(
-            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$ peak [K]",
+            f"$(\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})^{{\\dagger}}$ [K]",
         )
         ax.legend(loc="lower right")
         return ax
