@@ -24,3 +24,9 @@ run: && copy
 [private]
 copy:
     mise run --timings copy
+
+sync:
+    mise run --timings sync
+
+plot: sync
+    mise run --timings run

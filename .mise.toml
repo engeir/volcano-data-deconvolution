@@ -46,7 +46,7 @@ hide = true
 alias = "install"
 run = "rye sync"
 sources = ["./pyproject.toml"]
-outputs = ["./requirements.lock", "./requirements-dev.lock"]
+outputs = ["./.venv/*"]
 
 [tasks."run:plot-response"]
 description = "Run the response functions plotting"
