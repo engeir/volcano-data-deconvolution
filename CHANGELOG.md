@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.2.0...volcano-data-deconvolution-v1.2.1) (2024-09-13)
+
+
+### Miscellaneous
+
+* update build instructions ([82e7db4](https://github.com/engeir/volcano-data-deconvolution/commit/82e7db45f963a7794c612e461ecfe1bc09ecb141))
+
 ## [1.2.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.1.0...volcano-data-deconvolution-v1.2.0) (2024-09-11)
 
 
