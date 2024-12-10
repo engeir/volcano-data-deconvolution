@@ -4,8 +4,10 @@ We also check how well we are able to recreate the double waveform time series f
 response functions of other simulations.
 """
 
-from typing import Literal, Self
+import pathlib
+from typing import Literal, Self, overload
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import volcano_base
@@ -20,6 +22,7 @@ plt.style.use(
         "https://raw.githubusercontent.com/uit-cosmo/cosmoplots/main/cosmoplots/default.mplstyle",
         "vdd.extra",
         "vdd.jgr",
+        {"legend.handlelength": 1.50},
     ],
 )
 _COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -110,13 +113,26 @@ class CheckRecreatedWaveforms:
             columns_first=True,
         )
 
-    def run_loop(self: Self) -> None:
+    @overload
+    def run_loop(
+        self: Self, save_path: pathlib.Path | None, *, return_: Literal[True]
+    ) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes], pathlib.Path]: ...
+
+    @overload
+    def run_loop(
+        self: Self, save_path: pathlib.Path | None, *, return_: Literal[False]
+    ) -> None: ...
+
+    def run_loop(
+        self: Self, save_path: pathlib.Path | None = None, *, return_: bool = False
+    ) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes], pathlib.Path] | None:
         """Run the main loop."""
+        save_path = save_path or _SAVE_DIR
         max_len = 3
         for _, dec in enumerate(self.decs):
             # so2_new = self._get_so2_new(dec)
             if len(self.keys) == max_len:
-                dec._data.initialise_data()  # noqa: SLF001
+                dec._data.initialise_data()  # type: ignore[attr-defined]  # noqa: SLF001
             so2 = dec.so2
             so2_new = so2.copy()
             for attr in list(self.keys.keys()):
@@ -131,8 +147,15 @@ class CheckRecreatedWaveforms:
         [self.axs[i].set_ylabel("$T$ [K]") for i in self.keys["temp"]]
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
         base = "S26" if "medium" in self.decs[0].name else "S400"
-        self.figs.savefig(_SAVE_DIR / f"responses_combined_{base}{corrected}")
+        if return_:
+            return (
+                self.figs,
+                self.axs,
+                save_path / f"responses_combined_{base}{corrected}",
+            )
+        self.figs.savefig(save_path / f"responses_combined_{base}{corrected}")
         plt.show()
+        return None
 
     def _get_so2_new(self: Self, dec: vdd.load.DeconvolveCESM) -> xr.DataArray:
         so2 = dec.so2
@@ -219,17 +242,15 @@ class CheckRecreatedWaveforms:
             dec.temp.time,
             sign * arrs[0],
             c="k",
-            lw=0.5,
             label=f"${attr[0].upper()}_{{\\text{{{names[0]}-{names[2].upper()}}}}}$",
         )
-        kwargs = {"ls": "--", "c": _COLORS[idx[1]], "lw": 1.0}
+        kwargs = {"ls": "--", "c": _COLORS[idx[1]]}
         varphi = f"\\varphi_{{{attr[0].upper()}}}"
         conv_so2 = f"\\ast S_{{\\text{{{names[0]}-{names[2].upper()}}}}}"
         plot(
             dec.temp.time,
             sign * arrs[2],
             "-.",
-            lw=1.0,
             c=_COLORS[1],
             label=f"${varphi}^{{\\text{{{names[1]}}}}}{conv_so2}$",
         )
@@ -243,12 +264,12 @@ class CheckRecreatedWaveforms:
 
 def main() -> None:
     """Run the main script."""
-    CheckRecreatedWaveforms(
+    CheckRecreatedWaveforms(  # type: ignore[call-overload]
         dec_cesm_p2,
         dec_cesm_p4,
         single_waveform=dec_cesm_p,
     ).run_loop()
-    CheckRecreatedWaveforms(
+    CheckRecreatedWaveforms(  # type: ignore[call-overload]
         dec_cesm_m2,
         dec_cesm_m4,
         single_waveform=dec_cesm_m,
