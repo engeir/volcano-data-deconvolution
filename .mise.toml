@@ -6,17 +6,16 @@ TQDM_DISABLE = "True"                              # Based on https://github.com
 experimental = true
 
 [tasks.default]
-run = "rye run vdd"
+run = "uv run vdd"
 depends = ["sync"]
 
 [tasks."setup:unix"]
-description = "Set up the environment with Rye"
-env = { RYE_INSTALL_OPTION = "--yes" }
-run = "curl -sSf https://rye.astral.sh/get | bash"
+description = "Set up the environment with Uv"
+run = "curl -LsSf https://astral.sh/uv/install.sh | sh"
 
 [tasks."setup:windows"]
-description = "Set up the environment with Rye"
-run = 'echo "Please install Rye manually from https://rye.astral.sh"'
+description = "Set up the environment with Uv"
+run = 'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
 
 [tasks.run]
 description = "Run all plotting recipes"
@@ -44,63 +43,63 @@ run = [
 [tasks.sync]
 hide = true
 alias = "install"
-run = "rye sync"
-sources = ["./pyproject.toml"]
-outputs = ["./.venv/*"]
+run = "uv sync"
+sources = ["pyproject.toml"]
+outputs = [".venv/*"]
 
 [tasks."run:plot-response"]
 description = "Run the response functions plotting"
-run = "rye run vdd-plot-response"
-sources = ["./src/vdd/plotting/deconv_ob16_cesm2.py"]
+run = "uv run vdd-plot-response"
+sources = ["src/vdd/plotting/deconv_ob16_cesm2.py"]
 outputs = [
-  "./generated_files/deconv_ob16_cesm2/temp-so2-gs.pdf", # Fig 1
-  "./generated_files/deconv_ob16_cesm2/rf-so2-gs.pdf",   # Fig 2
+  "generated_files/deconv_ob16_cesm2/temp-so2-gs.pdf", # Fig 1
+  "generated_files/deconv_ob16_cesm2/rf-so2-gs.pdf",   # Fig 2
 ]
 
 [tasks."run:plot-sea-ice"]
 description = "Run the sea-ice plotting"
-run = "rye run vdd-plot-sea-ice"
-sources = ["./src/vdd/plotting/sea_ice.py"]
-outputs = ["./generated_files/sea-ice/sea-ice.pdf"] # Fig 3
+run = "uv run vdd-plot-sea-ice"
+sources = ["src/vdd/plotting/sea_ice.py"]
+outputs = ["generated_files/sea-ice/sea-ice.pdf"] # Fig 3
 
 [tasks."run:plot-double-waveform"]
 description = "Run the double waveforms plotting"
-run = "rye run vdd-plot-double-waveform"
-sources = ["./src/vdd/plotting/check_double_waveform.py"]
+run = "uv run vdd-plot-double-waveform"
+sources = ["src/vdd/plotting/check_double_waveform.py"]
 outputs = [
-  "./generated_files/waveform/responses_combined_S400.pdf", # Fig 4
-  "./generated_files/waveform/responses_combined_S26.pdf",  # Fig 5
+  "generated_files/waveform/responses_combined_S400.pdf", # Fig 4
+  "generated_files/waveform/responses_combined_S26.pdf",  # Fig 5
 ]
 
 [tasks."run:plot-cut-off"]
 description = "Run the cut-off plotting"
-run = "rye run vdd-plot-cut-off"
-sources = ["./src/vdd/plotting/cut_off.py"]
+run = "uv run vdd-plot-cut-off"
+sources = ["src/vdd/plotting/cut_off.py"]
 outputs = [
-  "./generated_files/cut_off/ob16-month_resp_temp-so2_combined.pdf", # Fig 6
-  "./generated_files/cut_off/cesm2-S26_resp_temp-so2_combined.pdf",  # Fig 7
+  "generated_files/cut_off/ob16-month_resp_temp-so2_combined.pdf", # Fig 6
+  "generated_files/cut_off/cesm2-S26_resp_temp-so2_combined.pdf",  # Fig 7
 ]
 
 [tasks."run:plot-reconstruction"]
 description = "Run the reconstruction plotting"
-run = "rye run vdd-plot-reconstruction"
-sources = ["./src/vdd/plotting/reconstruction.py"]
+run = "uv run vdd-plot-reconstruction"
+sources = ["src/vdd/plotting/reconstruction.py"]
 outputs = [
-  "./generated_files/reconstruction/compare-historical-size-temp-reconstructed.pdf",                 # Fig 8
-  "./generated_files/reconstruction/compare-historical-size-peak-difference-pdf.pdf",                # Fig 9
-  "./generated_files/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf", # Fig 10
+  "generated_files/reconstruction/compare-historical-size-temp-reconstructed.pdf",                 # Fig 8
+  "generated_files/reconstruction/compare-historical-size-peak-difference-pdf.pdf",                # Fig 9
+  "generated_files/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf", # Fig 10
 ]
 
 [tasks."run:plot-extra-reff"]
 description = "Run the aerosol effective radius plotting"
-run = "rye run vdd-plot-extra-reff"
-sources = ["./src/vdd/plotting/double_eruption_reff_oh_so2.py"]
+run = "uv run vdd-plot-extra-reff"
+sources = ["src/vdd/plotting/double_eruption_reff_oh_so2.py"]
 outputs = [
-  "./generated_files/extra-attrs/reff.pdf", # Fig 11
+  "generated_files/extra-attrs/reff.pdf", # Fig 11
 ]
 
 [tasks."run:plot-simulations"]
 description = "Run the simulations overview plotting"
-run = "rye run vdd-plot-simulations"
-sources = ["./src/vdd/plotting/simulations_overview.py"]
-outputs = ["./generated_files/simulation_timeline.pdf"]  # Fig A1
+run = "uv run vdd-plot-simulations"
+sources = ["src/vdd/plotting/simulations_overview.py"]
+outputs = ["generated_files/simulation_timeline.pdf"]  # Fig A1

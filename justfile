@@ -8,7 +8,7 @@ alias default := run
 list:
     just --list
 
-# Set up the environment with Rye
+# Set up the environment
 [unix]
 build:
     mise run --timings setup:unix
