@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.0.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.2.1...volcano-data-deconvolution-v2.0.0) (2024-12-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* make deconv grayscale plot much more usable/flexible
+
+### Miscellaneous
+
+* **figure:** make lines thicker in double waveform check ([3d5ad91](https://github.com/engeir/volcano-data-deconvolution/commit/3d5ad919e9d4e876f4899e5eb37366b9c5666d97))
+
+
+### Code Refactoring
+
+* make deconv grayscale plot much more usable/flexible ([6e16406](https://github.com/engeir/volcano-data-deconvolution/commit/6e164068ed34875828c88dbb12953b702d99d1e0))
+
+
+### Build System
+
+* **python:** move form rye to uv ([954373c](https://github.com/engeir/volcano-data-deconvolution/commit/954373c4ee999c0cb05d5e712878480a88ca29a3))
+
 ## [1.2.1](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.2.0...volcano-data-deconvolution-v1.2.1) (2024-09-13)
 
 
