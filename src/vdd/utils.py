@@ -184,7 +184,7 @@ class FigureGrid:
 def figure_multiple_rows_columns(
     rows: int,
     columns: int,
-    share_axes: Literal["x", "y", "both"],
+    share_axes: Literal["x", "y", "both"] | None = None,
     *,
     columns_first: bool = False,
 ) -> tuple[mpl.figure.Figure, list[mpl.axes.Axes]]:
@@ -196,7 +196,7 @@ def figure_multiple_rows_columns(
         The number of rows in the figure
     columns : int
         The number of columns in the figure
-    share_axes : Literal["x", "y", "both"]
+    share_axes : Literal["x", "y", "both"] | None
         Share the axes in the figure. Defaults to not sharing.
     columns_first : bool
         If the labels should be placed in a columns-first order. Default is `False`.
@@ -249,7 +249,7 @@ def combine(*files: str | pathlib.Path) -> cosmoplots.Combine:
     return cosmoplots.combine(*files).using(fontsize=8)
 
 
-def s2n(num: float, decimal: int = 2) -> str:
+def n2sci(num: float, decimal: int = 2) -> str:
     """Convert a number to scientific notation."""
     return f"\\num{{{num:.{decimal}e}}}"
 

@@ -1,5 +1,6 @@
 """Plot the deconvolution comparison between OB16 and CESM2."""
 
+import pathlib
 from typing import Self
 
 import matplotlib as mpl
@@ -188,8 +189,10 @@ class PlotResponseFunctions:
     def plot_grayscale_highlight(
         fig: mpl.figure.Figure | None = None,
         save_as: str = "temp-so2-gs",
+        save_path: pathlib.Path | None = None,
     ) -> mpl.figure.Figure:
         """Plot the temperature to SO2 response functions with a grayscale highlight."""
+        save_path = save_path or _SAVE_DIR
         rows = 4
         cols = 2
         match fig:
@@ -210,7 +213,7 @@ class PlotResponseFunctions:
                     ax.set_ylabel(f"$\\varphi_{{{sub}}} / \\max\\varphi_{{{sub}}}$")
                     ax.legend()
                 new_deconv = "-alternative_deconv" if _USE_NEW_DECONV else ""
-                fig.savefig(_SAVE_DIR / f"{save_as}{new_deconv}")
+                fig.savefig(save_path / f"{save_as}{new_deconv}")
                 return fig
             case _:
                 raise ValueError
@@ -224,42 +227,39 @@ class PlotResponseFunctions:
             strict=True,
         ):
             for i, ax in enumerate(ax_list):
-                i_ = i
-                self._grayscale_plot(ax, res_name, i_)
+                i_ = i + 1
+                self.grayscale_plot(ax, res_name, i_)
 
-    def _grayscale_plot(self: Self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:  # noqa: C901
-        for dec in self.decs:
+    def grayscale_plot(self: Self, ax: mpl.axes.Axes, res_name: str, i_: int) -> None:
+        """Compare several to the first `dec` given to `self.decs`.
+
+        Parameters
+        ----------
+        ax : mpl.axes.Axes
+            The axis to use when plotting.
+        res_name : str
+            The parameter to find the response to, e.g. 'temp' or 'rf'.
+        i_ : int
+            The `dec` to highlight (in red), other than the first `dec` (which is always
+            plotted in black).
+        """
+        clr = "r"
+        for i, dec in enumerate(self.decs):
             name = ns(dec.name)
-            clr = "r"
             name = name.replace("CESM2 ", "").upper()
             response = -1 * getattr(dec, f"response_{res_name}_so2")
             # Effectively a min-max feature scaling
             # https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min-max_normalization)
             scale = max(response, key=abs)
             arr = response / scale
-            lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.s2n(scale)})"
+            lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.n2sci(scale)})"
             kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
-            match i_, name:
-                case _, "OB16":
-                    ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
-                case 0, "S26":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 1, "S400":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 2, "S1629":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 3, "S3000":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 4, "S26-2SEP":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 5, "S26-4SEP":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 6, "S400-2SEP":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case 7, "S400-4SEP":
-                    ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
-                case _:
-                    ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
+            if i == 0:
+                ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
+            elif i_ == i:
+                ax.plot(dec.tau, arr, **kwargs)  # type: ignore[arg-type]
+            else:
+                ax.plot(dec.tau, arr, label=f"_{lab}", c="gray", lw=0.5)
 
     def run(self: Self, save_as: list[str] | None = None) -> None:
         """Run the class."""
