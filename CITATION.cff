@@ -4,7 +4,7 @@ authors:
 - family-names: Enger
   given-names: Eirik Rolland
   orcid: https://orcid.org/0000-0001-6709-8688
-title: Accompanying code to 'Temperature response to volcanic forcing'
+title: Accompanying code to 'Non-parametric estimation of temperature response to volcanic forcing'
 version: volcano-data-deconvolution-v2.0.0  # x-release-please-version
 # date-released: 2024-06-03
 identifiers:

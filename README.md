@@ -1,4 +1,4 @@
-# Accompanying code to 'Temperature response to volcanic forcing'
+# Accompanying code to 'Non-parametric estimation of temperature response to volcanic forcing'
 
 [![DOI](https://zenodo.org/badge/742292778.svg)](https://zenodo.org/badge/latestdoi/742292778)
 
