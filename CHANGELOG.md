@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.0.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.2.1...volcano-data-deconvolution-v2.0.0) (2025-02-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* make deconv grayscale plot much more usable/flexible
+
+### Features
+
+* **review:** update plots for review 1 of the paper ([1f2bf2e](https://github.com/engeir/volcano-data-deconvolution/commit/1f2bf2eb8f2236f43a40b27015e65bfffbe550b3))
+
+
+### Miscellaneous
+
+* **figure:** make lines thicker in double waveform check ([3d5ad91](https://github.com/engeir/volcano-data-deconvolution/commit/3d5ad919e9d4e876f4899e5eb37366b9c5666d97))
+
+
+### Code Refactoring
+
+* make deconv grayscale plot much more usable/flexible ([6e16406](https://github.com/engeir/volcano-data-deconvolution/commit/6e164068ed34875828c88dbb12953b702d99d1e0))
+
+
+### Tests
+
+* **ci:** update workflow to run tests with uv ([e55abc3](https://github.com/engeir/volcano-data-deconvolution/commit/e55abc329e22e1e4fd73095f4f6bc86c245c6196))
+
+
+### Build System
+
+* **python:** move form rye to uv ([954373c](https://github.com/engeir/volcano-data-deconvolution/commit/954373c4ee999c0cb05d5e712878480a88ca29a3))
+
+
+### Documentation
+
+* **README:** add latest plots as scripts and adjust mise task name ([4db8cda](https://github.com/engeir/volcano-data-deconvolution/commit/4db8cdaba79079391d9780aba239abc0933c341a))
+
 ## [1.2.1](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.2.0...volcano-data-deconvolution-v1.2.1) (2024-09-13)
 
 
