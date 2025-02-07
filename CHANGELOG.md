@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v2.0.0...volcano-data-deconvolution-v2.0.1) (2025-02-07)
+
+
+### Documentation
+
+* **title:** update the title of the paper ([5f5dfa7](https://github.com/engeir/volcano-data-deconvolution/commit/5f5dfa720d7474fd81b1ea92e631660db3be2750))
+
 ## [2.0.0](https://github.com/engeir/volcano-data-deconvolution/compare/volcano-data-deconvolution-v1.2.1...volcano-data-deconvolution-v2.0.0) (2025-02-07)
 
 
