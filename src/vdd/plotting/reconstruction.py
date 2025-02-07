@@ -356,9 +356,7 @@ class PlotReconstruction:
             label="$T_{\\text{CONTROL}}$",
         )
         ax.plot(time_, -1 * temp.data, c=COLORS[0], label="$T_{\\text{OB16}}$")
-        l_so2 = (
-            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
-        )
+        l_so2 = f"$\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(time_, -1 * self.rec_temp_so2, c=COLORS[2], label=l_so2)
         xlim = (
             vdd.utils.d2n(datetime.datetime(1250, 1, 1, 0, 0, tzinfo=datetime.UTC)),
@@ -392,9 +390,7 @@ class PlotReconstruction:
         rprint(f"[bold]Lag 0 correlation[/bold]: {np.max(corr_ctrl) =:.4f}")
         ax.plot(corr_ctrl_time, corr_ctrl, c=COLORS[1], label="$T_{\\text{CONTROL}}$")
         ax.plot(corr_self_time, corr_self, c=COLORS[0], label="$T_{\\text{OB16}}$")
-        l_so2 = (
-            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
-        )
+        l_so2 = f"$\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(corr_so2_time, corr_so2, c=COLORS[2], label=l_so2)
         ax.set_xlim((-100, 100))
         ax.set_xlabel("Time lag [yr]")
@@ -442,17 +438,15 @@ class PlotReconstruction:
             label="$T_{\\text{CONTROL}}$",
         )
         ax.plot(f_orig, p_orig, c=COLORS[0], label="$T_{\\text{OB16}}$")
-        lrec = (
-            f"$\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
-        )
+        lrec = f"$\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(f_so2_rec, p_so2_rec, c=COLORS[2], label=lrec)
-        lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
+        lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax.plot(f_so2_res, p_so2_res, c=COLORS[4], label=lresidual)
         ax.plot(
             f_so2,
             p_so2,
             c=COLORS[3],
-            label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}$",
+            label=f"$\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}$",
         )
         return self._plot_power(ax, "Frequency [yr$^{-1}$]")
 
@@ -464,7 +458,7 @@ class PlotReconstruction:
         ax.plot(
             f_so2,
             p_so2,
-            label=f"$\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}$",
+            label=f"$\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}$",
             alpha=0.5,
         )
         ax.plot(f_control, p_control, label="$T_{\\text{CONTROL}}$", alpha=0.5)
@@ -593,7 +587,7 @@ class PlotReconstruction:
             label=f"$T_{{\\text{{CONTROL}}}}$ (p-value: {txt[1]:.4f})",
             **kw,  # type: ignore[arg-type]
         )
-        lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
+        lresidual = f"$T_{{\\text{{OB16}}}}-\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}}$"
         ax3.bar(
             b_so2,
             f_s,
@@ -685,7 +679,7 @@ class PlotReconstruction:
             s=3,
             c=COLORS[4],
             zorder=5,
-            label=f"$(\\varphi_{{T}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})^{{\\dagger}}-T_{{\\text{{OB16}}}}^{{\\dagger}}$",
+            label=f"$(\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})^{{\\dagger}}-T_{{\\text{{OB16}}}}^{{\\dagger}}$",
         )
         ax.plot(bc_sx + norm_rf / norm, norm_rf / norm - bc_sy, c=COLORS[1])
         ax.plot(bs_sx + norm_so2 / norm, norm_so2 / norm - bs_sy, c=COLORS[4])
@@ -700,7 +694,7 @@ class PlotReconstruction:
         )
         ax.set_xlabel(r"$T_{\text{OB16}}^{\dagger}$ [K]")
         ax.set_ylabel(
-            f"$(\\varphi_T^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})^{{\\dagger}}$ [K]",
+            f"$(\\varphi_{{T,7}}^{{\\text{{{self._get_name()}}}}}\\ast S_{{\\text{{OB16}}}})^{{\\dagger}}$ [K]",
         )
         ax.legend(loc="lower right")
         return ax

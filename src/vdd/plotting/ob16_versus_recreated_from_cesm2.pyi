@@ -2,6 +2,7 @@ from _typeshed import Incomplete as Incomplete
 
 ob16_month: Incomplete
 dec_ob16_month: Incomplete
+padding: Incomplete
 cesm_e: Incomplete
 cesm_s: Incomplete
 cesm_p: Incomplete

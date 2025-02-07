@@ -108,7 +108,7 @@ class PlotResponseFunctions:
                 ax.set_xlim(rf_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 response [1]",
+                    f"{'Normalised ' if self.norm else ''}RF to {'\n' if self.norm else ''}SO2 response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
@@ -131,7 +131,7 @@ class PlotResponseFunctions:
                 ax.set_xlim(rf_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised " if self.norm else ""}RF to {"\n" if self.norm else ""}SO2 burden response [1]",
+                    f"{'Normalised ' if self.norm else ''}RF to {'\n' if self.norm else ''}SO2 burden response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
@@ -154,7 +154,7 @@ class PlotResponseFunctions:
                 ax.set_xlim(temp_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}SO2 response [1]",
+                    f"{'Normalised t' if self.norm else 'T'}emperature to {'\n' if self.norm else ''}SO2 response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
@@ -177,7 +177,7 @@ class PlotResponseFunctions:
                 ax.set_xlim(temp_xlim)
                 ax.set_xlabel("Time lag [yr]")
                 ax.set_ylabel(
-                    f"{"Normalised t" if self.norm else "T"}emperature to {"\n" if self.norm else ""}RF response [1]",
+                    f"{'Normalised t' if self.norm else 'T'}emperature to {'\n' if self.norm else ''}RF response [1]",
                 )
                 ax.legend()
                 # fig.savefig(_SAVE_DIR / f"{save_as}-{"norm" if self.norm else "abs"}")
@@ -218,9 +218,10 @@ class PlotResponseFunctions:
             case _:
                 raise ValueError
 
-    def _norm_plot(
+    def norm_plot(
         self: Self, temp_so2_gs_a: list[mpl.axes.Axes], rf_so2_gs_a: list[mpl.axes.Axes]
     ) -> None:
+        """Plot normalised data."""
         for ax_list, res_name in zip(
             [temp_so2_gs_a, rf_so2_gs_a],
             ["temp", "rf"],
@@ -252,7 +253,7 @@ class PlotResponseFunctions:
             # https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min-max_normalization)
             scale = max(response, key=abs)
             arr = response / scale
-            lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}}$ ({vdd.utils.n2sci(scale)})"
+            lab = f"$\\varphi_{{{res_name[0].upper()}}}^{{\\text{{{name}}}}} ({vdd.utils.n2sci(scale)})$"
             kwargs = {"c": clr, "zorder": 10, "label": lab, "lw": 1}
             if i == 0:
                 ax.plot(dec.tau, arr, label=lab, c="k", zorder=5, lw=1)
@@ -296,7 +297,7 @@ class PlotResponseFunctions:
         #     temp_so2.gca().plot(dec.tau, temp_so2_resp, label=ns(dec.name))
         #     temp_rf.gca().plot(dec.tau, temp_rf_resp, label=ns(dec.name))
         if self.norm:
-            self._norm_plot(temp_so2_gs.get_axes(), rf_so2_gs.get_axes())
+            self.norm_plot(temp_so2_gs.get_axes(), rf_so2_gs.get_axes())
         save_as = save_as or [
             "rf-so2",
             "rf-so2_decay",

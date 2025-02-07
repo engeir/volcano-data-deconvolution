@@ -254,8 +254,32 @@ def n2sci(num: float, decimal: int = 2) -> str:
     return f"\\num{{{num:.{decimal}e}}}"
 
 
-def d2n(date: datetime.datetime) -> float:
-    """Convert a datetime to a number, using 2000-01-01 as the reference date."""
+def d2n(date: datetime.datetime | str) -> float:
+    """Convert a datetime to a number, using 2000-01-01 as the reference date.
+
+    Parameters
+    ----------
+    date : datetime.datetime | str
+        If a string, it must be on the format `YYYY-MM-DD`, otherwise use a
+        `datetime.datetime` object.
+
+    Returns
+    -------
+    float
+        A floating point representation of the date.
+
+    Raises
+    ------
+    ValueError
+        If the string format is not recognised.
+    """
+    if isinstance(date, str):
+        date_fmt = 3
+        if len(out := date.split("-")) != date_fmt:
+            msg = "The datetime to float function expect strings as YYYY-MM-DD."
+            raise ValueError(msg)
+        y, m, d = int(out[0]), int(out[1]), int(out[2])
+        date = datetime.datetime(y, m, d, 0, 0, tzinfo=datetime.UTC)
     unit = "days since 2000-01-01"
     return cftime.date2num(date, units=unit, calendar="noleap", has_year_zero=True)
 

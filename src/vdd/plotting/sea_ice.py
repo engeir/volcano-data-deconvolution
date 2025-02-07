@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import volcano_base
+import xarray as xr
 
 from vdd.utils import name_swap as ns
 
@@ -66,11 +67,26 @@ def plot_sea_ice() -> None:
         arrs_: volcano_base.load.FindFiles = new.copy().keep(new_)
         if len(arrs_) > 1:
             large_ens = 4
-            arrs_.remove("ens1" if len(arrs_) >= large_ens else "ens0")
+            arrs_.remove(*["ens1"] if len(arrs_) >= large_ens else "ens0")
         print(arrs_)
         arr_ = arrs_.load()
-        arr_ = volcano_base.manipulate.shift_arrays(arr_, daily=False)
         arr_ = volcano_base.manipulate.mean_flatten(arr_, dims=["lat", "lon"])
+        if new_ == "control":
+            ctrl = arr_[0]
+
+        def sub(the_array: xr.DataArray) -> xr.DataArray:
+            tmp = (
+                volcano_base.manipulate.subtract_climatology(
+                    the_array,
+                    ctrl,  # noqa: B023
+                    groupby="time.month",
+                )[0]
+                + ctrl.data.mean()  # noqa: B023
+            )
+            return tmp.assign_attrs(the_array.attrs)
+
+        arr_ = volcano_base.manipulate.data_array_operation(arr_, sub)
+        arr_ = volcano_base.manipulate.shift_arrays(arr_, daily=False)
         arr = volcano_base.manipulate.get_median(arr_, xarray=True)
         arr = volcano_base.manipulate.weighted_year_avg(arr)[:20]
         arr = arr.assign_coords(

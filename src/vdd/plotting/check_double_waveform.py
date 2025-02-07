@@ -145,6 +145,7 @@ class CheckRecreatedWaveforms:
             [self.axs[i].set_ylabel("$A$ [1]") for i in self.keys["aod"]]
             [self.axs[i].set_ylabel("$R$ [W/m$^2$]") for i in self.keys["rf"]]
         [self.axs[i].set_ylabel("$T$ [K]") for i in self.keys["temp"]]
+        [ax.yaxis.set_label_coords(-0.15, 0.5) for ax in self.axs]  # type: ignore[func-returns-value]
         corrected = f"-aod-{self.scale_by_aod}-corrected" if self.scale_by_aod else ""
         base = "S26" if "medium" in self.decs[0].name else "S400"
         if return_:

@@ -5,6 +5,7 @@ routines to plot the cut-off in a nice way.
 """
 
 import datetime
+import pathlib
 from typing import Self
 
 import cftime
@@ -51,14 +52,20 @@ class PlotCutOff:
                 for co in self.cut_offs:
                     getattr(co, method)(arg1)
 
-    def plot(self: Self) -> None:
+    def plot(self: Self, save_path: pathlib.Path | None = None) -> None:
         """Plot the results of the CutOff class.
+
+        Parameters
+        ----------
+        save_path : pathlib.Path | None
+            The directory to where the file should be saved.
 
         Raises
         ------
         ValueError
             If no cuts have been made in the CutOff objects.
         """
+        save_path = save_path or _SAVE_DIR
         for co in self.cut_offs:
             fig, _ = vdd.utils.figure_multiple_rows_columns(
                 len(co.cuts),
@@ -75,7 +82,7 @@ class PlotCutOff:
             ts = vdd.utils.name_swap(
                 vdd.utils.clean_filename("-".join(co.ts_specifier)),
             )
-            fig.savefig(_SAVE_DIR / f"{name}_resp_{ts}_combined")
+            fig.savefig(save_path / f"{name}_resp_{ts}_combined")
 
     @staticmethod
     def _plot_single(fig: mpl.figure.Figure, co: vdd.load.CutOff) -> mpl.figure.Figure:

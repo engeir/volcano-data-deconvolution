@@ -3,6 +3,7 @@ from _typeshed import Incomplete as Incomplete
 
 DataCESM = vdd.load.CESMData
 DecCESM = vdd.load.DeconvolveCESM
+padding: Incomplete
 dec_cesm_4sep: Incomplete
 dec_cesm_2sep: Incomplete
 dec_cesm_m4: Incomplete
