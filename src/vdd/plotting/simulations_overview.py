@@ -84,8 +84,8 @@ def _create_all_eruptions(ax: Axes, *, include_double: bool) -> None:
 
 def gantt() -> None:  # noqa: PLR0915
     """Create a Gantt chart of the simulation timeline."""
-    sim_end = 2 + 1 / 12  # Used for paper 1.
-    # sim_end = 5 + 1 / 12  # Used for paper 2.
+    # sim_end = 2 + 1 / 12  # Used for paper 1.
+    sim_end = 5 + 1 / 12  # Used for paper 2.
     long_sims = 4
     small_c = _COLORS[0]
     intermediate_c = _COLORS[1]

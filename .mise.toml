@@ -17,9 +17,9 @@ run = "curl -LsSf https://astral.sh/uv/install.sh | sh"
 description = "Set up the environment with Uv"
 run = 'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
 
-[tasks.run]
+[tasks.plot]
 description = "Run all plotting recipes"
-depends = ["sync", "run:*"]
+depends = ["sync", "plot:*"]
 
 [tasks.copy]
 description = "Move generated files over to the latex project"
@@ -47,7 +47,7 @@ run = "uv sync"
 sources = ["pyproject.toml"]
 outputs = [".venv/*"]
 
-[tasks."run:plot-response"]
+[tasks."plot:response"]
 description = "Run the response functions plotting"
 run = "uv run vdd-plot-response"
 sources = ["src/vdd/plotting/deconv_ob16_cesm2.py"]
@@ -56,13 +56,13 @@ outputs = [
   "generated_files/deconv_ob16_cesm2/rf-so2-gs.pdf",   # Fig 2
 ]
 
-[tasks."run:plot-sea-ice"]
+[tasks."plot:sea-ice"]
 description = "Run the sea-ice plotting"
 run = "uv run vdd-plot-sea-ice"
 sources = ["src/vdd/plotting/sea_ice.py"]
 outputs = ["generated_files/sea-ice/sea-ice.pdf"] # Fig 3
 
-[tasks."run:plot-double-waveform"]
+[tasks."plot:double-waveform"]
 description = "Run the double waveforms plotting"
 run = "uv run vdd-plot-double-waveform"
 sources = ["src/vdd/plotting/check_double_waveform.py"]
@@ -71,7 +71,7 @@ outputs = [
   "generated_files/waveform/responses_combined_S26.pdf",  # Fig 5
 ]
 
-[tasks."run:plot-cut-off"]
+[tasks."plot:cut-off"]
 description = "Run the cut-off plotting"
 run = "uv run vdd-plot-cut-off"
 sources = ["src/vdd/plotting/cut_off.py"]
@@ -80,7 +80,7 @@ outputs = [
   "generated_files/cut_off/cesm2-S26_resp_temp-so2_combined.pdf",  # Fig 7
 ]
 
-[tasks."run:plot-reconstruction"]
+[tasks."plot:reconstruction"]
 description = "Run the reconstruction plotting"
 run = "uv run vdd-plot-reconstruction"
 sources = ["src/vdd/plotting/reconstruction.py"]
@@ -90,7 +90,7 @@ outputs = [
   "generated_files/reconstruction/compare-historical-size-correlation-residual-reconstructed.pdf", # Fig 10
 ]
 
-[tasks."run:plot-extra-reff"]
+[tasks."plot:extra-reff"]
 description = "Run the aerosol effective radius plotting"
 run = "uv run vdd-plot-extra-reff"
 sources = ["src/vdd/plotting/double_eruption_reff_oh_so2.py"]
@@ -98,7 +98,13 @@ outputs = [
   "generated_files/extra-attrs/reff.pdf", # Fig 11
 ]
 
-[tasks."run:plot-simulations"]
+[tasks."plot:ob16-classification"]
+description = "Run the simulations overview plotting"
+run = "uv run vdd-plot-ob16-classification"
+sources = ["src/vdd/plotting/ob16_waiting_times_and_size.py"]
+outputs = ["generated_files/ob16-so2-info/so2-peak-info.pdf"] # Fig B1
+
+[tasks."plot:simulations"]
 description = "Run the simulations overview plotting"
 run = "uv run vdd-plot-simulations"
 sources = ["src/vdd/plotting/simulations_overview.py"]

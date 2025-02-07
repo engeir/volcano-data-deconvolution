@@ -65,7 +65,7 @@ uv run python ./src/vdd/plotting/some_plotting_script.py
 > And again, if you use mise, you can do
 >
 > ```bash
-> mise run run
+> mise run plot
 > ```
 >
 > and it will magically just work.
